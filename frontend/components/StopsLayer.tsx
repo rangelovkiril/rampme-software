@@ -11,7 +11,7 @@ interface Stop {
   stop_lon: number
 }
 
-const MIN_ZOOM_FOR_STOPS = 14
+const MIN_ZOOM_FOR_STOPS = 13
 
 function createStopIcon() {
   return L.divIcon({
@@ -35,14 +35,14 @@ export default function StopsLayer() {
   const map = useMap()
   const [stops, setStops] = useState<Stop[]>([])
   const groupRef = useRef<L.LayerGroup | null>(null)
-  const [_revision, setRevision] = useState(0)
+  const [revision, setRevision] = useState(0)
   const iconRef = useRef<L.DivIcon | null>(null)
 
   // Fetch stops once
   useEffect(() => {
     fetch('/api/stops')
-      .then((r) => r.json())
-      .then((data: Stop[]) => setStops(data.filter(isValidCoord)))
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: Stop[]) => setStops((Array.isArray(data) ? data : []).filter(isValidCoord)))
       .catch(() => {})
   }, [])
 
@@ -91,7 +91,7 @@ export default function StopsLayer() {
     }
 
     group.addTo(map)
-  }, [stops, map])
+  }, [stops, map, revision])
 
   return null
 }
