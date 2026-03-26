@@ -1,33 +1,27 @@
-'use client'
+"use client";
 
 interface FloatingNavProps {
-  activePanel: string | null
-  onTogglePanel: (name: string) => void
+  activePanel: string | null;
+  onTogglePanel: (name: string) => void;
 }
 
-/**
- * Renders a fixed, centered floating navigation bar with three pill buttons for Alerts, Routes, and Stops.
- *
- * The active pill is determined by `activePanel`; clicking a pill calls `onTogglePanel` with that panel's name.
- *
- * @param activePanel - The name of the currently active panel (`'alerts' | 'routes' | 'stops'`) or `null` if none is active
- * @param onTogglePanel - Callback invoked with the panel name when a pill is clicked
- * @returns A JSX element containing the floating navigation bar with three interactive pills
- */
-export default function FloatingNav({ activePanel, onTogglePanel }: FloatingNavProps) {
+export default function FloatingNav({
+  activePanel,
+  onTogglePanel,
+}: FloatingNavProps) {
   return (
     <div className="fixed top-4 left-1/2 z-[800] -translate-x-1/2">
       <nav
         className="flex items-center gap-1 rounded-2xl px-1.5 py-1.5 backdrop-blur-xl"
         style={{
-          background: 'var(--surface-overlay)',
-          boxShadow: 'var(--shadow-lg)',
-          border: '1px solid var(--border)'
+          background: "var(--surface-overlay)",
+          boxShadow: "var(--shadow-lg)",
+          border: "1px solid var(--border)",
         }}
       >
         <NavPill
-          active={activePanel === 'alerts'}
-          onClick={() => onTogglePanel('alerts')}
+          active={activePanel === "alerts"}
+          onClick={() => onTogglePanel("alerts")}
           icon={
             <svg
               width="16"
@@ -46,8 +40,8 @@ export default function FloatingNav({ activePanel, onTogglePanel }: FloatingNavP
           label="Известия"
         />
         <NavPill
-          active={activePanel === 'routes'}
-          onClick={() => onTogglePanel('routes')}
+          active={activePanel === "routes"}
+          onClick={() => onTogglePanel("routes")}
           icon={
             <svg
               width="16"
@@ -67,8 +61,8 @@ export default function FloatingNav({ activePanel, onTogglePanel }: FloatingNavP
           label="Линии"
         />
         <NavPill
-          active={activePanel === 'stops'}
-          onClick={() => onTogglePanel('stops')}
+          active={activePanel === "stops"}
+          onClick={() => onTogglePanel("stops")}
           icon={
             <svg
               width="16"
@@ -88,40 +82,19 @@ export default function FloatingNav({ activePanel, onTogglePanel }: FloatingNavP
         />
       </nav>
     </div>
-  )
+  );
 }
 
-/**
- * Render a pill-shaped navigation button for the floating navigation bar.
- *
- * @param active - Whether the pill is visually active; controls background and text color
- * @param onClick - Callback invoked when the pill is clicked
- * @param icon - Icon element displayed to the left of the label
- * @param label - Text label shown inside the pill (hidden on small screens)
- * @returns The JSX button element representing the navigation pill
- */
 function NavPill({
   active,
   onClick,
   icon,
-  label
+  label,
 }: {
-  active: boolean
-  onClick: () => void
-  icon: React.ReactNode
-  label: string
-}) {
-  return (
-function NavPill({
-  active,
-  onClick,
-  icon,
-  label
-}: {
-  active: boolean
-  onClick: () => void
-  icon: React.ReactNode
-  label: string
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
 }) {
   return (
     <button
@@ -131,14 +104,12 @@ function NavPill({
       aria-pressed={active}
       className="flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 font-medium text-[13px] transition-all"
       style={{
-        background: active ? 'var(--primary)' : 'transparent',
-        color: active ? '#fff' : 'var(--text-secondary)'
+        background: active ? "var(--primary)" : "transparent",
+        color: active ? "#fff" : "var(--text-secondary)",
       }}
     >
       <span aria-hidden="true">{icon}</span>
       <span className="hidden sm:inline">{label}</span>
     </button>
-  )
-}
-  )
+  );
 }
