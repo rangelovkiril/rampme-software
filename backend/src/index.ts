@@ -279,6 +279,37 @@ const app = new Elysia()
   )
 
   .get(
+    '/routes/shapes',
+    ({ query }) => {
+      const data = gtfs
+      if (!data) return GTFS_NOT_READY()
+      try {
+        const ids = (query.ids ?? '').split(',').filter(Boolean)
+        if (ids.length === 0) return jsonError('Missing ids query parameter', 400)
+        if (ids.length > 50) return jsonError('Too many route IDs (max 50)', 400)
+
+        const result: Record<string, { route_type: number; polylines: [number, number][][] }> = {}
+        for (const id of ids) {
+          const route = data.routes.get(id)
+          const polylines = data.shapesByRoute.get(id)
+          if (route && polylines) {
+            result[id] = { route_type: route.route_type, polylines }
+          }
+        }
+        return result
+      } catch (e) {
+        return jsonError(`Failed to retrieve shapes: ${e}`, 500)
+      }
+    },
+    {
+      query: t.Object({
+        ids: t.Optional(t.String()),
+      }),
+      detail: { tags: ['Routes'], summary: 'Batch route shapes by IDs' },
+    },
+  )
+
+  .get(
     '/realtime/trip-updates',
     async () => {
       try {
