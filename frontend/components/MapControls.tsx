@@ -7,6 +7,7 @@ interface MapControlsProps {
   onToggleTheme: () => void
   tracking: boolean
   onToggleTracking: () => void
+  liftLocate?: boolean
 }
 
 /**
@@ -22,7 +23,8 @@ export default function MapControls({
   dark,
   onToggleTheme,
   tracking,
-  onToggleTracking
+  onToggleTracking,
+  liftLocate = false
 }: MapControlsProps) {
   const map = useMap()
 
@@ -103,6 +105,7 @@ export default function MapControls({
         onClick={onToggleTracking}
         title={tracking ? 'Stop tracking' : 'Track my location'}
         active={tracking}
+        className={`transition-transform duration-300 ${liftLocate ? 'locate-btn-lift' : ''}`}
       >
         <svg
           width="16"
@@ -136,18 +139,20 @@ function ControlButton({
   onClick,
   title,
   children,
-  active = false
+  active = false,
+  className = ''
 }: {
   onClick: () => void
   title: string
   children: React.ReactNode
   active?: boolean
+  className?: string
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
-      className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl transition-all active:scale-95"
+      className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl transition-all active:scale-95 ${className}`}
       style={{
         background: active ? '#3b82f6' : 'var(--control-bg)',
         color: active ? '#ffffff' : 'var(--text-secondary)',

@@ -24,14 +24,10 @@ export default function LiveLocation({ active }: { active: boolean }) {
 
   useEffect(() => {
     if (!active) {
-      // Clean up when deactivated
+      // Stop tracking but keep the last known location marker visible.
       if (watchRef.current !== null) {
         navigator.geolocation.clearWatch(watchRef.current)
         watchRef.current = null
-      }
-      if (dotRef.current) {
-        map.removeLayer(dotRef.current)
-        dotRef.current = null
       }
       if (pulseRef.current) {
         map.removeLayer(pulseRef.current)
@@ -108,6 +104,15 @@ export default function LiveLocation({ active }: { active: boolean }) {
         navigator.geolocation.clearWatch(watchRef.current)
         watchRef.current = null
       }
+    }
+  }, [active, map])
+
+  useEffect(() => {
+    return () => {
+      if (watchRef.current !== null) {
+        navigator.geolocation.clearWatch(watchRef.current)
+        watchRef.current = null
+      }
       if (dotRef.current) {
         map.removeLayer(dotRef.current)
         dotRef.current = null
@@ -122,7 +127,7 @@ export default function LiveLocation({ active }: { active: boolean }) {
       }
       firstFixRef.current = true
     }
-  }, [active, map])
+  }, [map])
 
   return null
 }

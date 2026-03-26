@@ -76,3 +76,9 @@ body {
   50% { opacity: 0.15; stroke-width: 3; }
   100% { opacity: 0.5; stroke-width: 1.5; }
 }
+
+@media (max-width: 640px) {
+  .locate-btn-lift {
+    transform: translateY(calc(-54vh - 20px));
+  }
+}
