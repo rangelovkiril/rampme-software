@@ -58,11 +58,7 @@ body {
 .leaflet-control-zoom,
 .leaflet-control-attribution {
   display: none !important;
-}
 
-/* Boost nature/green visibility on map tiles */
-.leaflet-tile-pane {
-  filter: saturate(1.6) contrast(1.03);
 }
 
 .dark .leaflet-tile-pane {
