@@ -13,10 +13,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="bg" className="h-full antialiased">
-      <body className="h-full overflow-hidden bg-surface text-on-surface font-sans">
-        {children}
-      </body>
+    <html lang="bg" className="h-full antialiased" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var d=document.documentElement;var t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme:dark)').matches)){d.classList.add('dark')}else{d.classList.remove('dark')}}catch(e){}})()`,
+          }}
+        />
+      </head>
+      <body className="h-full overflow-hidden font-sans">{children}</body>
     </html>
   )
 }
