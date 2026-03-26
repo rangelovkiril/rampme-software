@@ -3,21 +3,15 @@ interface CacheEntry<T> {
   fetchedAt: number
 }
 
-/**
- * Creates a time-to-live cache wrapper that serves cached values and coalesces concurrent fetches.
- *
- * @param ttlMs - Time-to-live in milliseconds after which a cached value is considered expired
- * @returns A function that accepts a `fetcher` and returns the cached value if fresh; otherwise it starts (or joins) a fetch and returns the fetched value. Concurrent callers while a fetch is in progress receive the same in-flight result.
- */
 export function createCache<T>(ttlMs: number) {
   let entry: CacheEntry<T> | null = null
-  let inflight: Promise<T> | null = null // 👈 добавено
+  let inflight: Promise<T> | null = null
 
   return async (fetcher: () => Promise<T>): Promise<T> => {
     if (entry && Date.now() - entry.fetchedAt < ttlMs) return entry.data
 
-    // Ако вече има текуща заявка, изчакай нея вместо да правиш нова
-    if (inflight) return inflight // 👈 добавено
+    // Deduplicate concurrent requests: reuse the in-flight promise if one exists
+    if (inflight) return inflight
 
     inflight = fetcher()
       .then((data) => {
@@ -26,7 +20,7 @@ export function createCache<T>(ttlMs: number) {
         return data
       })
       .catch((err) => {
-        inflight = null // При грешка — позволи retry
+        inflight = null
         throw err
       })
 

@@ -20,9 +20,6 @@ function gtfsReady() {
   if (!gtfs) return jsonError('GTFS data not yet loaded', 503)
 }
 
-/**
- * Loads static GTFS data and stores it in the module-level `gtfs` variable.
- */
 async function initGtfs() {
   try {
     gtfs = await fetchStaticGtfs()
@@ -33,8 +30,8 @@ async function initGtfs() {
   }
 }
 
-/** Взима суровите entities и ги обогатява с GTFS статика + локална БД */
-function enrichVehicles(entities: any[], data: GtfsData) {
+/** Enrich raw vehicle entities with GTFS static data and local DB extras */
+function enrichVehicles(entities: any[]) {
   return entities
     .filter((e) => e.vehicle?.position)
     .map((e) => {
@@ -63,20 +60,9 @@ const app = new Elysia()
   .use(swaggerPlugin)
   .use(cors())
 
-  // ── Stops ───────────────────────────────────────
-  .get(
-    '/stops',
-    () => {
-      const notReady = gtfsReady()
-      if (notReady) return notReady
-      try {
-        return [...gtfs!.stops.values()]
-      } catch (e) {
-        return jsonError(`Failed to retrieve stops: ${e}`, 500)
-      }
-    },
-    { detail: { tags: ['Stops'], summary: 'Всички спирки' } },
-  )
+  .get('/stops', () => [...gtfs.stops.values()], {
+    detail: { tags: ['Stops'], summary: 'All stops' },
+  })
 
   .get(
     '/stops/:id',
@@ -91,7 +77,7 @@ const app = new Elysia()
         return jsonError(`Failed to retrieve stop: ${e}`, 500)
       }
     },
-    { detail: { tags: ['Stops'], summary: 'Спирка по ID' } },
+    { detail: { tags: ['Stops'], summary: 'Stop by ID' } },
   )
 
   .get(
@@ -115,23 +101,12 @@ const app = new Elysia()
         return jsonError(`Vehicle positions unavailable: ${e}`, 502)
       }
     },
-    { detail: { tags: ['Stops'], summary: 'Активни возила по спирка' } },
+    { detail: { tags: ['Stops'], summary: 'Active vehicles serving a stop' } },
   )
 
-  // ── Routes ──────────────────────────────────────
-  .get(
-    '/routes',
-    () => {
-      const notReady = gtfsReady()
-      if (notReady) return notReady
-      try {
-        return [...gtfs!.routes.values()]
-      } catch (e) {
-        return jsonError(`Failed to retrieve routes: ${e}`, 500)
-      }
-    },
-    { detail: { tags: ['Routes'], summary: 'Всички маршрути' } },
-  )
+  .get('/routes', () => [...gtfs.routes.values()], {
+    detail: { tags: ['Routes'], summary: 'All routes' },
+  })
 
   .get(
     '/routes/:id',
@@ -154,7 +129,7 @@ const app = new Elysia()
         return jsonError(`Failed to retrieve route: ${e}`, 500)
       }
     },
-    { detail: { tags: ['Routes'], summary: 'Маршрут по ID с trips и спирки' } },
+    { detail: { tags: ['Routes'], summary: 'Route by ID with trips and stops' } },
   )
 
   .get(
@@ -198,14 +173,14 @@ const app = new Elysia()
       }),
       detail: {
         tags: ['Realtime'],
-        summary: 'Vehicle positions — обогатени и филтрирани',
+        summary: 'Vehicle positions with enrichment and filters',
       },
     },
   )
 
-  .listen(config.port)
-
 await initGtfs()
 setInterval(initGtfs, config.gtfs.refreshInterval)
 
-console.log(`🚌 GTFS server running at http://localhost:${app.server?.port}`)
+app.listen(config.port)
+
+console.log(`GTFS server running at http://localhost:${app.server?.port}`)
