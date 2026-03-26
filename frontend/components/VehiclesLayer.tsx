@@ -42,6 +42,14 @@ const VEHICLE_STYLES: Record<number, { color: string; label: string; svg: string
 
 const DEFAULT_STYLE = VEHICLE_STYLES[3]
 
+/**
+ * Create a Leaflet divIcon that visually represents a vehicle with a rotated heading and route label.
+ *
+ * @param bearing - Rotation in degrees applied to the vehicle SVG to indicate heading
+ * @param routeType - Numeric route type used to select the display style (color, label, SVG); falls back to the default style if unknown
+ * @param routeName - Text to display inside the colored route label pill above the icon
+ * @returns A Leaflet `divIcon` containing a colored route-name pill and a rotated SVG vehicle symbol matching the resolved route style
+ */
 function vehicleIcon(bearing: number, routeType: number, routeName: string) {
   const style = VEHICLE_STYLES[routeType] ?? DEFAULT_STYLE
   return L.divIcon({
@@ -59,6 +67,11 @@ function vehicleIcon(bearing: number, routeType: number, routeName: string) {
 
 const POLL_INTERVAL = 5_000
 
+/**
+ * Syncs real-time vehicle data from /api/realtime/vehicles to Leaflet markers on the current map.
+ *
+ * Polls the backend at a fixed interval and creates, updates, or removes markers and popups to reflect the latest vehicle positions, headings, and route info. Attaches markers to an internal LayerGroup and stops polling / cleans up when the component unmounts.
+ */
 export default function VehiclesLayer() {
   const map = useMap()
   const markersRef = useRef<Map<string, L.Marker>>(new Map())

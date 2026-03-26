@@ -9,6 +9,15 @@ interface MapControlsProps {
   onToggleTracking: () => void
 }
 
+/**
+ * Renders a vertical set of map controls for theme switching, zoom, and live location tracking.
+ *
+ * @param dark - Whether dark mode is active; controls which theme icon is shown
+ * @param onToggleTheme - Callback invoked when the theme toggle button is clicked
+ * @param tracking - Whether live location tracking is active; used for the tracking button's title and active styling
+ * @param onToggleTracking - Callback invoked when the live location toggle button is clicked
+ * @returns The positioned React element containing the theme toggle, zoom controls, and live location toggle
+ */
 export default function MapControls({
   dark,
   onToggleTheme,
@@ -114,6 +123,15 @@ export default function MapControls({
   )
 }
 
+/**
+ * Render a circular control button used by the map controls, with optional active styling and hover behavior.
+ *
+ * @param onClick - Handler invoked when the button is clicked
+ * @param title - Tooltip text shown via the button's title attribute
+ * @param children - Icon or content rendered inside the button
+ * @param active - When `true`, applies active colors and disables hover background changes
+ * @returns The rendered button element
+ */
 function ControlButton({
   onClick,
   title,

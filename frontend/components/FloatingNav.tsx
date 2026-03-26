@@ -5,6 +5,15 @@ interface FloatingNavProps {
   onTogglePanel: (name: string) => void
 }
 
+/**
+ * Renders a fixed, centered floating navigation bar with three pill buttons for Alerts, Routes, and Stops.
+ *
+ * The active pill is determined by `activePanel`; clicking a pill calls `onTogglePanel` with that panel's name.
+ *
+ * @param activePanel - The name of the currently active panel (`'alerts' | 'routes' | 'stops'`) or `null` if none is active
+ * @param onTogglePanel - Callback invoked with the panel name when a pill is clicked
+ * @returns A JSX element containing the floating navigation bar with three interactive pills
+ */
 export default function FloatingNav({ activePanel, onTogglePanel }: FloatingNavProps) {
   return (
     <div className="fixed top-4 left-1/2 z-[800] -translate-x-1/2">
@@ -82,6 +91,15 @@ export default function FloatingNav({ activePanel, onTogglePanel }: FloatingNavP
   )
 }
 
+/**
+ * Render a pill-shaped navigation button for the floating navigation bar.
+ *
+ * @param active - Whether the pill is visually active; controls background and text color
+ * @param onClick - Callback invoked when the pill is clicked
+ * @param icon - Icon element displayed to the left of the label
+ * @param label - Text label shown inside the pill (hidden on small screens)
+ * @returns The JSX button element representing the navigation pill
+ */
 function NavPill({
   active,
   onClick,

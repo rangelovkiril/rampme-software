@@ -20,6 +20,9 @@ function gtfsReady() {
   if (!gtfs) return jsonError('GTFS data not yet loaded', 503)
 }
 
+/**
+ * Loads static GTFS data and stores it in the module-level `gtfs` variable.
+ */
 async function initGtfs() {
   try {
     gtfs = await fetchStaticGtfs()

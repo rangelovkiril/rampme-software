@@ -15,6 +15,16 @@ interface MapViewportProps {
   onToggleTracking: () => void
 }
 
+/**
+ * Render a full-viewport Leaflet map with UI controls and a live-location overlay.
+ *
+ * @param tileUrl - URL template for the map tile layer
+ * @param dark - Whether the map UI should use the dark theme (passed to controls)
+ * @param onToggleTheme - Callback to toggle the UI theme
+ * @param tracking - Whether live location tracking is active
+ * @param onToggleTracking - Callback to toggle live location tracking
+ * @returns The JSX element containing a configured MapContainer, TileLayer, MapControls, and LiveLocation
+ */
 function MapViewportBase({
   tileUrl,
   dark,
