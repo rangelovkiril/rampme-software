@@ -20,8 +20,8 @@
     "rules": {
       "recommended": true,
       "correctness": {
-        "noUnusedImports": "warn",
-        "noUnusedVariables": "warn"
+        "noUnusedImports": "off",
+        "noUnusedVariables": "off"
       },
       "suspicious": {
         "noExplicitAny": "off",
@@ -29,7 +29,7 @@
       },
       "style": {
         "useConst": "error",
-        "noNonNullAssertion": "warn",
+        "noNonNullAssertion": "off",
         "useImportType": "warn"
       }
     }
