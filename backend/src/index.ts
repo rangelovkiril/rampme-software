@@ -321,6 +321,8 @@ const app = new Elysia()
 await initGtfs()
 setInterval(initGtfs, config.gtfs.refreshInterval)
 
+app.get('/health', () => 'Ok')
+
 app.listen(config.port)
 
 console.log(`GTFS server running at http://localhost:${app.server?.port}`)
