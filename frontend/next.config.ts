@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next'
 
+const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:3000'
+
 const nextConfig: NextConfig = {
   output: 'standalone',
 
@@ -7,7 +9,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'BACKEND_URL/:path*',
+        destination: `${backendUrl}/:path*`,
       },
     ]
   },
