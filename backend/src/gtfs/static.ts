@@ -1,6 +1,6 @@
 import JSZip from 'jszip'
 import { config } from '../config'
-import type { GtfsData, Route, Stop, Trip } from './types'
+import type { CalendarDate, GtfsData, Route, Stop, StopTime, Trip } from './types'
 
 /**
  * Parses a CSV string and maps each data row to a value using header fields as object keys.
@@ -31,15 +31,6 @@ function parseCsv<T>(raw: string, transform: (row: Record<string, string>) => T)
 
 /**
  * Fetches a GTFS ZIP from the configured static URL, parses required CSV files, and constructs in-memory GTFS collections.
- *
- * @returns A `GtfsData` object containing:
- *  - `stops`: Map of `stop_id` → Stop
- *  - `routes`: Map of `route_id` → Route
- *  - `trips`: Map of `trip_id` → Trip
- *  - `stopTimes`: Array of stop time records
- *
- * @throws Error if the HTTP fetch response is not OK (message includes the response status).
- * @throws Error if an expected GTFS file (e.g., `stops.txt`, `routes.txt`, `trips.txt`, `stop_times.txt`) is missing from the ZIP.
  */
 export async function fetchStaticGtfs(): Promise<GtfsData> {
   console.log('⏳ Fetching static GTFS data...')
@@ -56,14 +47,21 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
   }
 
   const stops = new Map<string, Stop>()
+  const stopsByCode = new Map<string, string[]>()
   for (const s of parseCsv(await readFile('stops.txt'), (r) => ({
     stop_id: r.stop_id,
+    stop_code: r.stop_code ?? '',
     stop_name: r.stop_name,
     stop_lat: parseFloat(r.stop_lat),
     stop_lon: parseFloat(r.stop_lon),
     wheelchair_boarding: Number(r.wheelchair_boarding || '0') as 0 | 1 | 2,
   }))) {
     stops.set(s.stop_id, s)
+    if (s.stop_code) {
+      const arr = stopsByCode.get(s.stop_code)
+      if (arr) arr.push(s.stop_id)
+      else stopsByCode.set(s.stop_code, [s.stop_id])
+    }
   }
 
   const routes = new Map<string, Route>()
@@ -96,9 +94,24 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     stop_sequence: Number(r.stop_sequence),
   }))
 
+  // Index stop_times by stop_id for fast lookup
+  const stopTimesByStop = new Map<string, StopTime[]>()
+  for (const st of stopTimes) {
+    const arr = stopTimesByStop.get(st.stop_id)
+    if (arr) arr.push(st)
+    else stopTimesByStop.set(st.stop_id, [st])
+  }
+
+  // Parse calendar_dates.txt
+  const calendarDates = parseCsv<CalendarDate>(await readFile('calendar_dates.txt'), (r) => ({
+    service_id: r.service_id,
+    date: r.date,
+    exception_type: Number(r.exception_type),
+  }))
+
   console.log(
-    `✅ GTFS loaded: ${stops.size} stops, ${routes.size} routes, ${trips.size} trips, ${stopTimes.length} stop_times`,
+    `✅ GTFS loaded: ${stops.size} stops, ${routes.size} routes, ${trips.size} trips, ${stopTimes.length} stop_times, ${calendarDates.length} calendar_dates`,
   )
 
-  return { stops, routes, trips, stopTimes }
+  return { stops, stopsByCode, routes, trips, stopTimes, stopTimesByStop, calendarDates }
 }

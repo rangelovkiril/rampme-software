@@ -16,37 +16,6 @@ function jsonError(message: string, status: number) {
   })
 }
 
-const FALLBACK_SPEED_MPS: Partial<Record<number, number>> = {
-  0: 7, // tram
-  1: 12, // metro
-  3: 8, // bus
-  11: 8, // trolleybus
-}
-
-function estimateSpeedMps(speed: number | null, routeType: number | null) {
-  if (typeof speed === 'number' && Number.isFinite(speed) && speed > 0.5) {
-    return speed
-  }
-
-  if (typeof routeType === 'number') {
-    return FALLBACK_SPEED_MPS[routeType] ?? 8
-  }
-
-  return 8
-}
-
-function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const toRad = (value: number) => (value * Math.PI) / 180
-  const earthRadius = 6_371_000
-  const dLat = toRad(lat2 - lat1)
-  const dLon = toRad(lon2 - lon1)
-
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
-
-  return 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
 
 const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
 
@@ -66,17 +35,22 @@ function enrichVehicles(entities: any[], data: GtfsData) {
     .map((e) => {
       const v = e.vehicle
       const pos = v.position
-      const trip = data.trips.get(v.trip?.tripId ?? '')
-      const route = trip ? data.routes.get(trip.route_id) : undefined
+      const tripId = v.trip?.tripId ?? ''
+      const rawRouteId = v.trip?.routeId ?? ''
+      const trip = data.trips.get(tripId)
+      // Use route from static trip if available, otherwise fall back to routeId from the RT feed
+      const routeId = trip?.route_id ?? rawRouteId
+      const route = routeId ? data.routes.get(routeId) : undefined
       const extra = getVehicleExtra(v.vehicle?.id ?? '')
 
       return {
         id: v.vehicle?.id ?? e.id,
+        tripId,
         lat: pos.latitude,
         lng: pos.longitude,
         bearing: pos.bearing ?? null,
         speed: pos.speed ?? null,
-        route_id: trip?.route_id ?? null,
+        route_id: routeId || null,
         route_short_name: route?.route_short_name ?? null,
         route_type: route?.route_type ?? null,
         headsign: trip?.trip_headsign ?? null,
@@ -129,37 +103,136 @@ const app = new Elysia()
           ? Math.min(Math.max(Math.trunc(rawLimit), 1), 50)
           : 20
 
-        const tripIds = new Set(
-          data.stopTimes.filter((st) => st.stop_id === id).map((st) => st.trip_id),
+        // Find sibling stops (same physical stop, different transport types: A2795, TB2795, TM2795)
+        const siblingIds = stop.stop_code ? (data.stopsByCode.get(stop.stop_code) ?? [id]) : [id]
+
+        // Determine today's active service IDs
+        const now = new Date()
+        const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+        const activeServices = new Set(
+          data.calendarDates.filter((cd) => cd.date === todayStr && cd.exception_type === 1).map((cd) => cd.service_id),
         )
 
-        const feed = await fetchVehiclePositions()
-        return enrichVehicles((feed.entity ?? []).filter((e: any) => tripIds.has(e.vehicle?.trip?.tripId)), data)
-          .filter((v) => Number.isFinite(v.lat) && Number.isFinite(v.lng))
-          .map((v) => {
-            const distance_m = Math.round(haversineMeters(v.lat, v.lng, stop.stop_lat, stop.stop_lon))
-            const eta_minutes = Math.max(
-              0,
-              Math.round(distance_m / estimateSpeedMps(v.speed, v.route_type) / 60),
-            )
+        // Current time as "HH:MM:SS" for schedule comparison
+        const nowHHMMSS = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+        const nowSec = Math.floor(now.getTime() / 1000)
 
-            return {
-              ...v,
-              distance_m,
-              eta_minutes,
+        // Collect all scheduled stop_times for sibling stops
+        const scheduledArrivals: { trip_id: string; arrival_time: string; stop_id: string }[] = []
+        for (const sid of siblingIds) {
+          const times = data.stopTimesByStop.get(sid)
+          if (!times) continue
+          for (const st of times) {
+            // Only include trips running today and arriving in the future
+            const trip = data.trips.get(st.trip_id)
+            if (!trip || !activeServices.has(trip.service_id)) continue
+            if (st.arrival_time >= nowHHMMSS) {
+              scheduledArrivals.push({ trip_id: st.trip_id, arrival_time: st.arrival_time, stop_id: st.stop_id })
             }
+          }
+        }
+
+        // Fetch trip-updates for real-time predicted arrival times
+        const tuFeed = await fetchTripUpdates().catch(() => ({ entity: [] }))
+
+        // Build lookup: tripId → predicted arrival unix timestamp at any sibling stop
+        const siblingSet = new Set(siblingIds)
+        const tripPredictions = new Map<string, number>()
+        for (const e of (tuFeed as any).entity ?? []) {
+          const tu = e.tripUpdate
+          if (!tu?.stopTimeUpdate) continue
+          for (const stu of tu.stopTimeUpdate) {
+            if (siblingSet.has(stu.stopId)) {
+              const arrTime = Number(stu.arrival?.time ?? stu.departure?.time ?? 0)
+              if (arrTime > nowSec) tripPredictions.set(tu.trip?.tripId ?? '', arrTime)
+              break
+            }
+          }
+        }
+
+        // Also add trip-updates that have predictions for this stop even if not in the static schedule
+        for (const e of (tuFeed as any).entity ?? []) {
+          const tu = e.tripUpdate
+          if (!tu?.stopTimeUpdate) continue
+          const tripId = tu.trip?.tripId ?? ''
+          if (tripPredictions.has(tripId)) continue // already found
+          for (const stu of tu.stopTimeUpdate) {
+            if (siblingSet.has(stu.stopId)) {
+              const arrTime = Number(stu.arrival?.time ?? stu.departure?.time ?? 0)
+              if (arrTime > nowSec) {
+                tripPredictions.set(tripId, arrTime)
+                // Add to scheduled if not already there
+                if (!scheduledArrivals.some((sa) => sa.trip_id === tripId)) {
+                  scheduledArrivals.push({ trip_id: tripId, arrival_time: '', stop_id: stu.stopId })
+                }
+              }
+              break
+            }
+          }
+        }
+
+        // Build results from scheduled arrivals
+        const results = scheduledArrivals.map((sa) => {
+          const trip = data.trips.get(sa.trip_id)
+          const route = trip ? data.routes.get(trip.route_id) : undefined
+
+          // Prefer realtime prediction, fall back to scheduled time
+          const prediction = tripPredictions.get(sa.trip_id)
+          let eta_minutes: number
+          let expected_time: string | null = null
+          if (prediction) {
+            eta_minutes = Math.max(0, Math.round((prediction - nowSec) / 60))
+            // Convert prediction unix timestamp to HH:MM, matching GTFS 24+ hour format
+            const predDate = new Date(prediction * 1000)
+            let predHour = predDate.getHours()
+            const predMin = predDate.getMinutes()
+            // If scheduled time uses 24+ hours (after midnight), match format
+            if (sa.arrival_time) {
+              const schedHour = parseInt(sa.arrival_time.split(':')[0], 10)
+              if (schedHour >= 24 && predHour < 12) predHour += 24
+            }
+            expected_time = `${String(predHour).padStart(2, '0')}:${String(predMin).padStart(2, '0')}`
+          } else {
+            // Parse scheduled arrival time to minutes from now
+            const [h, m] = sa.arrival_time.split(':').map(Number)
+            const scheduledMinutes = h * 60 + m
+            const nowMinutes = now.getHours() * 60 + now.getMinutes()
+            eta_minutes = Math.max(0, scheduledMinutes - nowMinutes)
+            expected_time = sa.arrival_time ? sa.arrival_time.slice(0, 5) : null
+          }
+
+          return {
+            id: sa.trip_id,
+            route_short_name: route?.route_short_name ?? null,
+            route_type: route?.route_type ?? null,
+            headsign: trip?.trip_headsign ?? null,
+            route_id: trip?.route_id ?? null,
+            scheduled_time: sa.arrival_time ? sa.arrival_time.slice(0, 5) : null,
+            expected_time,
+            eta_minutes,
+            realtime: Boolean(prediction),
+          }
+        })
+
+        // Deduplicate by trip_id, sort by ETA
+        const seen = new Set<string>()
+        return results
+          .filter((r) => {
+            if (seen.has(r.id)) return false
+            seen.add(r.id)
+            return true
           })
-          .sort((a, b) => a.eta_minutes - b.eta_minutes || a.distance_m - b.distance_m)
+          .sort((a, b) => a.eta_minutes - b.eta_minutes)
           .slice(0, limit)
       } catch (e) {
-        return jsonError(`Vehicle positions unavailable: ${e}`, 502)
+        return jsonError(`Arrivals unavailable: ${e}`, 502)
       }
     },
     {
       query: t.Object({
         limit: t.Optional(t.String()),
       }),
-      detail: { tags: ['Stops'], summary: 'Active vehicles serving a stop' },
+      detail: { tags: ['Stops'], summary: 'Upcoming arrivals at a stop' },
     },
   )
 
