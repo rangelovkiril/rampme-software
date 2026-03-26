@@ -7,12 +7,15 @@
     "build": "next build",
     "start": "next start",
     "check": "biome check . && tsc --noEmit",
-    "fix": "biome check --fix ."
+    "fix": "biome check --fix --unsafe ."
   },
   "dependencies": {
+    "@types/leaflet": "^1.9.21",
+    "leaflet": "^1.9.4",
     "next": "16.2.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.9",

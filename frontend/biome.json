@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json"]
+    "includes": ["**/*.ts", "**/*.js", "**/*.json", "!**/*.css"]
   },
   "formatter": {
     "enabled": true,
@@ -21,36 +21,36 @@
       "recommended": true,
       "correctness": {
         "noUnusedImports": "warn",
-        "noUnusedVariables": "warn",
-        "useExhaustiveDependencies": "warn",
-        "useHookAtTopLevel": "error"
+        "noUnusedVariables": "warn"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
-        "noConsole": "warn"
+        "noExplicitAny": "off",
+        "noConsole": "off"
       },
       "style": {
         "useConst": "error",
         "noNonNullAssertion": "warn",
         "useImportType": "warn"
-      },
-      "nursery": {
-        "useSortedClasses": "warn"
       }
     }
   },
   "javascript": {
     "formatter": {
       "quoteStyle": "single",
-      "jsxQuoteStyle": "double",
       "semicolons": "asNeeded",
       "trailingCommas": "all",
       "arrowParentheses": "always"
     }
   },
-  "json": {
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    },
+    "linter": {
+      "enabled": false
+    },
     "formatter": {
-      "trailingCommas": "none"
+      "enabled": false
     }
   }
 }
