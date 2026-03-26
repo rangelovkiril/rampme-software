@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Stop, StopArrival } from './StopsLayer'
 
 interface StopArrivalsSheetProps {
@@ -9,6 +9,7 @@ interface StopArrivalsSheetProps {
 }
 
 const ARRIVALS_LIMIT = 20
+const POLL_INTERVAL = 15_000
 
 const ROUTE_COLORS: Record<number, string> = {
   0: '#F7941D',
@@ -23,50 +24,76 @@ function formatEta(minutes?: number) {
   return `${minutes} min`
 }
 
+/** Haversine distance in meters between two lat/lng points */
+function distanceMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const toRad = (v: number) => (v * Math.PI) / 180
+  const R = 6_371_000
+  const dLat = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
 export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetProps) {
   const [arrivals, setArrivals] = useState<StopArrival[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null)
+  const watchRef = useRef<number | null>(null)
 
+  // Track user geolocation for ramp button proximity check
   useEffect(() => {
-    let active = true
+    if (!navigator.geolocation) return
+    watchRef.current = navigator.geolocation.watchPosition(
+      (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 10_000 }
+    )
+    return () => {
+      if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current)
+    }
+  }, [])
 
-    async function loadArrivals() {
-      if (!stop) {
-        setArrivals([])
-        setLoading(false)
-        setError(null)
-        return
-      }
-
-      setLoading(true)
+  const fetchArrivals = useCallback(async (stopId: string, isInitial: boolean) => {
+    if (isInitial) setLoading(true)
+    try {
+      const response = await fetch(
+        `/api/stops/${encodeURIComponent(stopId)}/vehicles?limit=${ARRIVALS_LIMIT}`,
+      )
+      const data = response.ok ? await response.json() : []
+      setArrivals(Array.isArray(data) ? (data as StopArrival[]) : [])
       setError(null)
-
-      try {
-        const response = await fetch(
-          `/api/stops/${encodeURIComponent(stop.stop_id)}/vehicles?limit=${ARRIVALS_LIMIT}`,
-        )
-        const data = response.ok ? await response.json() : []
-
-        if (!active) return
-        setArrivals(Array.isArray(data) ? (data as StopArrival[]) : [])
-      } catch {
-        if (!active) return
+    } catch {
+      if (isInitial) {
         setError('Could not load upcoming vehicles.')
         setArrivals([])
-      } finally {
-        if (active) setLoading(false)
       }
+    } finally {
+      if (isInitial) setLoading(false)
+    }
+  }, [])
+
+  // Fetch on stop change + auto-refresh every 15s
+  useEffect(() => {
+    if (!stop) {
+      setArrivals([])
+      setLoading(false)
+      setError(null)
+      return
     }
 
-    loadArrivals()
-
-    return () => {
-      active = false
-    }
-  }, [stop])
+    fetchArrivals(stop.stop_id, true)
+    const id = setInterval(() => fetchArrivals(stop.stop_id, false), POLL_INTERVAL)
+    return () => clearInterval(id)
+  }, [stop, fetchArrivals])
 
   const isOpen = Boolean(stop)
+
+  // Distance from user to stop (if available)
+  const distToStop = (stop && userPos)
+    ? distanceMeters(userPos.lat, userPos.lng, stop.stop_lat, stop.stop_lon)
+    : null
+  const canRequestRamp = distToStop !== null && distToStop <= 200
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[920] flex justify-center px-0 sm:px-4">
@@ -133,6 +160,11 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
                     ? (ROUTE_COLORS[item.route_type] ?? '#BE1E2D')
                     : '#BE1E2D'
 
+                // Show both scheduled and expected time when they differ (delayed/early)
+                const scheduled = item.scheduled_time ?? null
+                const expected = item.expected_time ?? null
+                const isDelayed = item.realtime && scheduled && expected && expected !== scheduled
+
                 return (
                   <div
                     key={item.id}
@@ -152,22 +184,47 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
                       <div className="min-w-0">
                         <p className="truncate text-xs font-medium">{item.headsign ?? 'Route'}</p>
                         <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                          ETA {formatEta(item.eta_minutes)}
+                          {item.realtime && (
+                            <span style={{ color: '#22c55e' }}>Live</span>
+                          )}
+                          {!item.realtime && <span>Scheduled</span>}
+                          {isDelayed ? (
+                            <>
+                              {' · '}
+                              <span style={{ textDecoration: 'line-through', opacity: 0.5 }}>{scheduled}</span>
+                              {' '}
+                              <span style={{ color: '#f59e0b' }}>{expected}</span>
+                            </>
+                          ) : (
+                            scheduled ? ` · ${scheduled}` : ''
+                          )}
                         </p>
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      className="rounded-lg px-2 py-1 text-xs font-semibold"
-                      style={{
-                        background: 'color-mix(in oklab, var(--control-bg) 88%, var(--text) 6%)',
-                        color: 'var(--text-secondary)',
-                        border: '1px solid var(--border)'
-                      }}
-                    >
-                      Ramp
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold whitespace-nowrap" style={{ color: item.realtime ? '#22c55e' : 'var(--text-secondary)' }}>
+                        {formatEta(item.eta_minutes)}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={!canRequestRamp}
+                        onClick={() => {
+                          if (canRequestRamp) alert(`Ramp requested for ${item.route_short_name}!`)
+                        }}
+                        className="rounded-lg px-2 py-1 text-xs font-semibold transition-opacity"
+                        style={{
+                          background: canRequestRamp ? routeColor : 'color-mix(in oklab, var(--control-bg) 88%, var(--text) 6%)',
+                          color: canRequestRamp ? '#fff' : 'var(--text-muted)',
+                          border: canRequestRamp ? 'none' : '1px solid var(--border)',
+                          opacity: canRequestRamp ? 1 : 0.5,
+                          cursor: canRequestRamp ? 'pointer' : 'not-allowed',
+                        }}
+                        title={canRequestRamp ? 'Request wheelchair ramp' : 'Move within 200m of the stop to request a ramp'}
+                      >
+                        Ramp
+                      </button>
+                    </div>
                   </div>
                 )
               })}

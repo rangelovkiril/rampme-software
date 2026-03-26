@@ -1,5 +1,6 @@
 export interface Stop {
   stop_id: string
+  stop_code: string
   stop_name: string
   stop_lat: number
   stop_lon: number
@@ -30,9 +31,18 @@ export interface StopTime {
   stop_sequence: number
 }
 
+export interface CalendarDate {
+  service_id: string
+  date: string // YYYYMMDD
+  exception_type: number // 1=added, 2=removed
+}
+
 export interface GtfsData {
   stops: Map<string, Stop>
+  stopsByCode: Map<string, string[]> // stop_code → [stop_id, ...]
   routes: Map<string, Route>
   trips: Map<string, Trip>
   stopTimes: StopTime[]
+  stopTimesByStop: Map<string, StopTime[]> // stop_id → stop_times (indexed)
+  calendarDates: CalendarDate[]
 }
