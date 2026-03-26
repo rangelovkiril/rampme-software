@@ -11,7 +11,7 @@ interface Stop {
   stop_lon: number
 }
 
-const MIN_ZOOM_FOR_STOPS = 13
+const MIN_ZOOM_FOR_STOPS = 16
 
 /**
  * Create a small circular blue Leaflet divIcon for stop markers.

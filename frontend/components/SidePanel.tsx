@@ -43,12 +43,14 @@ export default function SidePanel({ activePanel, onClose }: SidePanelProps) {
 
   return (
     <aside
-      className={`fixed top-0 bottom-0 left-0 z-[900] flex w-[340px] flex-col backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-sm:w-full ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
+      className={`fixed top-0 bottom-0 left-0 z-[700] flex w-[340px] flex-col backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-sm:top-[72px] max-sm:bottom-auto max-sm:left-1/2 max-sm:w-[calc(100vw-16px)] max-sm:max-w-[430px] max-sm:-translate-x-1/2 max-sm:rounded-2xl max-sm:shadow-[var(--shadow-lg)] ${
+        isOpen
+          ? 'translate-x-0 max-sm:translate-y-0'
+          : '-translate-x-full max-sm:translate-x-0 max-sm:-translate-y-[130%]'
       }`}
       style={{
         background: 'var(--surface-overlay)',
-        borderRight: '1px solid var(--border)'
+        border: '1px solid var(--border)'
       }}
     >
       {content && (
