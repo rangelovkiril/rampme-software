@@ -85,3 +85,9 @@ body {
     stroke-width: 1.5;
   }
 }
+
+@media (max-width: 640px) {
+  .locate-btn-lift {
+    transform: translateY(calc(-54vh - 20px));
+  }
+}

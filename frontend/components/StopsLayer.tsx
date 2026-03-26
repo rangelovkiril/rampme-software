@@ -4,21 +4,37 @@ import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 
-interface Stop {
+export interface Stop {
   stop_id: string
   stop_name: string
   stop_lat: number
   stop_lon: number
 }
 
+export interface StopArrival {
+  id: string
+  route_short_name: string | null
+  route_type: number | null
+  headsign: string | null
+  eta_minutes?: number
+  distance_m?: number
+}
+
+interface StopsLayerProps {
+  selectedStopId?: string | null
+  onStopSelect?: (stop: Stop | null) => void
+}
+
 const MIN_ZOOM_FOR_STOPS = 13
 
-function createStopIcon() {
+function createStopIcon(selected = false) {
   return L.divIcon({
     className: '',
-    html: '<div style="width:10px;height:10px;border-radius:50%;background:#3b82f6;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>',
-    iconSize: [10, 10],
-    iconAnchor: [5, 5]
+    html: `<div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;transform:translate(-50%,-50%)">
+      <div style="width:16px;height:16px;border-radius:9999px;background:#2b2f37;border:2px solid #3b82f6;box-shadow:${selected ? '0 0 0 3px rgba(59,130,246,0.28),0 1px 6px rgba(0,0,0,0.35)' : '0 1px 5px rgba(0,0,0,0.35)'}"></div>
+    </div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
   })
 }
 
@@ -31,12 +47,13 @@ function isValidCoord(s: Stop) {
   )
 }
 
-export default function StopsLayer() {
+export default function StopsLayer({ selectedStopId = null, onStopSelect }: StopsLayerProps) {
   const map = useMap()
   const [stops, setStops] = useState<Stop[]>([])
   const groupRef = useRef<L.LayerGroup | null>(null)
   const [revision, setRevision] = useState(0)
   const iconRef = useRef<L.DivIcon | null>(null)
+  const selectedIconRef = useRef<L.DivIcon | null>(null)
 
   // Fetch stops once
   useEffect(() => {
@@ -59,6 +76,20 @@ export default function StopsLayer() {
     }
   }, [map])
 
+  useEffect(() => {
+    if (!onStopSelect) return
+
+    function closeSelectedStop() {
+      onStopSelect?.(null)
+    }
+
+    map.on('click', closeSelectedStop)
+
+    return () => {
+      map.off('click', closeSelectedStop)
+    }
+  }, [map, onStopSelect])
+
   // Render markers
   useEffect(() => {
     if (!groupRef.current) {
@@ -76,6 +107,9 @@ export default function StopsLayer() {
     if (!iconRef.current) {
       iconRef.current = createStopIcon()
     }
+    if (!selectedIconRef.current) {
+      selectedIconRef.current = createStopIcon(true)
+    }
 
     const bounds = map.getBounds()
 
@@ -83,15 +117,21 @@ export default function StopsLayer() {
       const latlng = L.latLng(stop.stop_lat, stop.stop_lon)
       if (!bounds.contains(latlng)) continue
 
-      L.marker(latlng, { icon: iconRef.current })
-        .bindPopup(
-          `<div style="font-family:Inter,sans-serif;font-size:13px"><strong>${stop.stop_name}</strong><br/><span style="opacity:0.6">${stop.stop_id}</span></div>`
-        )
-        .addTo(group)
+      const marker = L.marker(latlng, {
+        icon: selectedStopId === stop.stop_id ? selectedIconRef.current : iconRef.current,
+        riseOnHover: true,
+        bubblingMouseEvents: false
+      })
+
+      marker.on('click', () => {
+        onStopSelect?.(stop)
+      })
+
+      marker.addTo(group)
     }
 
     group.addTo(map)
-  }, [stops, map, revision])
+  }, [stops, map, revision, selectedStopId, onStopSelect])
 
   return null
 }
