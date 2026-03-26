@@ -8,6 +8,7 @@ import LiveLocation from './LiveLocation'
 import MapControls from './MapControls'
 import SidePanel from './SidePanel'
 import StopArrivalsSheet from './StopArrivalsSheet'
+import RouteLinesLayer from './RouteLinesLayer'
 import StopsLayer from './StopsLayer'
 import type { Stop } from './StopsLayer'
 import VehiclesLayer from './VehiclesLayer'
@@ -31,6 +32,7 @@ export default function CityMap() {
   const [dark, setDark] = useState(false)
   const [tracking, setTracking] = useState(false)
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null)
+  const [selectedRoute, setSelectedRoute] = useState<{ routeId: string; routeType: number } | null>(null)
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
@@ -77,12 +79,13 @@ export default function CityMap() {
       >
         <MapBridge onMap={storeMap} />
         <TileSwitch url={dark ? TILES.dark : TILES.light} />
+        <RouteLinesLayer routeId={selectedRoute?.routeId ?? null} routeType={selectedRoute?.routeType ?? null} />
         <LiveLocation active={tracking} onError={handleLocationError} />
         <StopsLayer
           selectedStopId={selectedStop?.stop_id ?? null}
           onStopSelect={setSelectedStop}
         />
-        <VehiclesLayer />
+        <VehiclesLayer onVehicleSelect={(routeId, routeType) => setSelectedRoute((prev) => prev?.routeId === routeId ? null : { routeId, routeType })} />
       </MapContainer>
 
       {/* Controls rendered OUTSIDE MapContainer so Leaflet cannot intercept clicks */}

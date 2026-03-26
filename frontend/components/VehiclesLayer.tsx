@@ -70,7 +70,11 @@ function vehicleIcon(bearing: number, routeType: number, routeName: string) {
  *
  * Polls the backend at a fixed interval and creates, updates, or removes markers and popups to reflect the latest vehicle positions, headings, and route info. Attaches markers to an internal LayerGroup and stops polling / cleans up when the component unmounts.
  */
-export default function VehiclesLayer() {
+interface VehiclesLayerProps {
+  onVehicleSelect?: (routeId: string, routeType: number) => void
+}
+
+export default function VehiclesLayer({ onVehicleSelect }: VehiclesLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.LayerGroup | null>(null)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -144,15 +148,14 @@ export default function VehiclesLayer() {
         <br/><span style="opacity:0.5;font-size:11px">${v.id} · ${v.speed} km/h</span>
       </div>`
 
+      let marker: L.Marker | L.CircleMarker
       if (useDetailedMarkers) {
         const bearing = v.bearing ?? 0
-        L.marker(latlng, {
+        marker = L.marker(latlng, {
           icon: vehicleIcon(bearing, v.route_type, v.route_short_name)
         })
-          .bindPopup(popupHtml)
-          .addTo(group)
       } else {
-        L.circleMarker(latlng, {
+        marker = L.circleMarker(latlng, {
           radius: 5,
           fillColor: style.color,
           fillOpacity: 0.95,
@@ -160,9 +163,12 @@ export default function VehiclesLayer() {
           opacity: 0.95,
           weight: 1
         })
-          .bindPopup(popupHtml)
-          .addTo(group)
       }
+      marker.bindPopup(popupHtml)
+      if (onVehicleSelect) {
+        marker.on('click', () => onVehicleSelect(v.route_id, v.route_type))
+      }
+      marker.addTo(group)
     }
 
     group.addTo(map)

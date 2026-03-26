@@ -1,6 +1,6 @@
 import JSZip from 'jszip'
 import { config } from '../config'
-import type { CalendarDate, GtfsData, Route, Stop, StopTime, Trip } from './types'
+import type { CalendarDate, GtfsData, Route, ShapePoint, Stop, StopTime, Trip } from './types'
 
 /**
  * Parses a CSV string and maps each data row to a value using header fields as object keys.
@@ -81,6 +81,7 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     service_id: r.service_id,
     trip_headsign: r.trip_headsign ?? '',
     direction_id: Number(r.direction_id || '0'),
+    shape_id: r.shape_id ?? '',
     wheelchair_accessible: Number(r.wheelchair_accessible || '0') as 0 | 1 | 2,
   }))) {
     trips.set(t.trip_id, t)
@@ -109,9 +110,44 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     exception_type: Number(r.exception_type),
   }))
 
+  // Parse shapes.txt (optional — some feeds may not include it)
+  const shapes = new Map<string, [number, number][]>()
+  const shapesFile = zip.file('shapes.txt')
+  if (shapesFile) {
+    const rawShapes = parseCsv<ShapePoint>(await shapesFile.async('string'), (r) => ({
+      shape_id: r.shape_id,
+      lat: parseFloat(r.shape_pt_lat),
+      lng: parseFloat(r.shape_pt_lon),
+      sequence: Number(r.shape_pt_sequence),
+    }))
+    // Group by shape_id
+    for (const sp of rawShapes) {
+      const arr = shapes.get(sp.shape_id)
+      if (arr) arr.push([sp.lat, sp.lng])
+      else shapes.set(sp.shape_id, [[sp.lat, sp.lng]])
+    }
+    // Points are already in sequence order from GTFS, but sort to be safe
+    // (rawShapes was parsed in file order; group push preserves that order)
+  }
+
+  // Build shapesByRoute: route_id → unique polylines (deduplicated by shape_id)
+  const shapesByRoute = new Map<string, [number, number][][]>()
+  const seenShapeIds = new Map<string, Set<string>>() // route_id → set of shape_ids already added
+  for (const trip of trips.values()) {
+    if (!trip.shape_id) continue
+    const polyline = shapes.get(trip.shape_id)
+    if (!polyline || polyline.length === 0) continue
+    if (!seenShapeIds.has(trip.route_id)) seenShapeIds.set(trip.route_id, new Set())
+    const seen = seenShapeIds.get(trip.route_id)!
+    if (seen.has(trip.shape_id)) continue
+    seen.add(trip.shape_id)
+    if (!shapesByRoute.has(trip.route_id)) shapesByRoute.set(trip.route_id, [])
+    shapesByRoute.get(trip.route_id)!.push(polyline)
+  }
+
   console.log(
-    `✅ GTFS loaded: ${stops.size} stops, ${routes.size} routes, ${trips.size} trips, ${stopTimes.length} stop_times, ${calendarDates.length} calendar_dates`,
+    `✅ GTFS loaded: ${stops.size} stops, ${routes.size} routes, ${trips.size} trips, ${stopTimes.length} stop_times, ${calendarDates.length} calendar_dates, ${shapes.size} shapes`,
   )
 
-  return { stops, stopsByCode, routes, trips, stopTimes, stopTimesByStop, calendarDates }
+  return { stops, stopsByCode, routes, trips, stopTimes, stopTimesByStop, calendarDates, shapes, shapesByRoute }
 }

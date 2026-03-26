@@ -20,7 +20,15 @@ export interface Trip {
   service_id: string
   trip_headsign: string
   direction_id: number
+  shape_id: string
   wheelchair_accessible: 0 | 1 | 2
+}
+
+export interface ShapePoint {
+  shape_id: string
+  lat: number
+  lng: number
+  sequence: number
 }
 
 export interface StopTime {
@@ -45,4 +53,6 @@ export interface GtfsData {
   stopTimes: StopTime[]
   stopTimesByStop: Map<string, StopTime[]> // stop_id → stop_times (indexed)
   calendarDates: CalendarDate[]
+  shapes: Map<string, [number, number][]> // shape_id → sorted [[lat, lng], ...]
+  shapesByRoute: Map<string, [number, number][][]> // route_id → array of polylines
 }
