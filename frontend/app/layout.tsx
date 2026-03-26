@@ -1,16 +1,16 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import "leaflet/dist/leaflet.css";
+import type { Metadata } from 'next'
+import './globals.css'
+import 'leaflet/dist/leaflet.css'
 
 export const metadata: Metadata = {
-  title: "Sofia Live Transport",
-  description: "Live public transport map for Sofia, Bulgaria",
-};
+  title: 'Sofia Live Transport',
+  description: 'Live public transport map for Sofia, Bulgaria',
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="bg" className="h-full antialiased">
@@ -18,5 +18,5 @@ export default function RootLayout({
         {children}
       </body>
     </html>
-  );
+  )
 }

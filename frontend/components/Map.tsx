@@ -1,17 +1,17 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
-import TopBar from "./TopBar";
-import SidePanel from "./SidePanel";
-import MapControls from "./MapControls";
-import LiveChip from "./LiveChip";
+import { useState } from 'react'
+import { MapContainer, TileLayer } from 'react-leaflet'
+import LiveChip from './LiveChip'
+import MapControls from './MapControls'
+import SidePanel from './SidePanel'
+import TopBar from './TopBar'
 
 export default function Map() {
-  const [activePanel, setActivePanel] = useState<string | null>(null);
+  const [activePanel, setActivePanel] = useState<string | null>(null)
 
   function togglePanel(name: string) {
-    setActivePanel((prev) => (prev === name ? null : name));
+    setActivePanel((prev) => (prev === name ? null : name))
   }
 
   return (
@@ -31,11 +31,8 @@ export default function Map() {
         </MapContainer>
       </div>
 
-      <SidePanel
-        activePanel={activePanel}
-        onClose={() => setActivePanel(null)}
-      />
+      <SidePanel activePanel={activePanel} onClose={() => setActivePanel(null)} />
       <LiveChip />
     </div>
-  );
+  )
 }

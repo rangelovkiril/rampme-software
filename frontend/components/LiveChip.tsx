@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 export default function LiveChip() {
   return (
@@ -6,5 +6,5 @@ export default function LiveChip() {
       <span className="h-2 w-2 rounded-full bg-[#2e7d32] animate-[pulse-dot_1.5s_ease-in-out_infinite]" />
       <span className="text-xs font-semibold uppercase tracking-wide">Live</span>
     </div>
-  );
+  )
 }
