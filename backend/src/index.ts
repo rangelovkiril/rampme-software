@@ -1,110 +1,180 @@
-import { Elysia } from 'elysia'
-import { config } from './config'
-import { fetchAlerts, fetchTripUpdates, fetchVehiclePositions } from './gtfs/realtime'
-import { fetchStaticGtfs } from './gtfs/static'
-import type { GtfsData } from './gtfs/types'
-import { swaggerPlugin } from './swagger'
+import { Elysia, t } from "elysia";
+import { config } from "./config";
+import { fetchTripUpdates, fetchVehiclePositions } from "./gtfs/realtime";
+import { fetchStaticGtfs } from "./gtfs/static";
+import type { GtfsData } from "./gtfs/types";
+import { getVehicleExtra } from "./db/vehicles";
+import { swaggerPlugin } from "./swagger";
+import cors from "@elysiajs/cors";
 
-let gtfs: GtfsData
+let gtfs: GtfsData;
 
 async function initGtfs() {
-  gtfs = await fetchStaticGtfs()
+  gtfs = await fetchStaticGtfs();
+}
+
+/** Взима суровите entities и ги обогатява с GTFS статика + локална БД */
+function enrichVehicles(entities: any[]) {
+  return entities
+    .filter((e) => e.vehicle?.position)
+    .map((e) => {
+      const v = e.vehicle;
+      const pos = v.position;
+      const trip = gtfs.trips.get(v.trip?.tripId ?? "");
+      const route = trip ? gtfs.routes.get(trip.route_id) : undefined;
+      const extra = getVehicleExtra(v.vehicle?.id ?? "");
+
+      return {
+        id: v.vehicle?.id ?? e.id,
+        lat: pos.latitude,
+        lng: pos.longitude,
+        bearing: pos.bearing ?? null,
+        speed: pos.speed ?? null,
+        route_id: trip?.route_id ?? null,
+        route_short_name: route?.route_short_name ?? null,
+        route_type: route?.route_type ?? null,
+        headsign: trip?.trip_headsign ?? null,
+        low_floor: extra?.low_floor ?? null,
+      };
+    });
 }
 
 const app = new Elysia()
   .use(swaggerPlugin)
+  .use(cors())
 
   // ── Stops ───────────────────────────────────────
-  .get('/stops', () => [...gtfs.stops.values()], {
-    detail: { tags: ['Stops'], summary: 'Всички спирки' },
+  .get("/stops", () => [...gtfs.stops.values()], {
+    detail: { tags: ["Stops"], summary: "Всички спирки" },
   })
 
   .get(
-    '/stops/:id',
+    "/stops/:id",
     ({ params: { id } }) => {
-      const stop = gtfs.stops.get(id)
-      if (!stop) return new Response('Not found', { status: 404 })
-      return stop
+      const stop = gtfs.stops.get(id);
+      if (!stop) return new Response("Not found", { status: 404 });
+      return stop;
     },
-    {
-      detail: { tags: ['Stops'], summary: 'Спирка по ID' },
+    { detail: { tags: ["Stops"], summary: "Спирка по ID" } },
+  )
+
+  .get(
+    "/stops/:id/vehicles",
+    async ({ params: { id } }) => {
+      if (!gtfs.stops.has(id))
+        return new Response("Stop not found", { status: 404 });
+
+      const tripIds = new Set(
+        gtfs.stopTimes
+          .filter((st) => st.stop_id === id)
+          .map((st) => st.trip_id),
+      );
+
+      const feed = await fetchVehiclePositions();
+      return enrichVehicles(
+        (feed.entity ?? []).filter((e: any) =>
+          tripIds.has(e.vehicle?.trip?.tripId),
+        ),
+      );
     },
+    { detail: { tags: ["Stops"], summary: "Активни возила по спирка" } },
   )
 
   // ── Routes ──────────────────────────────────────
-  .get('/routes', () => [...gtfs.routes.values()], {
-    detail: { tags: ['Routes'], summary: 'Всички маршрути' },
+  .get("/routes", () => [...gtfs.routes.values()], {
+    detail: { tags: ["Routes"], summary: "Всички маршрути" },
   })
 
   .get(
-    '/routes/:id',
+    "/routes/:id",
     ({ params: { id } }) => {
-      const route = gtfs.routes.get(id)
-      if (!route) return new Response('Not found', { status: 404 })
+      const route = gtfs.routes.get(id);
+      if (!route) return new Response("Not found", { status: 404 });
 
-      const routeTrips = [...gtfs.trips.values()].filter((t) => t.route_id === id)
-      const tripIds = new Set(routeTrips.map((t) => t.trip_id))
+      const routeTrips = [...gtfs.trips.values()].filter(
+        (t) => t.route_id === id,
+      );
+      const tripIds = new Set(routeTrips.map((t) => t.trip_id));
       const stopIds = new Set(
-        gtfs.stopTimes.filter((st) => tripIds.has(st.trip_id)).map((st) => st.stop_id),
-      )
-      const stops = [...stopIds].map((sid) => gtfs.stops.get(sid)).filter(Boolean)
+        gtfs.stopTimes
+          .filter((st) => tripIds.has(st.trip_id))
+          .map((st) => st.stop_id),
+      );
+      const stops = [...stopIds]
+        .map((sid) => gtfs.stops.get(sid))
+        .filter(Boolean);
 
-      return { ...route, trips: routeTrips.length, stops }
+      return { ...route, trips: routeTrips.length, stops };
     },
-    {
-      detail: { tags: ['Routes'], summary: 'Маршрут по ID с trips и спирки' },
-    },
+    { detail: { tags: ["Routes"], summary: "Маршрут по ID с trips и спирки" } },
   )
 
   // ── Realtime ────────────────────────────────────
   .get(
-    '/realtime/alerts',
+    "/realtime/alerts",
     async () => {
       try {
-        return await fetchAlerts()
+        return await fetchAlerts();
       } catch (e) {
-        return new Response(`Alerts unavailable: ${e}`, { status: 502 })
+        return new Response(`Alerts unavailable: ${e}`, { status: 502 });
       }
     },
-    {
-      detail: { tags: ['Realtime'], summary: 'Service alerts' },
-    },
+    { detail: { tags: ["Realtime"], summary: "Service alerts" } },
   )
 
   .get(
-    '/realtime/trip-updates',
+    "/realtime/trip-updates",
     async () => {
       try {
-        return await fetchTripUpdates()
+        return await fetchTripUpdates();
       } catch (e) {
-        return new Response(`Trip updates unavailable: ${e}`, { status: 502 })
+        return new Response(`Trip updates unavailable: ${e}`, { status: 502 });
       }
     },
-    {
-      detail: { tags: ['Realtime'], summary: 'Trip updates' },
-    },
+    { detail: { tags: ["Realtime"], summary: "Trip updates" } },
   )
 
   .get(
-    '/realtime/vehicles',
-    async () => {
+    "/realtime/vehicles",
+    async ({ query }) => {
       try {
-        return await fetchVehiclePositions()
+        const feed = await fetchVehiclePositions();
+        let vehicles = enrichVehicles(feed.entity ?? []);
+
+        if (query.route_id)
+          vehicles = vehicles.filter((v) => v.route_id === query.route_id);
+
+        if (query.route_type !== undefined)
+          vehicles = vehicles.filter(
+            (v) => v.route_type === Number(query.route_type),
+          );
+
+        if (query.low_floor === "true")
+          vehicles = vehicles.filter((v) => v.low_floor === true);
+
+        return vehicles;
       } catch (e) {
         return new Response(`Vehicle positions unavailable: ${e}`, {
           status: 502,
-        })
+        });
       }
     },
     {
-      detail: { tags: ['Realtime'], summary: 'Vehicle positions' },
+      query: t.Object({
+        route_id: t.Optional(t.String()),
+        route_type: t.Optional(t.String()),
+        low_floor: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ["Realtime"],
+        summary: "Vehicle positions — обогатени и филтрирани",
+      },
     },
   )
 
-  .listen(config.port)
+  .listen(config.port);
 
-// Startup
-await initGtfs()
-setInterval(initGtfs, config.gtfs.refreshInterval)
+await initGtfs();
+setInterval(initGtfs, config.gtfs.refreshInterval);
 
-console.log(`🚌 GTFS server running at http://localhost:${app.server?.port}`)
+console.log(`🚌 GTFS server running at http://localhost:${app.server?.port}`);
