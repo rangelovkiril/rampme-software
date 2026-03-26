@@ -112,16 +112,33 @@ function NavPill({
   label: string
 }) {
   return (
+function NavPill({
+  active,
+  onClick,
+  icon,
+  label
+}: {
+  active: boolean
+  onClick: () => void
+  icon: React.ReactNode
+  label: string
+}) {
+  return (
     <button
+      type="button"
       onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
       className="flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 font-medium text-[13px] transition-all"
       style={{
         background: active ? 'var(--primary)' : 'transparent',
         color: active ? '#fff' : 'var(--text-secondary)'
       }}
     >
-      {icon}
-      <span className="max-sm:hidden">{label}</span>
+      <span aria-hidden="true">{icon}</span>
+      <span className="hidden sm:inline">{label}</span>
     </button>
+  )
+}
   )
 }
