@@ -13,7 +13,12 @@ const TILES = {
   dark: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
 }
 
-export default function Map() {
+export const TILES = {
+  light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  dark: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+}
+
+export default function CityMap() {
   const [activePanel, setActivePanel] = useState<string | null>(null)
   const [dark, setDark] = useState(false)
   const [tracking, setTracking] = useState(false)
