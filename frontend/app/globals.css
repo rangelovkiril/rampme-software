@@ -1,37 +1,54 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Primary */
-  --color-primary: #001e40;
-  --color-primary-container: #003366;
-  --color-on-primary: #ffffff;
-
-  /* Secondary */
-  --color-secondary: #705d00;
-  --color-secondary-container: #fcd400;
-  --color-on-secondary-container: #221b00;
-
-  /* Surface */
-  --color-surface: #f9f9fc;
-  --color-surface-lowest: #ffffff;
-  --color-surface-low: #f1f1f4;
-  --color-surface-mid: #ebebee;
-  --color-surface-high: #e5e5e8;
-  --color-surface-highest: #e2e2e5;
-
-  /* On Surface */
-  --color-on-surface: #1b1b1f;
-  --color-on-surface-variant: #46464f;
-  --color-on-primary-fixed: #001b3c;
-  --color-outline-variant: #c6c5d0;
+  --color-primary: #3b82f6;
+  --color-primary-light: #60a5fa;
+  --color-accent: #f59e0b;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Leaflet containment */
+/* ── Theme tokens ── */
+:root {
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-overlay: rgba(255, 255, 255, 0.92);
+  --text: #111118;
+  --text-secondary: #5f5f72;
+  --text-muted: #9595a4;
+  --border: rgba(0, 0, 0, 0.08);
+  --control-bg: #ffffff;
+  --control-hover: #f4f4f6;
+  --map-bg: #f2f2f2;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.dark {
+  --surface: #0d0d14;
+  --surface-elevated: #16161f;
+  --surface-overlay: rgba(22, 22, 31, 0.92);
+  --text: #e4e4ed;
+  --text-secondary: #9595a8;
+  --text-muted: #5c5c72;
+  --border: rgba(255, 255, 255, 0.06);
+  --control-bg: #1a1a26;
+  --control-hover: #242432;
+  --map-bg: #0d0d14;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+body {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* ── Leaflet ── */
 .leaflet-container {
   z-index: 0;
   font-family: var(--font-sans);
+  background: var(--map-bg);
 }
 
 .leaflet-control-zoom,
@@ -39,7 +56,23 @@
   display: none !important;
 }
 
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.4); }
+/* Boost nature/green visibility on map tiles */
+.leaflet-tile-pane {
+  filter: saturate(1.6) contrast(1.03);
+}
+
+.dark .leaflet-tile-pane {
+  filter: saturate(1.8) contrast(1.05) brightness(1.05);
+}
+
+/* Live location pulse */
+.location-pulse {
+  animation: loc-pulse 2s ease-out infinite;
+  transform-origin: center;
+}
+
+@keyframes loc-pulse {
+  0% { opacity: 0.5; stroke-width: 1.5; }
+  50% { opacity: 0.15; stroke-width: 3; }
+  100% { opacity: 0.5; stroke-width: 1.5; }
 }
