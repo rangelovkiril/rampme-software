@@ -43,5 +43,5 @@ jobs:
         with:
           context: ./${{ matrix.app }}
           image: hacktues12-${{ matrix.app }}
-          registry-token: ${{ secrets.GITHUB_TOKEN }}
+          registry-token: ${{ secrets.GHCR_TOKEN }}
           tag-latest: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
