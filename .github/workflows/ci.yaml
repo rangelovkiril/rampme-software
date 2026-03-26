@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  packages: write
+
+jobs:
+  check:
+    name: Check ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        include:
+          - app: frontend
+            build: true
+          - app: backend
+            build: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/check
+        with:
+          app: ${{ matrix.app }}
+          build: ${{ matrix.build }}
+
+  build:
+    name: Build ${{ matrix.app }}
+    needs: [check]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [frontend, backend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-image
+        with:
+          context: ./${{ matrix.app }}
+          image: hacktues12-${{ matrix.app }}
+          registry-token: ${{ secrets.GHCR_TOKEN }}
+          tag-latest: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
