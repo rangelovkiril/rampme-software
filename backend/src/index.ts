@@ -16,6 +16,38 @@ function jsonError(message: string, status: number) {
   })
 }
 
+const FALLBACK_SPEED_MPS: Partial<Record<number, number>> = {
+  0: 7, // tram
+  1: 12, // metro
+  3: 8, // bus
+  11: 8, // trolleybus
+}
+
+function estimateSpeedMps(speed: number | null, routeType: number | null) {
+  if (typeof speed === 'number' && Number.isFinite(speed) && speed > 0.5) {
+    return speed
+  }
+
+  if (typeof routeType === 'number') {
+    return FALLBACK_SPEED_MPS[routeType] ?? 8
+  }
+
+  return 8
+}
+
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const toRad = (value: number) => (value * Math.PI) / 180
+  const earthRadius = 6_371_000
+  const dLat = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
+
+  return 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
 const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
 
 async function initGtfs() {
@@ -85,11 +117,17 @@ const app = new Elysia()
 
   .get(
     '/stops/:id/vehicles',
-    async ({ params: { id } }) => {
+    async ({ params: { id }, query }) => {
       const data = gtfs
       if (!data) return GTFS_NOT_READY()
       try {
-        if (!data.stops.has(id)) return jsonError('Stop not found', 404)
+        const stop = data.stops.get(id)
+        if (!stop) return jsonError('Stop not found', 404)
+
+        const rawLimit = Number(query.limit ?? '20')
+        const limit = Number.isFinite(rawLimit)
+          ? Math.min(Math.max(Math.trunc(rawLimit), 1), 50)
+          : 20
 
         const tripIds = new Set(
           data.stopTimes.filter((st) => st.stop_id === id).map((st) => st.trip_id),
@@ -100,11 +138,34 @@ const app = new Elysia()
           (feed.entity ?? []).filter((e: any) => tripIds.has(e.vehicle?.trip?.tripId)),
           data,
         )
+          .filter((v) => Number.isFinite(v.lat) && Number.isFinite(v.lng))
+          .map((v) => {
+            const distance_m = Math.round(
+              haversineMeters(v.lat, v.lng, stop.stop_lat, stop.stop_lon),
+            )
+            const eta_minutes = Math.max(
+              0,
+              Math.round(distance_m / estimateSpeedMps(v.speed, v.route_type) / 60),
+            )
+
+            return {
+              ...v,
+              distance_m,
+              eta_minutes,
+            }
+          })
+          .sort((a, b) => a.eta_minutes - b.eta_minutes || a.distance_m - b.distance_m)
+          .slice(0, limit)
       } catch (e) {
         return jsonError(`Vehicle positions unavailable: ${e}`, 502)
       }
     },
-    { detail: { tags: ['Stops'], summary: 'Active vehicles serving a stop' } },
+    {
+      query: t.Object({
+        limit: t.Optional(t.String()),
+      }),
+      detail: { tags: ['Stops'], summary: 'Active vehicles serving a stop' },
+    },
   )
 
   .get(
@@ -191,6 +252,8 @@ const app = new Elysia()
 
 await initGtfs()
 setInterval(initGtfs, config.gtfs.refreshInterval)
+
+app.get('/health', () => 'Ok')
 
 app.listen(config.port)
 

@@ -1,14 +1,16 @@
 "use client";
 
-import L from "leaflet";
-import { useCallback, useEffect, useState } from "react";
-import { MapContainer, useMap } from "react-leaflet";
-import FloatingNav from "./FloatingNav";
-import LiveLocation from "./LiveLocation";
-import MapControls from "./MapControls";
-import SidePanel from "./SidePanel";
-import StopsLayer from "./StopsLayer";
-import VehiclesLayer from "./VehiclesLayer";
+import L from 'leaflet'
+import { useCallback, useEffect, useState } from 'react'
+import { MapContainer, useMap } from 'react-leaflet'
+import FloatingNav from './FloatingNav'
+import LiveLocation from './LiveLocation'
+import MapControls from './MapControls'
+import SidePanel from './SidePanel'
+import StopArrivalsSheet from './StopArrivalsSheet'
+import StopsLayer from './StopsLayer'
+import type { Stop } from './StopsLayer'
+import VehiclesLayer from './VehiclesLayer'
 
 const TILES = {
   light:
@@ -17,9 +19,10 @@ const TILES = {
 };
 
 export default function CityMap() {
-  const [activePanel, setActivePanel] = useState<string | null>(null);
-  const [dark, setDark] = useState(false);
-  const [tracking, setTracking] = useState(false);
+  const [activePanel, setActivePanel] = useState<string | null>(null)
+  const [dark, setDark] = useState(false)
+  const [tracking, setTracking] = useState(false)
+  const [selectedStop, setSelectedStop] = useState<Stop | null>(null)
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
@@ -51,18 +54,23 @@ export default function CityMap() {
       >
         <TileSwitch url={dark ? TILES.dark : TILES.light} />
         <LiveLocation active={tracking} />
-        <StopsLayer />
+        <StopsLayer
+          selectedStopId={selectedStop?.stop_id ?? null}
+          onStopSelect={setSelectedStop}
+        />
         <VehiclesLayer />
         <MapControls
           dark={dark}
           onToggleTheme={toggleTheme}
           tracking={tracking}
+          liftLocate={Boolean(selectedStop)}
           onToggleTracking={toggleTracking}
         />
       </MapContainer>
 
       <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} />
-      <SidePanel activePanel={activePanel} onClose={closePanel} />
+        <SidePanel activePanel={activePanel} onClose={closePanel} />
+      <StopArrivalsSheet stop={selectedStop} onClose={() => setSelectedStop(null)} />
     </div>
   );
 }

@@ -38,7 +38,7 @@ const VEHICLE_STYLES: Record<number, { color: string; label: string }> = {
 
 const DEFAULT_STYLE = VEHICLE_STYLES[3]
 const MIN_ZOOM_FOR_VEHICLES = 10
-const DETAIL_ZOOM_FOR_VEHICLES = 14
+const DETAIL_ZOOM_FOR_VEHICLES = 16
 
 const POLL_INTERVAL = 5_000
 

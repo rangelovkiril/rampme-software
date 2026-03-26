@@ -4,26 +4,37 @@ import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 
-interface Stop {
+export interface Stop {
   stop_id: string
   stop_name: string
   stop_lat: number
   stop_lon: number
 }
 
-const MIN_ZOOM_FOR_STOPS = 16
+export interface StopArrival {
+  id: string
+  route_short_name: string | null
+  route_type: number | null
+  headsign: string | null
+  eta_minutes?: number
+  distance_m?: number
+}
 
-/**
- * Create a small circular blue Leaflet divIcon for stop markers.
- *
- * @returns A Leaflet `divIcon` styled as a 10×10 blue circle with a white border and drop shadow; `iconSize` is [10, 10] and `iconAnchor` is [5, 5].
- */
-function createStopIcon() {
+interface StopsLayerProps {
+  selectedStopId?: string | null
+  onStopSelect?: (stop: Stop | null) => void
+}
+
+const MIN_ZOOM_FOR_STOPS = 13
+
+function createStopIcon(selected = false) {
   return L.divIcon({
     className: '',
-    html: '<div style="width:10px;height:10px;border-radius:50%;background:#3b82f6;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>',
-    iconSize: [10, 10],
-    iconAnchor: [5, 5]
+    html: `<div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;transform:translate(-50%,-50%)">
+      <div style="width:16px;height:16px;border-radius:9999px;background:#2b2f37;border:2px solid #3b82f6;box-shadow:${selected ? '0 0 0 3px rgba(59,130,246,0.28),0 1px 6px rgba(0,0,0,0.35)' : '0 1px 5px rgba(0,0,0,0.35)'}"></div>
+    </div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
   })
 }
 
@@ -42,23 +53,13 @@ function isValidCoord(s: Stop) {
   )
 }
 
-/**
- * Render Leaflet markers for transit stops on the current map.
- *
- * Fetches stop data from `/api/stops` once on mount and filters out invalid coordinates.
- * Subscribes to the map's zoom and move events to refresh visible markers.
- * Uses a cached LayerGroup and DivIcon; markers are shown only when the map zoom is at least
- * MIN_ZOOM_FOR_STOPS and the stop's coordinate falls inside the current map bounds.
- * Each marker includes a popup showing the stop name and stop ID.
- *
- * @returns Null — the component does not render React DOM; it manages Leaflet layers directly.
- */
-export default function StopsLayer() {
+export default function StopsLayer({ selectedStopId = null, onStopSelect }: StopsLayerProps) {
   const map = useMap()
   const [stops, setStops] = useState<Stop[]>([])
   const groupRef = useRef<L.LayerGroup | null>(null)
   const [revision, setRevision] = useState(0)
   const iconRef = useRef<L.DivIcon | null>(null)
+  const selectedIconRef = useRef<L.DivIcon | null>(null)
 
   // Fetch stops once
   useEffect(() => {
@@ -81,6 +82,20 @@ export default function StopsLayer() {
     }
   }, [map])
 
+  useEffect(() => {
+    if (!onStopSelect) return
+
+    function closeSelectedStop() {
+      onStopSelect?.(null)
+    }
+
+    map.on('click', closeSelectedStop)
+
+    return () => {
+      map.off('click', closeSelectedStop)
+    }
+  }, [map, onStopSelect])
+
   // Render markers
   useEffect(() => {
     if (!groupRef.current) {
@@ -98,6 +113,9 @@ export default function StopsLayer() {
     if (!iconRef.current) {
       iconRef.current = createStopIcon()
     }
+    if (!selectedIconRef.current) {
+      selectedIconRef.current = createStopIcon(true)
+    }
 
     const bounds = map.getBounds()
 
@@ -105,15 +123,21 @@ export default function StopsLayer() {
       const latlng = L.latLng(stop.stop_lat, stop.stop_lon)
       if (!bounds.contains(latlng)) continue
 
-      L.marker(latlng, { icon: iconRef.current })
-        .bindPopup(
-          `<div style="font-family:Inter,sans-serif;font-size:13px"><strong>${stop.stop_name}</strong><br/><span style="opacity:0.6">${stop.stop_id}</span></div>`
-        )
-        .addTo(group)
+      const marker = L.marker(latlng, {
+        icon: selectedStopId === stop.stop_id ? selectedIconRef.current : iconRef.current,
+        riseOnHover: true,
+        bubblingMouseEvents: false
+      })
+
+      marker.on('click', () => {
+        onStopSelect?.(stop)
+      })
+
+      marker.addTo(group)
     }
 
     group.addTo(map)
-  }, [stops, map, revision])
+  }, [stops, map, revision, selectedStopId, onStopSelect])
 
   return null
 }
