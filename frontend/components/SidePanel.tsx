@@ -1,63 +1,78 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
+import { useEffect } from "react";
 
 interface SidePanelProps {
-  activePanel: string | null
-  onClose: () => void
+  activePanel: string | null;
+  onClose: () => void;
 }
 
 const panelContent: Record<string, { title: string; placeholder: string }> = {
   alerts: {
-    title: 'Известия',
-    placeholder: 'Известията ще се заредят от API данните.',
+    title: "Известия",
+    placeholder: "Известията ще се заредят от API данните.",
   },
   routes: {
-    title: 'Линии',
-    placeholder: 'Линиите ще се заредят от GTFS данните.',
+    title: "Линии",
+    placeholder: "Линиите ще се заредят от GTFS данните.",
   },
   stops: {
-    title: 'Спирки',
-    placeholder: 'Спирките ще се заредят от GTFS данните.',
+    title: "Спирки",
+    placeholder: "Спирките ще се заредят от GTFS данните.",
   },
-}
+};
 
 export default function SidePanel({ activePanel, onClose }: SidePanelProps) {
-  const isOpen = activePanel !== null && activePanel in panelContent
-  const content = activePanel ? panelContent[activePanel] : null
+  const isOpen = activePanel !== null && activePanel in panelContent;
+  const content = activePanel ? panelContent[activePanel] : null;
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && isOpen) onClose()
+      if (e.key === "Escape" && isOpen) onClose();
     }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [isOpen, onClose])
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [isOpen, onClose]);
 
   return (
     <aside
-      className={`fixed top-0 bottom-0 left-0 z-[900] flex w-[340px] max-sm:w-full flex-col backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
+      className={`fixed top-0 bottom-0 left-0 z-[900] flex w-[340px] flex-col backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-sm:w-full ${
+        isOpen ? "translate-x-0" : "-translate-x-full"
       }`}
       style={{
-        background: 'var(--surface-overlay)',
-        borderRight: '1px solid var(--border)',
+        background: "var(--surface-overlay)",
+        borderRight: "1px solid var(--border)",
       }}
     >
       {content && (
         <>
           <div className="flex items-center justify-between px-5 pt-5 pb-3">
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            <h2
+              className="font-semibold text-sm"
+              style={{ color: "var(--text)" }}
+            >
               {content.title}
             </h2>
             <button
+              type="button"
               onClick={onClose}
               className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors"
-              style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--control-hover)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              style={{ color: "var(--text-muted)" }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "var(--control-hover)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -68,11 +83,11 @@ export default function SidePanel({ activePanel, onClose }: SidePanelProps) {
             <div
               className="rounded-xl p-4"
               style={{
-                background: 'var(--surface-elevated)',
-                border: '1px solid var(--border)',
+                background: "var(--surface-elevated)",
+                border: "1px solid var(--border)",
               }}
             >
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                 {content.placeholder}
               </p>
             </div>
@@ -80,5 +95,5 @@ export default function SidePanel({ activePanel, onClose }: SidePanelProps) {
         </>
       )}
     </aside>
-  )
+  );
 }

@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import L from 'leaflet'
+import { useEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
 
 export default function LiveLocation({ active }: { active: boolean }) {
@@ -19,9 +19,18 @@ export default function LiveLocation({ active }: { active: boolean }) {
         navigator.geolocation.clearWatch(watchRef.current)
         watchRef.current = null
       }
-      if (dotRef.current) { map.removeLayer(dotRef.current); dotRef.current = null }
-      if (pulseRef.current) { map.removeLayer(pulseRef.current); pulseRef.current = null }
-      if (accuracyRef.current) { map.removeLayer(accuracyRef.current); accuracyRef.current = null }
+      if (dotRef.current) {
+        map.removeLayer(dotRef.current)
+        dotRef.current = null
+      }
+      if (pulseRef.current) {
+        map.removeLayer(pulseRef.current)
+        pulseRef.current = null
+      }
+      if (accuracyRef.current) {
+        map.removeLayer(accuracyRef.current)
+        accuracyRef.current = null
+      }
       firstFixRef.current = true
       return
     }
@@ -89,9 +98,18 @@ export default function LiveLocation({ active }: { active: boolean }) {
         navigator.geolocation.clearWatch(watchRef.current)
         watchRef.current = null
       }
-      if (dotRef.current) { map.removeLayer(dotRef.current); dotRef.current = null }
-      if (pulseRef.current) { map.removeLayer(pulseRef.current); pulseRef.current = null }
-      if (accuracyRef.current) { map.removeLayer(accuracyRef.current); accuracyRef.current = null }
+      if (dotRef.current) {
+        map.removeLayer(dotRef.current)
+        dotRef.current = null
+      }
+      if (pulseRef.current) {
+        map.removeLayer(pulseRef.current)
+        pulseRef.current = null
+      }
+      if (accuracyRef.current) {
+        map.removeLayer(accuracyRef.current)
+        accuracyRef.current = null
+      }
       firstFixRef.current = true
     }
   }, [active, map])

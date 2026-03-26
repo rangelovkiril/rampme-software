@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import L from "leaflet";
+import { useCallback, useEffect, useState } from "react";
 import { MapContainer, useMap } from "react-leaflet";
-import MapControls from "./MapControls";
 import FloatingNav from "./FloatingNav";
-import SidePanel from "./SidePanel";
 import LiveLocation from "./LiveLocation";
+import MapControls from "./MapControls";
+import SidePanel from "./SidePanel";
 import VehiclesLayer from "./VehiclesLayer";
+import StopsLayer from "./StopsLayer";
 
 const TILES = {
   light:
@@ -46,6 +47,7 @@ export default function CityMap() {
       >
         <TileSwitch url={dark ? TILES.dark : TILES.light} />
         <LiveLocation active={tracking} />
+        <StopsLayer />
         <VehiclesLayer />
         <MapControls
           dark={dark}
@@ -69,7 +71,10 @@ function TileSwitch({ url }: { url: string }) {
 
   useEffect(() => {
     map.eachLayer((layer) => {
-      if ((layer as any)._url) map.removeLayer(layer);
+      // Use instanceof check instead of 'as any'
+      if (layer instanceof L.TileLayer) {
+        map.removeLayer(layer);
+      }
     });
     L.tileLayer(url, { maxZoom: 19 }).addTo(map);
   }, [url, map]);

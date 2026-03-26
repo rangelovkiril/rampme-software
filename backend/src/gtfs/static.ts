@@ -1,6 +1,6 @@
 import JSZip from 'jszip'
 import { config } from '../config'
-import type { GtfsData, Route, Stop, StopTime, Trip } from './types'
+import type { GtfsData, Route, Stop, Trip } from './types'
 
 function parseCsv<T>(raw: string, transform: (row: Record<string, string>) => T): T[] {
   const lines = raw.trim().split('\n')
@@ -42,7 +42,7 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     stop_name: r.stop_name,
     stop_lat: parseFloat(r.stop_lat),
     stop_lon: parseFloat(r.stop_lon),
-    wheelchair_boarding: parseInt(r.wheelchair_boarding || '0') as 0 | 1 | 2,
+    wheelchair_boarding: Number(r.wheelchair_boarding || '0') as 0 | 1 | 2,
   }))) {
     stops.set(s.stop_id, s)
   }
@@ -52,7 +52,7 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     route_id: r.route_id,
     route_short_name: r.route_short_name,
     route_long_name: r.route_long_name,
-    route_type: parseInt(r.route_type),
+    route_type: Number(r.route_type),
   }))) {
     routes.set(r.route_id, r)
   }
@@ -63,8 +63,8 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     route_id: r.route_id,
     service_id: r.service_id,
     trip_headsign: r.trip_headsign ?? '',
-    direction_id: parseInt(r.direction_id || '0'),
-    wheelchair_accessible: parseInt(r.wheelchair_accessible || '0') as 0 | 1 | 2,
+    direction_id: Number(r.direction_id || '0'),
+    wheelchair_accessible: Number(r.wheelchair_accessible || '0') as 0 | 1 | 2,
   }))) {
     trips.set(t.trip_id, t)
   }
@@ -74,7 +74,7 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     arrival_time: r.arrival_time,
     departure_time: r.departure_time,
     stop_id: r.stop_id,
-    stop_sequence: parseInt(r.stop_sequence),
+    stop_sequence: Number(r.stop_sequence),
   }))
 
   console.log(
