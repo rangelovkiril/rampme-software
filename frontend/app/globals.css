@@ -10,6 +10,8 @@
 
 /* ── Theme tokens ── */
 :root {
+  --primary: #d3d3d3;
+  --primary-contrast: #ffffff;
   --surface: #ffffff;
   --surface-elevated: #ffffff;
   --surface-overlay: rgba(255, 255, 255, 0.92);
@@ -25,6 +27,8 @@
 }
 
 .dark {
+  --primary: #4b4b4b;
+  --primary-contrast: #0f172a;
   --surface: #0d0d14;
   --surface-elevated: #16161f;
   --surface-overlay: rgba(22, 22, 31, 0.92);
@@ -72,16 +76,7 @@ body {
 }
 
 @keyframes loc-pulse {
-  0% {
-    opacity: 0.5;
-    stroke-width: 1.5;
-  }
-  50% {
-    opacity: 0.15;
-    stroke-width: 3;
-  }
-  100% {
-    opacity: 0.5;
-    stroke-width: 1.5;
-  }
+  0% { opacity: 0.5; stroke-width: 1.5; }
+  50% { opacity: 0.15; stroke-width: 3; }
+  100% { opacity: 0.5; stroke-width: 1.5; }
 }
