@@ -21,23 +21,23 @@ const VEHICLE_STYLES: Record<number, { color: string; label: string; svg: string
   0: {
     color: '#F7941D',
     label: 'Трамвай',
-    svg: `<path d="M4 18V6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v12"/><line x1="4" y1="12" x2="20" y2="12"/><rect x="4" y="18" width="16" height="2" rx="1"/><line x1="8" y1="22" x2="8" y2="20"/><line x1="16" y1="22" x2="16" y2="20"/>`,
+    svg: `<path d="M4 18V6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v12"/><line x1="4" y1="12" x2="20" y2="12"/><rect x="4" y="18" width="16" height="2" rx="1"/><line x1="8" y1="22" x2="8" y2="20"/><line x1="16" y1="22" x2="16" y2="20"/>`
   },
   3: {
     color: '#BE1E2D',
     label: 'Автобус',
-    svg: `<path d="M5 11V7a7 7 0 0 1 14 0v4"/><rect x="3" y="11" width="18" height="8" rx="2"/><circle cx="7.5" cy="21.5" r="1.5"/><circle cx="16.5" cy="21.5" r="1.5"/>`,
+    svg: `<path d="M5 11V7a7 7 0 0 1 14 0v4"/><rect x="3" y="11" width="18" height="8" rx="2"/><circle cx="7.5" cy="21.5" r="1.5"/><circle cx="16.5" cy="21.5" r="1.5"/>`
   },
   11: {
     color: '#27AAE1',
     label: 'Тролей',
-    svg: `<path d="M5 11V7a7 7 0 0 1 14 0v4"/><rect x="3" y="11" width="18" height="8" rx="2"/><circle cx="7.5" cy="21.5" r="1.5"/><circle cx="16.5" cy="21.5" r="1.5"/><line x1="9" y1="2" x2="7" y2="0"/><line x1="15" y1="2" x2="17" y2="0"/>`,
+    svg: `<path d="M5 11V7a7 7 0 0 1 14 0v4"/><rect x="3" y="11" width="18" height="8" rx="2"/><circle cx="7.5" cy="21.5" r="1.5"/><circle cx="16.5" cy="21.5" r="1.5"/><line x1="9" y1="2" x2="7" y2="0"/><line x1="15" y1="2" x2="17" y2="0"/>`
   },
   1: {
     color: '#9B59B6',
     label: 'Метро',
-    svg: `<rect x="2" y="8" width="20" height="10" rx="3"/><circle cx="7" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/><line x1="2" y1="13" x2="22" y2="13"/><rect x="6" y="5" width="4" height="3" rx="1"/><rect x="14" y="5" width="4" height="3" rx="1"/>`,
-  },
+    svg: `<rect x="2" y="8" width="20" height="10" rx="3"/><circle cx="7" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/><line x1="2" y1="13" x2="22" y2="13"/><rect x="6" y="5" width="4" height="3" rx="1"/><rect x="14" y="5" width="4" height="3" rx="1"/>`
+  }
 }
 
 const DEFAULT_STYLE = VEHICLE_STYLES[3]
@@ -53,7 +53,7 @@ function vehicleIcon(bearing: number, routeType: number, routeName: string) {
       </div>
     </div>`,
     iconSize: [40, 44],
-    iconAnchor: [20, 22],
+    iconAnchor: [20, 22]
   })
 }
 
@@ -119,7 +119,7 @@ export default function VehiclesLayer() {
         existingMarker.setPopupContent(popupHtml)
       } else {
         const marker = L.marker(latlng, {
-          icon: vehicleIcon(bearing, v.route_type, v.route_short_name),
+          icon: vehicleIcon(bearing, v.route_type, v.route_short_name)
         })
           .bindPopup(popupHtml)
           .addTo(group)

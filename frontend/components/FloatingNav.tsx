@@ -13,7 +13,7 @@ export default function FloatingNav({ activePanel, onTogglePanel }: FloatingNavP
         style={{
           background: 'var(--surface-overlay)',
           boxShadow: 'var(--shadow-lg)',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border)'
         }}
       >
         <NavPill
@@ -86,7 +86,7 @@ function NavPill({
   active,
   onClick,
   icon,
-  label,
+  label
 }: {
   active: boolean
   onClick: () => void
@@ -99,7 +99,7 @@ function NavPill({
       className="flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 font-medium text-[13px] transition-all"
       style={{
         background: active ? 'var(--primary)' : 'transparent',
-        color: active ? '#fff' : 'var(--text-secondary)',
+        color: active ? '#fff' : 'var(--text-secondary)'
       }}
     >
       {icon}

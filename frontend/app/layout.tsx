@@ -4,18 +4,17 @@ import 'leaflet/dist/leaflet.css'
 
 export const metadata: Metadata = {
   title: 'Sofia Live Transport',
-  description: 'Live public transport map for Sofia, Bulgaria',
+  description: 'Live public transport map for Sofia, Bulgaria'
 }
 
 export default function RootLayout({
-  children,
+  children
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
     <html lang="bg" className="h-full antialiased" suppressHydrationWarning>
       <head>
-        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static theme initialization script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function() {
@@ -26,7 +25,7 @@ export default function RootLayout({
                   document.documentElement.classList.add('dark');
                 }
               } catch (e) {}
-            })()`,
+            })()`
           }}
         />
       </head>

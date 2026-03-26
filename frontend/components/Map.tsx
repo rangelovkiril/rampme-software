@@ -1,39 +1,38 @@
-"use client";
+'use client'
 
-import L from "leaflet";
-import { useCallback, useEffect, useState } from "react";
-import { MapContainer, useMap } from "react-leaflet";
-import FloatingNav from "./FloatingNav";
-import LiveLocation from "./LiveLocation";
-import MapControls from "./MapControls";
-import SidePanel from "./SidePanel";
-import VehiclesLayer from "./VehiclesLayer";
-import StopsLayer from "./StopsLayer";
+import L from 'leaflet'
+import { useCallback, useEffect, useState } from 'react'
+import { MapContainer, useMap } from 'react-leaflet'
+import FloatingNav from './FloatingNav'
+import LiveLocation from './LiveLocation'
+import MapControls from './MapControls'
+import SidePanel from './SidePanel'
+import StopsLayer from './StopsLayer'
+import VehiclesLayer from './VehiclesLayer'
 
 const TILES = {
-  light:
-    "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-  dark: "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png",
-};
+  light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  dark: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png'
+}
 
 export default function CityMap() {
-  const [activePanel, setActivePanel] = useState<string | null>(null);
-  const [dark, setDark] = useState(false);
-  const [tracking, setTracking] = useState(false);
+  const [activePanel, setActivePanel] = useState<string | null>(null)
+  const [dark, setDark] = useState(false)
+  const [tracking, setTracking] = useState(false)
 
   useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
+    setDark(document.documentElement.classList.contains('dark'))
+  }, [])
 
   const toggleTheme = useCallback(() => {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("theme", next ? "dark" : "light");
-  }, [dark]);
+    const next = !dark
+    setDark(next)
+    document.documentElement.classList.toggle('dark', next)
+    localStorage.setItem('theme', next ? 'dark' : 'light')
+  }, [dark])
 
   function togglePanel(name: string) {
-    setActivePanel((prev) => (prev === name ? null : name));
+    setActivePanel(prev => (prev === name ? null : name))
   }
 
   return (
@@ -53,31 +52,28 @@ export default function CityMap() {
           dark={dark}
           onToggleTheme={toggleTheme}
           tracking={tracking}
-          onToggleTracking={() => setTracking((t) => !t)}
+          onToggleTracking={() => setTracking(t => !t)}
         />
       </MapContainer>
 
       <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} />
-      <SidePanel
-        activePanel={activePanel}
-        onClose={() => setActivePanel(null)}
-      />
+      <SidePanel activePanel={activePanel} onClose={() => setActivePanel(null)} />
     </div>
-  );
+  )
 }
 
 function TileSwitch({ url }: { url: string }) {
-  const map = useMap();
+  const map = useMap()
 
   useEffect(() => {
-    map.eachLayer((layer) => {
+    map.eachLayer(layer => {
       // Use instanceof check instead of 'as any'
       if (layer instanceof L.TileLayer) {
-        map.removeLayer(layer);
+        map.removeLayer(layer)
       }
-    });
-    L.tileLayer(url, { maxZoom: 19 }).addTo(map);
-  }, [url, map]);
+    })
+    L.tileLayer(url, { maxZoom: 19 }).addTo(map)
+  }, [url, map])
 
-  return null;
+  return null
 }

@@ -20,7 +20,7 @@ function MapViewportBase({
   dark,
   onToggleTheme,
   tracking,
-  onToggleTracking,
+  onToggleTracking
 }: MapViewportProps) {
   return (
     <div className="absolute inset-0">

@@ -36,7 +36,7 @@ export default function LiveLocation({ active }: { active: boolean }) {
     }
 
     watchRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
+      pos => {
         const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude)
         const accuracy = pos.coords.accuracy
 
@@ -57,7 +57,7 @@ export default function LiveLocation({ active }: { active: boolean }) {
             fillOpacity: 0.06,
             color: '#3b82f6',
             weight: 0.5,
-            opacity: 0.15,
+            opacity: 0.15
           }).addTo(map)
         }
 
@@ -72,7 +72,7 @@ export default function LiveLocation({ active }: { active: boolean }) {
             color: '#3b82f6',
             weight: 1.5,
             opacity: 0.25,
-            className: 'location-pulse',
+            className: 'location-pulse'
           }).addTo(map)
         }
 
@@ -85,12 +85,12 @@ export default function LiveLocation({ active }: { active: boolean }) {
             fillColor: '#3b82f6',
             fillOpacity: 1,
             color: '#ffffff',
-            weight: 2.5,
+            weight: 2.5
           }).addTo(map)
         }
       },
       () => {},
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
     )
 
     return () => {
