@@ -18,7 +18,15 @@ const TILES = {
   dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
 };
 
+/** Tiny bridge that exposes the Leaflet map instance to parent state */
+function MapBridge({ onMap }: { onMap: (map: L.Map) => void }) {
+  const map = useMap()
+  useEffect(() => { onMap(map) }, [map, onMap])
+  return null
+}
+
 export default function CityMap() {
+  const [mapRef, setMapRef] = useState<L.Map | null>(null)
   const [activePanel, setActivePanel] = useState<string | null>(null)
   const [dark, setDark] = useState(false)
   const [tracking, setTracking] = useState(false)
@@ -41,7 +49,22 @@ export default function CityMap() {
 
   const toggleTracking = useCallback(() => setTracking((t) => !t), []);
 
+  const handleLocationError = useCallback((msg: string, code?: number) => {
+    // Keep tracking enabled on timeout/unavailable so geolocation can recover automatically.
+    if (code === 3) {
+      console.warn(msg)
+      return
+    }
+
+    if (code === 1) {
+      setTracking(false)
+    }
+    alert(msg)
+  }, []);
+
   const closePanel = useCallback(() => setActivePanel(null), []);
+
+  const storeMap = useCallback((m: L.Map) => setMapRef(m), [])
 
   return (
     <div className="relative h-full w-full">
@@ -52,21 +75,25 @@ export default function CityMap() {
         attributionControl={false}
         className="h-full w-full"
       >
+        <MapBridge onMap={storeMap} />
         <TileSwitch url={dark ? TILES.dark : TILES.light} />
-        <LiveLocation active={tracking} />
+        <LiveLocation active={tracking} onError={handleLocationError} />
         <StopsLayer
           selectedStopId={selectedStop?.stop_id ?? null}
           onStopSelect={setSelectedStop}
         />
         <VehiclesLayer />
-        <MapControls
-          dark={dark}
-          onToggleTheme={toggleTheme}
-          tracking={tracking}
-          liftLocate={Boolean(selectedStop)}
-          onToggleTracking={toggleTracking}
-        />
       </MapContainer>
+
+      {/* Controls rendered OUTSIDE MapContainer so Leaflet cannot intercept clicks */}
+      <MapControls
+        map={mapRef}
+        dark={dark}
+        onToggleTheme={toggleTheme}
+        tracking={tracking}
+        liftLocate={Boolean(selectedStop)}
+        onToggleTracking={toggleTracking}
+      />
 
       <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} />
         <SidePanel activePanel={activePanel} onClose={closePanel} />

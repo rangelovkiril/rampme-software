@@ -10,6 +10,12 @@ interface StopArrivalsSheetProps {
 
 const ARRIVALS_LIMIT = 20
 const POLL_INTERVAL = 15_000
+const RAMP_PROXIMITY_METERS = 500
+
+/** Toggle ramp availability mode:
+ *  true  = ramp button enabled for every bus when near stop (for testing)
+ *  false = ramp button only enabled for buses with has_ramp data */
+const RAMP_ALL = false
 
 const ROUTE_COLORS: Record<number, string> = {
   0: '#F7941D',
@@ -39,6 +45,7 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null)
+  const [rampOnly, setRampOnly] = useState(false)
   const watchRef = useRef<number | null>(null)
 
   // Track user geolocation for ramp button proximity check
@@ -79,6 +86,7 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
       setArrivals([])
       setLoading(false)
       setError(null)
+      setRampOnly(false)
       return
     }
 
@@ -93,7 +101,11 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
   const distToStop = (stop && userPos)
     ? distanceMeters(userPos.lat, userPos.lng, stop.stop_lat, stop.stop_lon)
     : null
-  const canRequestRamp = distToStop !== null && distToStop <= 200
+  const isNearStop = distToStop !== null && distToStop <= RAMP_PROXIMITY_METERS
+
+  // Filter arrivals when ramp-only filter is active
+  const displayedArrivals = rampOnly ? arrivals.filter((a) => a.has_ramp) : arrivals
+  const rampCount = arrivals.filter((a) => a.has_ramp).length
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[920] flex justify-center px-0 sm:px-4">
@@ -122,15 +134,38 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
               {stop?.stop_id ?? ''}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-sm"
-            style={{ background: 'var(--control-bg)', color: 'var(--text-secondary)' }}
-            aria-label="Close stop arrivals"
-          >
-            x
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Ramp-only filter toggle */}
+            <button
+              type="button"
+              onClick={() => setRampOnly((v) => !v)}
+              className="flex h-8 items-center gap-1 rounded-full px-3 text-xs font-semibold transition-all"
+              style={{
+                background: rampOnly ? '#3b82f6' : 'var(--control-bg)',
+                color: rampOnly ? '#fff' : 'var(--text-secondary)',
+                border: rampOnly ? 'none' : '1px solid var(--border)',
+              }}
+              title={rampOnly ? 'Show all vehicles' : 'Show only vehicles with ramp'}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="10" cy="17.5" r="3.5" />
+                <path d="M18 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" fill="currentColor" stroke="none" />
+                <path d="M17 7l-5 5" />
+                <path d="M12 12l-5 5" />
+                <path d="M17 7v6" />
+              </svg>
+              {rampOnly ? `Ramp (${rampCount})` : 'Ramp'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-sm"
+              style={{ background: 'var(--control-bg)', color: 'var(--text-secondary)' }}
+              aria-label="Close stop arrivals"
+            >
+              x
+            </button>
+          </div>
         </div>
 
         <div className="max-h-[54vh] overflow-y-auto px-3 pb-4">
@@ -146,15 +181,17 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
             </p>
           )}
 
-          {!loading && !error && arrivals.length === 0 && (
+          {!loading && !error && displayedArrivals.length === 0 && (
             <p className="px-2 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-              No active vehicles for this stop right now.
+              {rampOnly
+                ? 'No vehicles with ramp available for this stop right now.'
+                : 'No active vehicles for this stop right now.'}
             </p>
           )}
 
-          {!loading && !error && arrivals.length > 0 && (
+          {!loading && !error && displayedArrivals.length > 0 && (
             <div className="space-y-2">
-              {arrivals.map((item) => {
+              {displayedArrivals.map((item) => {
                 const routeColor =
                   typeof item.route_type === 'number'
                     ? (ROUTE_COLORS[item.route_type] ?? '#BE1E2D')
@@ -164,6 +201,8 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
                 const scheduled = item.scheduled_time ?? null
                 const expected = item.expected_time ?? null
                 const isDelayed = item.realtime && scheduled && expected && expected !== scheduled
+
+                const canRequestRamp = isNearStop && (RAMP_ALL || item.has_ramp === true)
 
                 return (
                   <div
@@ -220,7 +259,7 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
                           opacity: canRequestRamp ? 1 : 0.5,
                           cursor: canRequestRamp ? 'pointer' : 'not-allowed',
                         }}
-                        title={canRequestRamp ? 'Request wheelchair ramp' : 'Move within 200m of the stop to request a ramp'}
+                        title={canRequestRamp ? 'Request wheelchair ramp' : `Move within ${RAMP_PROXIMITY_METERS}m of the stop to request a ramp`}
                       >
                         Ramp
                       </button>
