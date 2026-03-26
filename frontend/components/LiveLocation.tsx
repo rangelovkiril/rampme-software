@@ -4,6 +4,16 @@ import L from 'leaflet'
 import { useEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
 
+/**
+ * Manage continuous geolocation tracking and draw live location markers on the current Leaflet map.
+ *
+ * When activated, starts a geolocation watch and updates three Leaflet layers to represent the user's
+ * position: an accuracy circle, a pulsing ring, and a solid dot. On the first successful fix the map
+ * animates to the user's location. When deactivated or on unmount, stops the geolocation watch and
+ * removes any created layers.
+ *
+ * @param active - If `true`, enable continuous geolocation tracking and map updates; if `false`, stop tracking and remove layers
+ */
 export default function LiveLocation({ active }: { active: boolean }) {
   const map = useMap()
   const dotRef = useRef<L.CircleMarker | null>(null)

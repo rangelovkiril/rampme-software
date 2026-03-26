@@ -22,6 +22,13 @@ const panelContent: Record<string, { title: string; placeholder: string }> = {
   }
 }
 
+/**
+ * Render a left-side sliding panel that shows content for the given panel identifier.
+ *
+ * @param activePanel - The key of the panel to display (e.g., "alerts", "routes", "stops"); `null` hides the panel.
+ * @param onClose - Callback invoked to close the panel (called on Escape key or when the close button is clicked).
+ * @returns The side panel element that slides in from the left and displays the selected panel's title and placeholder content.
+ */
 export default function SidePanel({ activePanel, onClose }: SidePanelProps) {
   const isOpen = activePanel !== null && activePanel in panelContent
   const content = activePanel ? panelContent[activePanel] : null

@@ -13,6 +13,11 @@ interface Stop {
 
 const MIN_ZOOM_FOR_STOPS = 13
 
+/**
+ * Create a small circular blue Leaflet divIcon for stop markers.
+ *
+ * @returns A Leaflet `divIcon` styled as a 10×10 blue circle with a white border and drop shadow; `iconSize` is [10, 10] and `iconAnchor` is [5, 5].
+ */
 function createStopIcon() {
   return L.divIcon({
     className: '',
@@ -22,6 +27,12 @@ function createStopIcon() {
   })
 }
 
+/**
+ * Check whether a stop has valid, non-zero latitude and longitude.
+ *
+ * @param s - The stop whose coordinates will be validated
+ * @returns `true` if both `stop_lat` and `stop_lon` are finite numbers and not zero, `false` otherwise
+ */
 function isValidCoord(s: Stop) {
   return (
     Number.isFinite(s.stop_lat) &&
@@ -31,6 +42,17 @@ function isValidCoord(s: Stop) {
   )
 }
 
+/**
+ * Render Leaflet markers for transit stops on the current map.
+ *
+ * Fetches stop data from `/api/stops` once on mount and filters out invalid coordinates.
+ * Subscribes to the map's zoom and move events to refresh visible markers.
+ * Uses a cached LayerGroup and DivIcon; markers are shown only when the map zoom is at least
+ * MIN_ZOOM_FOR_STOPS and the stop's coordinate falls inside the current map bounds.
+ * Each marker includes a popup showing the stop name and stop ID.
+ *
+ * @returns Null — the component does not render React DOM; it manages Leaflet layers directly.
+ */
 export default function StopsLayer() {
   const map = useMap()
   const [stops, setStops] = useState<Stop[]>([])

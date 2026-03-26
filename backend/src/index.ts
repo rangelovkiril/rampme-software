@@ -9,11 +9,19 @@ import { swaggerPlugin } from './swagger'
 
 let gtfs: GtfsData
 
+/**
+ * Loads static GTFS data and stores it in the module-level `gtfs` variable.
+ */
 async function initGtfs() {
   gtfs = await fetchStaticGtfs()
 }
 
-/** Взима суровите entities и ги обогатява с GTFS статика + локална БД */
+/**
+ * Enriches GTFS realtime vehicle entities with static GTFS data and local DB attributes.
+ *
+ * @param entities - Array of realtime feed entities (objects that may contain a `vehicle.position`)
+ * @returns An array of vehicle records with the following fields: `id`, `lat`, `lng`, `bearing`, `speed`, `route_id`, `route_short_name`, `route_type`, `headsign`, and `low_floor`. `bearing`, `speed`, `route_*`, `headsign`, and `low_floor` are `null` when unavailable.
+ */
 function enrichVehicles(entities: any[]) {
   return entities
     .filter((e) => e.vehicle?.position)
