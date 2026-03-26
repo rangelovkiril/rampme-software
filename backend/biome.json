@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.9/schema.json",
+  "$schema": "https://biomejs.json/schemas/2.4.9/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,7 +7,8 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**/*.ts", "**/*.js", "**/*.json"]
+    "includes": ["**/*.ts", "**/*.js", "**/*.json"],
+    "ignore": ["**/*.css"]
   },
   "formatter": {
     "enabled": true,
@@ -42,9 +43,15 @@
       "arrowParentheses": "always"
     }
   },
-  "json": {
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    },
+    "linter": {
+      "enabled": false
+    },
     "formatter": {
-      "trailingCommas": "none"
+      "enabled": false
     }
   }
 }

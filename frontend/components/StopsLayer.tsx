@@ -18,7 +18,7 @@ function createStopIcon() {
     className: '',
     html: '<div style="width:10px;height:10px;border-radius:50%;background:#3b82f6;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>',
     iconSize: [10, 10],
-    iconAnchor: [5, 5],
+    iconAnchor: [5, 5]
   })
 }
 
@@ -41,7 +41,7 @@ export default function StopsLayer() {
   // Fetch stops once
   useEffect(() => {
     fetch('/api/stops')
-      .then((r) => r.json())
+      .then(r => r.json())
       .then((data: Stop[]) => setStops(data.filter(isValidCoord)))
       .catch(() => {})
   }, [])
@@ -49,7 +49,7 @@ export default function StopsLayer() {
   // Track zoom + move
   useEffect(() => {
     function update() {
-      setRevision((r) => r + 1)
+      setRevision(r => r + 1)
     }
     map.on('zoomend', update)
     map.on('moveend', update)
@@ -85,7 +85,7 @@ export default function StopsLayer() {
 
       L.marker(latlng, { icon: iconRef.current })
         .bindPopup(
-          `<div style="font-family:Inter,sans-serif;font-size:13px"><strong>${stop.stop_name}</strong><br/><span style="opacity:0.6">${stop.stop_id}</span></div>`,
+          `<div style="font-family:Inter,sans-serif;font-size:13px"><strong>${stop.stop_name}</strong><br/><span style="opacity:0.6">${stop.stop_id}</span></div>`
         )
         .addTo(group)
     }

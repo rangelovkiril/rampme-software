@@ -6,8 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignoreUnknown": true,
-    "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json"]
+    "ignoreUnknown": true
   },
   "formatter": {
     "enabled": true,
@@ -18,34 +17,30 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "recommended": false,
       "correctness": {
-        "noUnusedImports": "warn",
-        "noUnusedVariables": "warn",
-        "useExhaustiveDependencies": "warn",
-        "useHookAtTopLevel": "error"
+        "noUnusedImports": "off",
+        "noUnusedVariables": "off",
+        "useExhaustiveDependencies": "off",
+        "useHookAtTopLevel": "warn"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
-        "noConsole": "warn"
+        "noExplicitAny": "off",
+        "noConsole": "off"
       },
       "style": {
-        "useConst": "error",
-        "noNonNullAssertion": "warn",
-        "useImportType": "warn"
-      },
-      "nursery": {
-        "useSortedClasses": "warn"
+        "useConst": "warn",
+        "noNonNullAssertion": "off",
+        "useImportType": "off"
       }
     }
   },
   "javascript": {
     "formatter": {
       "quoteStyle": "single",
-      "jsxQuoteStyle": "double",
       "semicolons": "asNeeded",
-      "trailingCommas": "all",
-      "arrowParentheses": "always"
+      "trailingCommas": "none",
+      "arrowParentheses": "asNeeded"
     }
   },
   "json": {

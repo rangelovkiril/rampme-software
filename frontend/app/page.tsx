@@ -8,7 +8,7 @@ const Map = dynamic(() => import('@/components/Map'), {
     <div className="flex h-full w-full items-center justify-center bg-surface">
       <p className="text-on-surface-variant text-sm">Loading map...</p>
     </div>
-  ),
+  )
 })
 
 export default function Home() {

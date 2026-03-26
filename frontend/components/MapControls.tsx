@@ -13,7 +13,7 @@ export default function MapControls({
   dark,
   onToggleTheme,
   tracking,
-  onToggleTracking,
+  onToggleTracking
 }: MapControlsProps) {
   const map = useMap()
 
@@ -118,7 +118,7 @@ function ControlButton({
   onClick,
   title,
   children,
-  active = false,
+  active = false
 }: {
   onClick: () => void
   title: string
@@ -133,12 +133,12 @@ function ControlButton({
       style={{
         background: active ? '#3b82f6' : 'var(--control-bg)',
         color: active ? '#ffffff' : 'var(--text-secondary)',
-        boxShadow: 'var(--shadow)',
+        boxShadow: 'var(--shadow)'
       }}
-      onMouseEnter={(e) => {
+      onMouseEnter={e => {
         if (!active) e.currentTarget.style.background = 'var(--control-hover)'
       }}
-      onMouseLeave={(e) => {
+      onMouseLeave={e => {
         if (!active) e.currentTarget.style.background = 'var(--control-bg)'
       }}
     >
