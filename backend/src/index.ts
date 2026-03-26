@@ -109,19 +109,6 @@ const app = new Elysia()
     { detail: { tags: ["Routes"], summary: "Маршрут по ID с trips и спирки" } },
   )
 
-  // ── Realtime ────────────────────────────────────
-  .get(
-    "/realtime/alerts",
-    async () => {
-      try {
-        return await fetchAlerts();
-      } catch (e) {
-        return new Response(`Alerts unavailable: ${e}`, { status: 502 });
-      }
-    },
-    { detail: { tags: ["Realtime"], summary: "Service alerts" } },
-  )
-
   .get(
     "/realtime/trip-updates",
     async () => {
