@@ -9,19 +9,11 @@ import { swaggerPlugin } from './swagger'
 
 let gtfs: GtfsData
 
-/**
- * Loads static GTFS data and stores it in the module-level `gtfs` variable.
- */
 async function initGtfs() {
   gtfs = await fetchStaticGtfs()
 }
 
-/**
- * Enriches GTFS realtime vehicle entities with static GTFS data and local DB attributes.
- *
- * @param entities - Array of realtime feed entities (objects that may contain a `vehicle.position`)
- * @returns An array of vehicle records with the following fields: `id`, `lat`, `lng`, `bearing`, `speed`, `route_id`, `route_short_name`, `route_type`, `headsign`, and `low_floor`. `bearing`, `speed`, `route_*`, `headsign`, and `low_floor` are `null` when unavailable.
- */
+/** Enrich raw vehicle entities with GTFS static data and local DB extras */
 function enrichVehicles(entities: any[]) {
   return entities
     .filter((e) => e.vehicle?.position)
@@ -51,9 +43,8 @@ const app = new Elysia()
   .use(swaggerPlugin)
   .use(cors())
 
-  // ── Stops ───────────────────────────────────────
   .get('/stops', () => [...gtfs.stops.values()], {
-    detail: { tags: ['Stops'], summary: 'Всички спирки' },
+    detail: { tags: ['Stops'], summary: 'All stops' },
   })
 
   .get(
@@ -63,7 +54,7 @@ const app = new Elysia()
       if (!stop) return new Response('Not found', { status: 404 })
       return stop
     },
-    { detail: { tags: ['Stops'], summary: 'Спирка по ID' } },
+    { detail: { tags: ['Stops'], summary: 'Stop by ID' } },
   )
 
   .get(
@@ -80,12 +71,11 @@ const app = new Elysia()
         (feed.entity ?? []).filter((e: any) => tripIds.has(e.vehicle?.trip?.tripId)),
       )
     },
-    { detail: { tags: ['Stops'], summary: 'Активни возила по спирка' } },
+    { detail: { tags: ['Stops'], summary: 'Active vehicles serving a stop' } },
   )
 
-  // ── Routes ──────────────────────────────────────
   .get('/routes', () => [...gtfs.routes.values()], {
-    detail: { tags: ['Routes'], summary: 'Всички маршрути' },
+    detail: { tags: ['Routes'], summary: 'All routes' },
   })
 
   .get(
@@ -103,7 +93,7 @@ const app = new Elysia()
 
       return { ...route, trips: routeTrips.length, stops }
     },
-    { detail: { tags: ['Routes'], summary: 'Маршрут по ID с trips и спирки' } },
+    { detail: { tags: ['Routes'], summary: 'Route by ID with trips and stops' } },
   )
 
   .get(
@@ -147,14 +137,14 @@ const app = new Elysia()
       }),
       detail: {
         tags: ['Realtime'],
-        summary: 'Vehicle positions — обогатени и филтрирани',
+        summary: 'Vehicle positions with enrichment and filters',
       },
     },
   )
 
-  .listen(config.port)
-
 await initGtfs()
 setInterval(initGtfs, config.gtfs.refreshInterval)
 
-console.log(`🚌 GTFS server running at http://localhost:${app.server?.port}`)
+app.listen(config.port)
+
+console.log(`GTFS server running at http://localhost:${app.server?.port}`)

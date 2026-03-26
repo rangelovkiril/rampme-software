@@ -15,13 +15,6 @@ const TILES = {
   dark: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png'
 }
 
-/**
- * Render an interactive city map with tile switching, live location, stops and vehicles layers, and UI for theme, tracking, and side panels.
- *
- * Initializes theme state from the document's `dark` class and persists theme changes to `localStorage`; manages which side panel is open and whether live tracking is enabled.
- *
- * @returns A JSX element that renders the interactive map and its surrounding controls and panels.
- */
 export default function CityMap() {
   const [activePanel, setActivePanel] = useState<string | null>(null)
   const [dark, setDark] = useState(false)
@@ -38,9 +31,13 @@ export default function CityMap() {
     localStorage.setItem('theme', next ? 'dark' : 'light')
   }, [dark])
 
-  function togglePanel(name: string) {
+  const togglePanel = useCallback((name: string) => {
     setActivePanel(prev => (prev === name ? null : name))
-  }
+  }, [])
+
+  const toggleTracking = useCallback(() => setTracking(t => !t), [])
+
+  const closePanel = useCallback(() => setActivePanel(null), [])
 
   return (
     <div className="relative h-full w-full">
@@ -59,24 +56,16 @@ export default function CityMap() {
           dark={dark}
           onToggleTheme={toggleTheme}
           tracking={tracking}
-          onToggleTracking={() => setTracking(t => !t)}
+          onToggleTracking={toggleTracking}
         />
       </MapContainer>
 
       <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} />
-      <SidePanel activePanel={activePanel} onClose={() => setActivePanel(null)} />
+      <SidePanel activePanel={activePanel} onClose={closePanel} />
     </div>
   )
 }
 
-/**
- * Switches the map's visible tile layer to the provided tile URL template.
- *
- * This component removes any existing Leaflet tile layers from the map and adds a new tile layer created from `url`.
- *
- * @param url - Tile URL template (e.g., a `{z}/{x}/{y}` tiles endpoint) used to create the new Leaflet tile layer
- * @returns `null` (does not render any DOM output)
- */
 function TileSwitch({ url }: { url: string }) {
   const map = useMap()
 
