@@ -17,31 +17,34 @@ interface Vehicle {
 }
 
 // route_type: 0=tram, 1=metro, 3=bus, 11=trolleybus
-const VEHICLE_STYLES: Record<number, { color: string; label: string; svg: string }> = {
+const VEHICLE_STYLES: Record<number, { color: string; label: string }> = {
   0: {
     color: '#F7941D',
-    label: 'Трамвай',
-    svg: `<path d="M4 18V6a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v12"/><line x1="4" y1="12" x2="20" y2="12"/><rect x="4" y="18" width="16" height="2" rx="1"/><line x1="8" y1="22" x2="8" y2="20"/><line x1="16" y1="22" x2="16" y2="20"/>`
+    label: 'Трамвай'
   },
   3: {
     color: '#BE1E2D',
-    label: 'Автобус',
-    svg: `<path d="M5 11V7a7 7 0 0 1 14 0v4"/><rect x="3" y="11" width="18" height="8" rx="2"/><circle cx="7.5" cy="21.5" r="1.5"/><circle cx="16.5" cy="21.5" r="1.5"/>`
+    label: 'Автобус'
   },
   11: {
     color: '#27AAE1',
-    label: 'Тролей',
-    svg: `<path d="M5 11V7a7 7 0 0 1 14 0v4"/><rect x="3" y="11" width="18" height="8" rx="2"/><circle cx="7.5" cy="21.5" r="1.5"/><circle cx="16.5" cy="21.5" r="1.5"/><line x1="9" y1="2" x2="7" y2="0"/><line x1="15" y1="2" x2="17" y2="0"/>`
+    label: 'Тролей'
   },
   1: {
     color: '#9B59B6',
-    label: 'Метро',
-    svg: `<rect x="2" y="8" width="20" height="10" rx="3"/><circle cx="7" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/><line x1="2" y1="13" x2="22" y2="13"/><rect x="6" y="5" width="4" height="3" rx="1"/><rect x="14" y="5" width="4" height="3" rx="1"/>`
+    label: 'Метро'
   }
 }
 
 const DEFAULT_STYLE = VEHICLE_STYLES[3]
+const MIN_ZOOM_FOR_VEHICLES = 10
+const DETAIL_ZOOM_FOR_VEHICLES = 14
 
+const POLL_INTERVAL = 5_000
+
+/**
+ * Create a detailed vehicle icon (route badge + rotated vehicle glyph) for close zoom levels.
+ */
 function vehicleIcon(bearing: number, routeType: number, routeName: string) {
   const style = VEHICLE_STYLES[routeType] ?? DEFAULT_STYLE
   return L.divIcon({
@@ -49,7 +52,12 @@ function vehicleIcon(bearing: number, routeType: number, routeName: string) {
     html: `<div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-50%)">
       <div style="background:${style.color};color:#fff;font-family:Inter,sans-serif;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap;line-height:16px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.3)">${routeName}</div>
       <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;transform:rotate(${bearing}deg)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="${style.color}" stroke="#fff" stroke-width="0.8">${style.svg}</svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="${style.color}" stroke="#fff" stroke-width="0.8">
+          <path d="M5 11V7a7 7 0 0 1 14 0v4"/>
+          <rect x="3" y="11" width="18" height="8" rx="2"/>
+          <circle cx="7.5" cy="21.5" r="1.5"/>
+          <circle cx="16.5" cy="21.5" r="1.5"/>
+        </svg>
       </div>
     </div>`,
     iconSize: [40, 44],
@@ -57,13 +65,16 @@ function vehicleIcon(bearing: number, routeType: number, routeName: string) {
   })
 }
 
-const POLL_INTERVAL = 5_000
-
+/**
+ * Syncs real-time vehicle data from /api/realtime/vehicles to Leaflet markers on the current map.
+ *
+ * Polls the backend at a fixed interval and creates, updates, or removes markers and popups to reflect the latest vehicle positions, headings, and route info. Attaches markers to an internal LayerGroup and stops polling / cleans up when the component unmounts.
+ */
 export default function VehiclesLayer() {
   const map = useMap()
-  const markersRef = useRef<Map<string, L.Marker>>(new Map())
-  const groupRef = useRef<L.LayerGroup>(L.layerGroup())
+  const groupRef = useRef<L.LayerGroup | null>(null)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -93,17 +104,39 @@ export default function VehiclesLayer() {
   }, [])
 
   useEffect(() => {
+    function update() {
+      setRevision(r => r + 1)
+    }
+    map.on('zoomend', update)
+    map.on('moveend', update)
+    return () => {
+      map.off('zoomend', update)
+      map.off('moveend', update)
+    }
+  }, [map])
+
+  useEffect(() => {
+    if (!groupRef.current) {
+      groupRef.current = L.layerGroup()
+    }
     const group = groupRef.current
-    const existing = markersRef.current
-    const seen = new Set<string>()
+    group.clearLayers()
+
+    const zoom = map.getZoom()
+    if (zoom < MIN_ZOOM_FOR_VEHICLES || vehicles.length === 0) {
+      group.remove()
+      return
+    }
+
+    const bounds = map.getBounds()
+    const useDetailedMarkers = zoom >= DETAIL_ZOOM_FOR_VEHICLES
 
     for (const v of vehicles) {
       if (!Number.isFinite(v.lat) || !Number.isFinite(v.lng)) continue
 
-      seen.add(v.id)
-
       const latlng = L.latLng(v.lat, v.lng)
-      const bearing = v.bearing ?? 0
+      if (!bounds.contains(latlng)) continue
+
       const style = VEHICLE_STYLES[v.route_type] ?? DEFAULT_STYLE
       const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:13px">
         <span style="display:inline-block;background:${style.color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${style.label} ${v.route_short_name}</span>
@@ -111,31 +144,29 @@ export default function VehiclesLayer() {
         <br/><span style="opacity:0.5;font-size:11px">${v.id} · ${v.speed} km/h</span>
       </div>`
 
-      const existingMarker = existing.get(v.id)
-
-      if (existingMarker) {
-        existingMarker.setLatLng(latlng)
-        existingMarker.setIcon(vehicleIcon(bearing, v.route_type, v.route_short_name))
-        existingMarker.setPopupContent(popupHtml)
-      } else {
-        const marker = L.marker(latlng, {
+      if (useDetailedMarkers) {
+        const bearing = v.bearing ?? 0
+        L.marker(latlng, {
           icon: vehicleIcon(bearing, v.route_type, v.route_short_name)
         })
           .bindPopup(popupHtml)
           .addTo(group)
-        existing.set(v.id, marker)
-      }
-    }
-
-    for (const [key, marker] of existing) {
-      if (!seen.has(key)) {
-        group.removeLayer(marker)
-        existing.delete(key)
+      } else {
+        L.circleMarker(latlng, {
+          radius: 5,
+          fillColor: style.color,
+          fillOpacity: 0.95,
+          color: '#ffffff',
+          opacity: 0.95,
+          weight: 1
+        })
+          .bindPopup(popupHtml)
+          .addTo(group)
       }
     }
 
     group.addTo(map)
-  }, [vehicles, map])
+  }, [vehicles, map, revision])
 
   return null
 }

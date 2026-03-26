@@ -38,6 +38,12 @@ function createStopIcon(selected = false) {
   })
 }
 
+/**
+ * Check whether a stop has valid, non-zero latitude and longitude.
+ *
+ * @param s - The stop whose coordinates will be validated
+ * @returns `true` if both `stop_lat` and `stop_lon` are finite numbers and not zero, `false` otherwise
+ */
 function isValidCoord(s: Stop) {
   return (
     Number.isFinite(s.stop_lat) &&

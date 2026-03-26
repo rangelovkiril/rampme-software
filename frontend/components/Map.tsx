@@ -34,9 +34,13 @@ export default function CityMap() {
     localStorage.setItem('theme', next ? 'dark' : 'light')
   }, [dark])
 
-  function togglePanel(name: string) {
+  const togglePanel = useCallback((name: string) => {
     setActivePanel(prev => (prev === name ? null : name))
-  }
+  }, [])
+
+  const toggleTracking = useCallback(() => setTracking(t => !t), [])
+
+  const closePanel = useCallback(() => setActivePanel(null), [])
 
   return (
     <div className="relative h-full w-full">
@@ -59,12 +63,12 @@ export default function CityMap() {
           onToggleTheme={toggleTheme}
           tracking={tracking}
           liftLocate={Boolean(selectedStop)}
-          onToggleTracking={() => setTracking(t => !t)}
+          onToggleTracking={toggleTracking}
         />
       </MapContainer>
 
       <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} />
-      <SidePanel activePanel={activePanel} onClose={() => setActivePanel(null)} />
+        <SidePanel activePanel={activePanel} onClose={closePanel} />
       <StopArrivalsSheet stop={selectedStop} onClose={() => setSelectedStop(null)} />
     </div>
   )

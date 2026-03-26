@@ -11,6 +11,11 @@ const Map = dynamic(() => import('@/components/Map'), {
   )
 })
 
+/**
+ * Renders the page's Map component.
+ *
+ * @returns The React element for the page that displays the Map component.
+ */
 export default function Home() {
   return <Map />
 }

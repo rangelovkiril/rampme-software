@@ -5,13 +5,13 @@ interface CacheEntry<T> {
 
 export function createCache<T>(ttlMs: number) {
   let entry: CacheEntry<T> | null = null
-  let inflight: Promise<T> | null = null // 👈 добавено
+  let inflight: Promise<T> | null = null
 
   return async (fetcher: () => Promise<T>): Promise<T> => {
     if (entry && Date.now() - entry.fetchedAt < ttlMs) return entry.data
 
-    // Ако вече има текуща заявка, изчакай нея вместо да правиш нова
-    if (inflight) return inflight // 👈 добавено
+    // Deduplicate concurrent requests: reuse the in-flight promise if one exists
+    if (inflight) return inflight
 
     inflight = fetcher()
       .then((data) => {
@@ -20,7 +20,7 @@ export function createCache<T>(ttlMs: number) {
         return data
       })
       .catch((err) => {
-        inflight = null // При грешка — позволи retry
+        inflight = null
         throw err
       })
 

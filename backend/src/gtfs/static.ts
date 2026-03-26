@@ -2,6 +2,13 @@ import JSZip from 'jszip'
 import { config } from '../config'
 import type { GtfsData, Route, Stop, Trip } from './types'
 
+/**
+ * Parses a CSV string and maps each data row to a value using header fields as object keys.
+ *
+ * @param raw - CSV content as a string; the first line is treated as the header row
+ * @param transform - Callback that receives a `Record<string, string>` where keys are header names and values are the corresponding cell text for a row
+ * @returns An array of `T` values produced by applying `transform` to each CSV data row
+ */
 function parseCsv<T>(raw: string, transform: (row: Record<string, string>) => T): T[] {
   const lines = raw.trim().split('\n')
   const header = lines[0]
@@ -22,6 +29,18 @@ function parseCsv<T>(raw: string, transform: (row: Record<string, string>) => T)
   return results
 }
 
+/**
+ * Fetches a GTFS ZIP from the configured static URL, parses required CSV files, and constructs in-memory GTFS collections.
+ *
+ * @returns A `GtfsData` object containing:
+ *  - `stops`: Map of `stop_id` → Stop
+ *  - `routes`: Map of `route_id` → Route
+ *  - `trips`: Map of `trip_id` → Trip
+ *  - `stopTimes`: Array of stop time records
+ *
+ * @throws Error if the HTTP fetch response is not OK (message includes the response status).
+ * @throws Error if an expected GTFS file (e.g., `stops.txt`, `routes.txt`, `trips.txt`, `stop_times.txt`) is missing from the ZIP.
+ */
 export async function fetchStaticGtfs(): Promise<GtfsData> {
   console.log('⏳ Fetching static GTFS data...')
   const res = await fetch(config.gtfs.staticUrl)

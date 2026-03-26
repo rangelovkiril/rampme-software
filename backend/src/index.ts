@@ -7,10 +7,13 @@ import { fetchStaticGtfs } from './gtfs/static'
 import type { GtfsData } from './gtfs/types'
 import { swaggerPlugin } from './swagger'
 
-let gtfs: GtfsData
+let gtfs: GtfsData | undefined
 
-async function initGtfs() {
-  gtfs = await fetchStaticGtfs()
+function jsonError(message: string, status: number) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
 
 const FALLBACK_SPEED_MPS: Partial<Record<number, number>> = {
@@ -45,15 +48,26 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
   return 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-/** Взима суровите entities и ги обогатява с GTFS статика + локална БД */
-function enrichVehicles(entities: any[]) {
+const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
+
+async function initGtfs() {
+  try {
+    gtfs = await fetchStaticGtfs()
+  } catch (e) {
+    console.error('Failed to load GTFS static data:', e)
+    if (!gtfs) console.error('Server starting without GTFS data — static endpoints will return 503')
+  }
+}
+
+/** Enrich raw vehicle entities with GTFS static data and local DB extras */
+function enrichVehicles(entities: any[], data: GtfsData) {
   return entities
     .filter((e) => e.vehicle?.position)
     .map((e) => {
       const v = e.vehicle
       const pos = v.position
-      const trip = gtfs.trips.get(v.trip?.tripId ?? '')
-      const route = trip ? gtfs.routes.get(trip.route_id) : undefined
+      const trip = data.trips.get(v.trip?.tripId ?? '')
+      const route = trip ? data.routes.get(trip.route_id) : undefined
       const extra = getVehicleExtra(v.vehicle?.id ?? '')
 
       return {
@@ -75,86 +89,114 @@ const app = new Elysia()
   .use(swaggerPlugin)
   .use(cors())
 
-  // ── Stops ───────────────────────────────────────
-  .get('/stops', () => [...gtfs.stops.values()], {
-    detail: { tags: ['Stops'], summary: 'Всички спирки' },
-  })
+  .get(
+    '/stops',
+    () => {
+      const data = gtfs
+      if (!data) return GTFS_NOT_READY()
+      return [...data.stops.values()]
+    },
+    { detail: { tags: ['Stops'], summary: 'All stops' } },
+  )
 
   .get(
     '/stops/:id',
     ({ params: { id } }) => {
-      const stop = gtfs.stops.get(id)
-      if (!stop) return new Response('Not found', { status: 404 })
-      return stop
+      const data = gtfs
+      if (!data) return GTFS_NOT_READY()
+      try {
+        const stop = data.stops.get(id)
+        if (!stop) return jsonError('Stop not found', 404)
+        return stop
+      } catch (e) {
+        return jsonError(`Failed to retrieve stop: ${e}`, 500)
+      }
     },
-    { detail: { tags: ['Stops'], summary: 'Спирка по ID' } },
+    { detail: { tags: ['Stops'], summary: 'Stop by ID' } },
   )
 
   .get(
     '/stops/:id/vehicles',
     async ({ params: { id }, query }) => {
-      const stop = gtfs.stops.get(id)
-      if (!stop) return new Response('Stop not found', { status: 404 })
+      const data = gtfs
+      if (!data) return GTFS_NOT_READY()
+      try {
+        const stop = data.stops.get(id)
+        if (!stop) return jsonError('Stop not found', 404)
 
-      const rawLimit = Number(query.limit ?? '20')
-      const limit = Number.isFinite(rawLimit)
-        ? Math.min(Math.max(Math.trunc(rawLimit), 1), 50)
-        : 20
+        const rawLimit = Number(query.limit ?? '20')
+        const limit = Number.isFinite(rawLimit)
+          ? Math.min(Math.max(Math.trunc(rawLimit), 1), 50)
+          : 20
 
-      const tripIds = new Set(
-        gtfs.stopTimes.filter((st) => st.stop_id === id).map((st) => st.trip_id),
-      )
+        const tripIds = new Set(
+          data.stopTimes.filter((st) => st.stop_id === id).map((st) => st.trip_id),
+        )
 
-      const feed = await fetchVehiclePositions()
-      return enrichVehicles(
-        (feed.entity ?? []).filter((e: any) => tripIds.has(e.vehicle?.trip?.tripId)),
-      )
-        .filter((v) => Number.isFinite(v.lat) && Number.isFinite(v.lng))
-        .map((v) => {
-          const distance_m = Math.round(haversineMeters(v.lat, v.lng, stop.stop_lat, stop.stop_lon))
-          const eta_minutes = Math.max(
-            0,
-            Math.round(distance_m / estimateSpeedMps(v.speed, v.route_type) / 60),
-          )
+        const feed = await fetchVehiclePositions()
+        return enrichVehicles((feed.entity ?? []).filter((e: any) => tripIds.has(e.vehicle?.trip?.tripId)), data)
+          .filter((v) => Number.isFinite(v.lat) && Number.isFinite(v.lng))
+          .map((v) => {
+            const distance_m = Math.round(haversineMeters(v.lat, v.lng, stop.stop_lat, stop.stop_lon))
+            const eta_minutes = Math.max(
+              0,
+              Math.round(distance_m / estimateSpeedMps(v.speed, v.route_type) / 60),
+            )
 
-          return {
-            ...v,
-            distance_m,
-            eta_minutes,
-          }
-        })
-        .sort((a, b) => a.eta_minutes - b.eta_minutes || a.distance_m - b.distance_m)
-        .slice(0, limit)
+            return {
+              ...v,
+              distance_m,
+              eta_minutes,
+            }
+          })
+          .sort((a, b) => a.eta_minutes - b.eta_minutes || a.distance_m - b.distance_m)
+          .slice(0, limit)
+      } catch (e) {
+        return jsonError(`Vehicle positions unavailable: ${e}`, 502)
+      }
     },
     {
       query: t.Object({
         limit: t.Optional(t.String()),
       }),
-      detail: { tags: ['Stops'], summary: 'Най-близки активни возила по спирка' },
+      detail: { tags: ['Stops'], summary: 'Active vehicles serving a stop' },
     },
   )
 
-  // ── Routes ──────────────────────────────────────
-  .get('/routes', () => [...gtfs.routes.values()], {
-    detail: { tags: ['Routes'], summary: 'Всички маршрути' },
-  })
+  .get(
+    '/routes',
+    () => {
+      const data = gtfs
+      if (!data) return GTFS_NOT_READY()
+      return [...data.routes.values()]
+    },
+    { detail: { tags: ['Routes'], summary: 'All routes' } },
+  )
 
   .get(
     '/routes/:id',
     ({ params: { id } }) => {
-      const route = gtfs.routes.get(id)
-      if (!route) return new Response('Not found', { status: 404 })
+      const data = gtfs
+      if (!data) return GTFS_NOT_READY()
+      try {
+        const route = data.routes.get(id)
+        if (!route) return jsonError('Route not found', 404)
 
-      const routeTrips = [...gtfs.trips.values()].filter((t) => t.route_id === id)
-      const tripIds = new Set(routeTrips.map((t) => t.trip_id))
-      const stopIds = new Set(
-        gtfs.stopTimes.filter((st) => tripIds.has(st.trip_id)).map((st) => st.stop_id),
-      )
-      const stops = [...stopIds].map((sid) => gtfs.stops.get(sid)).filter(Boolean)
+        const routeTrips = [...data.trips.values()].filter((t) => t.route_id === id)
+        const tripIds = new Set(routeTrips.map((t) => t.trip_id))
+        const stopIds = new Set(
+          data.stopTimes.filter((st) => tripIds.has(st.trip_id)).map((st) => st.stop_id),
+        )
+        const stops = [...stopIds].map((sid) => data.stops.get(sid)).filter(Boolean)
 
-      return { ...route, trips: routeTrips.length, stops }
+        return { ...route, trips: routeTrips.length, stops }
+      } catch (e) {
+        return jsonError(`Failed to retrieve route: ${e}`, 500)
+      }
     },
-    { detail: { tags: ['Routes'], summary: 'Маршрут по ID с trips и спирки' } },
+    {
+      detail: { tags: ['Routes'], summary: 'Route by ID with trips and stops' },
+    },
   )
 
   .get(
@@ -163,7 +205,7 @@ const app = new Elysia()
       try {
         return await fetchTripUpdates()
       } catch (e) {
-        return new Response(`Trip updates unavailable: ${e}`, { status: 502 })
+        return jsonError(`Trip updates unavailable: ${e}`, 502)
       }
     },
     { detail: { tags: ['Realtime'], summary: 'Trip updates' } },
@@ -172,9 +214,11 @@ const app = new Elysia()
   .get(
     '/realtime/vehicles',
     async ({ query }) => {
+      const data = gtfs
+      if (!data) return GTFS_NOT_READY()
       try {
         const feed = await fetchVehiclePositions()
-        let vehicles = enrichVehicles(feed.entity ?? [])
+        let vehicles = enrichVehicles(feed.entity ?? [], data)
 
         if (query.route_id) vehicles = vehicles.filter((v) => v.route_id === query.route_id)
 
@@ -185,9 +229,7 @@ const app = new Elysia()
 
         return vehicles
       } catch (e) {
-        return new Response(`Vehicle positions unavailable: ${e}`, {
-          status: 502,
-        })
+        return jsonError(`Vehicle positions unavailable: ${e}`, 502)
       }
     },
     {
@@ -198,14 +240,14 @@ const app = new Elysia()
       }),
       detail: {
         tags: ['Realtime'],
-        summary: 'Vehicle positions — обогатени и филтрирани',
+        summary: 'Vehicle positions with enrichment and filters',
       },
     },
   )
 
-  .listen(config.port)
-
 await initGtfs()
 setInterval(initGtfs, config.gtfs.refreshInterval)
 
-console.log(`🚌 GTFS server running at http://localhost:${app.server?.port}`)
+app.listen(config.port)
+
+console.log(`GTFS server running at http://localhost:${app.server?.port}`)
