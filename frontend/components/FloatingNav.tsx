@@ -71,9 +71,8 @@ function NavPill({
       onClick={onClick}
       className="cursor-pointer rounded-xl px-4 py-2 text-[13px] font-medium transition-all flex items-center gap-2"
       style={{
-        background: active ? 'var(--primary)' : 'var(--nav-pill-bg)',
-        color: active ? 'var(--primary-contrast)' : 'var(--nav-pill-fg)',
-        border: active ? '1px solid var(--primary)' : '1px solid var(--nav-pill-border)',
+        background: active ? 'var(--primary)' : 'transparent',
+        color: active ? '#fff' : 'var(--text-secondary)',
       }}
     >
       {icon}

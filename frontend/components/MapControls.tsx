@@ -53,11 +53,7 @@ export default function MapControls({ dark, onToggleTheme, tracking, onToggleTra
       <div className="h-px w-6 self-center" style={{ background: 'var(--border)' }} />
 
       {/* Live location toggle */}
-      <ControlButton
-        onClick={onToggleTracking}
-        title={tracking ? 'Stop tracking' : 'Track my location'}
-        active={tracking}
-      >
+      <ControlButton onClick={onToggleTracking} title={tracking ? 'Stop tracking' : 'Track my location'} active={tracking}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="4" />
           <line x1="12" y1="2" x2="12" y2="6" />
@@ -88,9 +84,8 @@ function ControlButton({
       className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl transition-all active:scale-95"
       style={{
         background: active ? '#3b82f6' : 'var(--control-bg)',
-        color: active ? '#ffffff' : 'var(--control-fg)',
+        color: active ? '#ffffff' : 'var(--text-secondary)',
         boxShadow: 'var(--shadow)',
-        border: active ? '1px solid #3b82f6' : '1px solid var(--control-border)',
       }}
       onMouseEnter={(e) => {
         if (!active) e.currentTarget.style.background = 'var(--control-hover)'
