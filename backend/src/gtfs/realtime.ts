@@ -11,7 +11,7 @@ let FeedMessage: protobuf.Type
  */
 async function getDecoder() {
   if (!FeedMessage) {
-    const root = await protobuf.load(config.protoPath)
+    const root = await protobuf.loadSync(config.protoPath)
     FeedMessage = root.lookupType('FeedMessage')
   }
   return FeedMessage
