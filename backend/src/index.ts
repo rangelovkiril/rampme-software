@@ -134,10 +134,15 @@ const app = new Elysia()
         )
 
         const feed = await fetchVehiclePositions()
-        return enrichVehicles((feed.entity ?? []).filter((e: any) => tripIds.has(e.vehicle?.trip?.tripId)), data)
+        return enrichVehicles(
+          (feed.entity ?? []).filter((e: any) => tripIds.has(e.vehicle?.trip?.tripId)),
+          data,
+        )
           .filter((v) => Number.isFinite(v.lat) && Number.isFinite(v.lng))
           .map((v) => {
-            const distance_m = Math.round(haversineMeters(v.lat, v.lng, stop.stop_lat, stop.stop_lon))
+            const distance_m = Math.round(
+              haversineMeters(v.lat, v.lng, stop.stop_lat, stop.stop_lon),
+            )
             const eta_minutes = Math.max(
               0,
               Math.round(distance_m / estimateSpeedMps(v.speed, v.route_type) / 60),
