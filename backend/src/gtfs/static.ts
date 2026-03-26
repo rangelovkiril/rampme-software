@@ -1,82 +1,85 @@
-import JSZip from "jszip";
-import { config } from "../config";
-import type { GtfsData, Stop, Route, Trip, StopTime } from "./types";
+import JSZip from 'jszip'
+import { config } from '../config'
+import type { GtfsData, Route, Stop, StopTime, Trip } from './types'
 
 function parseCsv<T>(raw: string, transform: (row: Record<string, string>) => T): T[] {
-  const lines = raw.trim().split("\n");
-  const header = lines[0].replace(/^\uFEFF/, "").split(",").map((h) => h.trim());
-  const results: T[] = [];
+  const lines = raw.trim().split('\n')
+  const header = lines[0]
+    .replace(/^\uFEFF/, '')
+    .split(',')
+    .map((h) => h.trim())
+  const results: T[] = []
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
-    const row: Record<string, string> = {};
+    const values = lines[i].split(',').map((v) => v.trim().replace(/^"|"$/g, ''))
+    const row: Record<string, string> = {}
     for (let j = 0; j < header.length; j++) {
-      row[header[j]] = values[j] ?? "";
+      row[header[j]] = values[j] ?? ''
     }
-    results.push(transform(row));
+    results.push(transform(row))
   }
 
-  return results;
+  return results
 }
 
 export async function fetchStaticGtfs(): Promise<GtfsData> {
-  console.log("⏳ Fetching static GTFS data...");
-  const res = await fetch(config.gtfs.staticUrl);
+  console.log('⏳ Fetching static GTFS data...')
+  const res = await fetch(config.gtfs.staticUrl)
 
-  if (!res.ok) throw new Error(`GTFS static fetch failed: ${res.status}`);
+  if (!res.ok) throw new Error(`GTFS static fetch failed: ${res.status}`)
 
-  const zip = await JSZip.loadAsync(await res.arrayBuffer());
+  const zip = await JSZip.loadAsync(await res.arrayBuffer())
 
   async function readFile(name: string): Promise<string> {
-    const file = zip.file(name);
-    if (!file) throw new Error(`Missing ${name} in GTFS ZIP`);
-    return file.async("string");
+    const file = zip.file(name)
+    if (!file) throw new Error(`Missing ${name} in GTFS ZIP`)
+    return file.async('string')
   }
 
-  const stops = new Map<string, Stop>();
-  for (const s of parseCsv(await readFile("stops.txt"), (r) => ({
+  const stops = new Map<string, Stop>()
+  for (const s of parseCsv(await readFile('stops.txt'), (r) => ({
     stop_id: r.stop_id,
     stop_name: r.stop_name,
     stop_lat: parseFloat(r.stop_lat),
     stop_lon: parseFloat(r.stop_lon),
-    wheelchair_boarding: (parseInt(r.wheelchair_boarding || "0") as 0 | 1 | 2),
+    wheelchair_boarding: parseInt(r.wheelchair_boarding || '0') as 0 | 1 | 2,
   }))) {
-    stops.set(s.stop_id, s);
+    stops.set(s.stop_id, s)
   }
 
-  const routes = new Map<string, Route>();
-  for (const r of parseCsv(await readFile("routes.txt"), (r) => ({
+  const routes = new Map<string, Route>()
+  for (const r of parseCsv(await readFile('routes.txt'), (r) => ({
     route_id: r.route_id,
     route_short_name: r.route_short_name,
     route_long_name: r.route_long_name,
     route_type: parseInt(r.route_type),
   }))) {
-    routes.set(r.route_id, r);
+    routes.set(r.route_id, r)
   }
 
-  const trips = new Map<string, Trip>();
-  for (const t of parseCsv(await readFile("trips.txt"), (r) => ({
+  const trips = new Map<string, Trip>()
+  for (const t of parseCsv(await readFile('trips.txt'), (r) => ({
     trip_id: r.trip_id,
     route_id: r.route_id,
     service_id: r.service_id,
-    trip_headsign: r.trip_headsign ?? "",
-    direction_id: parseInt(r.direction_id || "0"),
-    wheelchair_accessible: (parseInt(r.wheelchair_accessible || "0") as 0 | 1 | 2),
+    trip_headsign: r.trip_headsign ?? '',
+    direction_id: parseInt(r.direction_id || '0'),
+    wheelchair_accessible: parseInt(r.wheelchair_accessible || '0') as 0 | 1 | 2,
   }))) {
-    trips.set(t.trip_id, t);
+    trips.set(t.trip_id, t)
   }
 
-  const stopTimes = parseCsv(await readFile("stop_times.txt"), (r) => ({
+  const stopTimes = parseCsv(await readFile('stop_times.txt'), (r) => ({
     trip_id: r.trip_id,
     arrival_time: r.arrival_time,
     departure_time: r.departure_time,
     stop_id: r.stop_id,
     stop_sequence: parseInt(r.stop_sequence),
-  }));
+  }))
 
   console.log(
-    `✅ GTFS loaded: ${stops.size} stops, ${routes.size} routes, ${trips.size} trips, ${stopTimes.length} stop_times`
-  );
+    `✅ GTFS loaded: ${stops.size} stops, ${routes.size} routes, ${trips.size} trips, ${stopTimes.length} stop_times`,
+  )
 
-  return { stops, routes, trips, stopTimes };
+  return { stops, routes, trips, stopTimes }
 }
