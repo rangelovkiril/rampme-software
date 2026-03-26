@@ -66,7 +66,7 @@ function enrichVehicles(entities: any[], data: GtfsData) {
     .map((e) => {
       const v = e.vehicle
       const pos = v.position
-      const trip = data.trips.get(v.trip?.tripId ?? '')
+      const trip = data.trips.get(v.trip?.trip_id ?? '')
       const route = trip ? data.routes.get(trip.route_id) : undefined
       const extra = getVehicleExtra(v.vehicle?.id ?? '')
 
