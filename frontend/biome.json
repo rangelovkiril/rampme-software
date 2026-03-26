@@ -1,12 +1,13 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.9/schema.json",
+  "$schema": "https://biomejs.json/schemas/2.4.9/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": true
   },
   "files": {
-    "ignoreUnknown": true
+    "ignoreUnknown": true,
+    "includes": ["**/*.ts", "**/*.js", "**/*.json", "!**/*.css"]
   },
   "formatter": {
     "enabled": true,
@@ -17,21 +18,19 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": false,
+      "recommended": true,
       "correctness": {
-        "noUnusedImports": "off",
-        "noUnusedVariables": "off",
-        "useExhaustiveDependencies": "off",
-        "useHookAtTopLevel": "warn"
+        "noUnusedImports": "warn",
+        "noUnusedVariables": "warn"
       },
       "suspicious": {
         "noExplicitAny": "off",
         "noConsole": "off"
       },
       "style": {
-        "useConst": "warn",
-        "noNonNullAssertion": "off",
-        "useImportType": "off"
+        "useConst": "error",
+        "noNonNullAssertion": "warn",
+        "useImportType": "warn"
       }
     }
   },
@@ -39,13 +38,19 @@
     "formatter": {
       "quoteStyle": "single",
       "semicolons": "asNeeded",
-      "trailingCommas": "none",
-      "arrowParentheses": "asNeeded"
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
     }
   },
-  "json": {
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    },
+    "linter": {
+      "enabled": false
+    },
     "formatter": {
-      "trailingCommas": "none"
+      "enabled": false
     }
   }
 }
