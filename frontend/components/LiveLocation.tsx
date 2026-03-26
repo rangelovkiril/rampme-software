@@ -26,6 +26,11 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
   const watchRef = useRef<number | null>(null)
   const firstFixRef = useRef(true)
   const lastErrorRef = useRef<{ code: number; at: number } | null>(null)
+  const onErrorRef = useRef(onError)
+
+  useEffect(() => {
+    onErrorRef.current = onError
+  }, [onError])
 
   function clearWatch() {
     if (watchRef.current !== null) {
@@ -40,7 +45,7 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
     if (last && last.code === code && now - last.at < ERROR_THROTTLE_MS) return
 
     lastErrorRef.current = { code, at: now }
-    onError?.(message, code)
+    onErrorRef.current?.(message, code)
   }
 
   function applyPosition(pos: GeolocationPosition) {
@@ -171,7 +176,7 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
     return () => {
       clearWatch()
     }
-  }, [active, map, onError])
+  }, [active, map])
 
   useEffect(() => {
     return () => {
