@@ -17,6 +17,11 @@ function jsonError(message: string, status: number) {
 }
 
 
+/** Toggle ramp availability mode:
+ *  true  = every bus is treated as ramp-equipped (for testing)
+ *  false = only buses with wheelchair_accessible=1 in GTFS data */
+const RAMP_ALL = false
+
 const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
 
 async function initGtfs() {
@@ -211,6 +216,7 @@ const app = new Elysia()
             expected_time,
             eta_minutes,
             realtime: Boolean(prediction),
+            has_ramp: RAMP_ALL ? true : trip?.wheelchair_accessible === 1,
           }
         })
 

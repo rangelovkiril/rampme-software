@@ -20,6 +20,7 @@ export interface StopArrival {
   scheduled_time?: string | null
   expected_time?: string | null
   realtime?: boolean
+  has_ramp?: boolean
 }
 
 interface StopsLayerProps {
