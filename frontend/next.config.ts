@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
         destination: 'BACKEND_URL/:path*',
       },
     ]
-  }
+  },
 }
 
 export default nextConfig
