@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Vehicle, TripData } from '@/lib/types'
 import { getRouteColor, getRouteLabel } from '@/lib/transit'
 import { useRamp } from '@/contexts/RampContext'
@@ -35,6 +35,10 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
   const [boardingStopId, setBoardingStopId] = useState<string | null>(null)
 
   const { reserveAlight, reserveBoard, cancel, reservations, lockedVehicleId, isReserved } = useRamp()
+
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragY, setDragY] = useState(0)
+  const dragStartY = useRef(0)
 
   const boardingRes = reservations.find(
     (r) => r.vehicle_id === vehicle?.id && r.type === 'board' && (r.status === 'pending' || r.status === 'active'),
@@ -110,8 +114,21 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
           boxShadow: 'var(--shadow-lg)',
           color: 'var(--text)',
           maxHeight: '70vh',
+          transform: isDragging && dragY > 0 ? `translateY(${dragY}px)` : undefined,
+          transition: isDragging ? 'none' : undefined,
         }}
       >
+        {/* Drag handle — mobile only */}
+        <div
+          className="flex touch-none justify-center pt-2.5 pb-0 sm:hidden"
+          onTouchStart={(e) => { dragStartY.current = e.touches[0].clientY; setIsDragging(true) }}
+          onTouchMove={(e) => { if (!isDragging) return; const dy = e.touches[0].clientY - dragStartY.current; setDragY(Math.max(0, dy)) }}
+          onTouchEnd={() => { setIsDragging(false); if (dragY > 80) { setDragY(0); onClose() } else { setDragY(0) } }}
+          onTouchCancel={() => { setIsDragging(false); setDragY(0) }}
+          role="presentation"
+        >
+          <div className="h-1 w-10 rounded-full" style={{ background: 'color-mix(in oklab, var(--text) 22%, transparent)' }} />
+        </div>
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-2">
           <div className="flex items-center gap-3 min-w-0">
@@ -119,7 +136,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
               className="inline-flex h-9 min-w-14 items-center justify-center rounded-lg px-3 text-lg font-bold text-white"
               style={{ background: routeColor }}
             >
-              {routeShortName ?? '?'}
+              {routeShortName ?? (loading ? '...' : '?')}
             </span>
             <div className="min-w-0">
               <p className="truncate font-semibold text-lg">{headsign ?? routeName}</p>
@@ -163,7 +180,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                 const isBoarding = boardingRes?.stop_id === stop.stop_id
                 const isAlighting = alightingRes?.stop_id === stop.stop_id
                 const stopReserved = isReserved(vehicle.id, stop.stop_id)
-                const canAlight = isLocked && !isDeparted && !isAtStop && !isBoarding && !stopReserved
+                const canAlight = isLocked && !alightingRes && !isDeparted && !isAtStop && !isBoarding && !stopReserved
                 const canBoard = !isLocked && !boardingRes && !isDeparted && !isAtStop
                 const isReservingThis = reservingStopId === stop.stop_id
                 const isBoardingThis = boardingStopId === stop.stop_id
@@ -178,7 +195,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                       : 'transparent'
 
                 return (
-                  <div key={stop.stop_id + i} className="relative flex gap-3">
+                  <div key={stop.stop_id + i} className="relative flex gap-3 pb-3">
                     {/* Timeline dot + line */}
                     <div className="flex flex-col items-center" style={{ width: 20 }}>
                       <div
@@ -211,7 +228,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
 
                     {/* Stop content */}
                     <div
-                      className="flex flex-1 items-start justify-between gap-2 pb-3 rounded-lg"
+                      className="flex flex-1 items-center justify-between gap-2 rounded-lg"
                       style={{
                         borderLeft: `3px solid ${leftBorder}`,
                         paddingLeft: leftBorder !== 'transparent' ? 8 : 0,
@@ -238,7 +255,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                       </div>
 
                       {!isDeparted && (
-                        <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
+                        <div className="flex items-start gap-2" style={{ flexShrink: 0 }}>
                           {stop.eta_minutes !== null && stop.eta_minutes !== undefined && (
                             <div className="text-right">
                               <p className="text-base font-bold">{stop.eta_minutes}</p>
@@ -246,7 +263,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                             </div>
                           )}
 
-                          {/* Reserve alight / Board / Cancel / Reserved indicator */}
+                          {/* Reserve board / alight / Cancel */}
                           {(isBoarding || isAlighting) ? (
                             <button
                               type="button"

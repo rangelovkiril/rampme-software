@@ -38,7 +38,7 @@ const stmts = {
   cancel: db.prepare(`
     UPDATE ramp_reservations
     SET status = 'cancelled', resolved_at = unixepoch()
-    WHERE id = $id AND session_id = $session_id AND status = 'pending'
+    WHERE id = $id AND session_id = $session_id AND status IN ('pending', 'active')
   `),
   sessionActive: db.prepare(`
     SELECT * FROM ramp_reservations

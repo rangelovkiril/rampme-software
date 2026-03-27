@@ -8,13 +8,22 @@ import type { Stop } from '@/lib/types'
 const MIN_ZOOM_FOR_STOPS = 15
 
 function createStopIcon(selected = false) {
+  const signBg = selected ? '#2563eb' : '#1e40af'
+  const poleBg = selected ? '#2563eb' : '#4b5563'
+  const glow = selected
+    ? '0 0 0 3px rgba(59,130,246,0.35),0 2px 8px rgba(0,0,0,0.5)'
+    : '0 1px 4px rgba(0,0,0,0.5)'
   return L.divIcon({
     className: '',
-    html: `<div style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;transform:translate(-50%,-50%)">
-      <div style="width:16px;height:16px;border-radius:9999px;background:#2b2f37;border:2px solid #3b82f6;box-shadow:${selected ? '0 0 0 3px rgba(59,130,246,0.28),0 1px 6px rgba(0,0,0,0.35)' : '0 1px 5px rgba(0,0,0,0.35)'}"></div>
+    html: `<div style="display:flex;flex-direction:column;align-items:center;width:20px;height:29px">
+      <div style="background:${signBg};border-radius:3px;width:18px;height:13px;display:flex;align-items:center;justify-content:center;box-shadow:${glow};flex-shrink:0">
+        <span style="color:#fff;font-size:9px;font-weight:900;font-family:sans-serif;line-height:1">H</span>
+      </div>
+      <div style="width:2px;flex:1;background:${poleBg}"></div>
+      <div style="width:5px;height:5px;border-radius:50%;background:${poleBg};flex-shrink:0"></div>
     </div>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10]
+    iconSize: [20, 29],
+    iconAnchor: [10, 29],
   })
 }
 

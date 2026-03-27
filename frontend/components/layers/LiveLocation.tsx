@@ -6,34 +6,30 @@ import { useMap } from 'react-leaflet'
 
 function makeDotIcon(heading: number | null) {
   const arrow = heading !== null
-    ? `<div style="
-        position:absolute;top:-10px;left:50%;transform:translateX(-50%) rotate(${heading}deg);
+    ? `<div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%) rotate(${heading}deg);
         width:0;height:0;
-        border-left:5px solid transparent;
-        border-right:5px solid transparent;
-        border-bottom:10px solid #3b82f6;
-        opacity:0.85;
-      "></div>`
+        border-left:4px solid transparent;
+        border-right:4px solid transparent;
+        border-bottom:9px solid #3b82f6;
+        opacity:0.9;z-index:2;"></div>`
     : ''
   return L.divIcon({
     className: '',
-    html: `<div style="position:relative;width:22px;height:22px;display:flex;align-items:center;justify-content:center;">
+    html: `<div style="position:relative;display:flex;flex-direction:column;align-items:center;width:24px;height:33px">
       ${arrow}
-      <div style="
-        width:22px;height:22px;border-radius:50%;
-        background:#3b82f6;
-        border:3px solid #fff;
-        box-shadow:0 0 0 2px rgba(59,130,246,0.35),0 2px 8px rgba(0,0,0,0.35);
-        position:relative;z-index:1;
-      ">
-        <div style="
-          position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-          width:7px;height:7px;border-radius:50%;background:#fff;opacity:0.9;
-        "></div>
+      <div style="background:#3b82f6;border-radius:4px;width:22px;height:16px;
+        display:flex;align-items:center;justify-content:center;flex-shrink:0;
+        box-shadow:0 0 0 2px rgba(59,130,246,0.35),0 2px 8px rgba(0,0,0,0.4)">
+        <svg width="10" height="11" viewBox="0 0 10 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="5" cy="2.5" r="2" fill="white"/>
+          <path d="M1.5 10.5c0-2.5 7-2.5 7 0" stroke="white" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+        </svg>
       </div>
+      <div style="width:2px;flex:1;background:#3b82f6"></div>
+      <div style="width:6px;height:6px;border-radius:50%;background:#3b82f6;opacity:0.85;flex-shrink:0"></div>
     </div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
+    iconSize: [24, 33],
+    iconAnchor: [12, 33],
   })
 }
 
@@ -143,22 +139,30 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
     }
 
     if (!navigator.geolocation) {
+      console.warn('[location] Geolocation not supported by this browser.')
       notifyError(0, 'Geolocation is not supported by your browser.')
       return
     }
 
     if (!window.isSecureContext) {
+      console.warn('[location] Insecure context — geolocation requires HTTPS or localhost.')
       notifyError(0, 'Location requires a secure context. Open the app on localhost or HTTPS.')
       return
     }
+
+    console.log('[location] Starting geolocation tracking...')
 
     // Reset any existing watch before starting a new tracking session.
     clearWatch()
 
     // Quick bootstrap call for immediate best-effort fix (cached or fresh).
     navigator.geolocation.getCurrentPosition(
-      applyPosition,
+      (pos) => {
+        console.log(`[location] Initial fix: ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)} ±${Math.round(pos.coords.accuracy)}m`)
+        applyPosition(pos)
+      },
       (err) => {
+        console.warn(`[location] getCurrentPosition error: code=${err.code} — ${err.message}`)
         if (err.code === 1) {
           notifyError(1, 'Location permission denied. Please allow location access in your browser.')
         } else if (err.code === 2) {
@@ -172,8 +176,12 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
     )
 
     watchRef.current = navigator.geolocation.watchPosition(
-      applyPosition,
+      (pos) => {
+        console.log(`[location] Position update: ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)} ±${Math.round(pos.coords.accuracy)}m`)
+        applyPosition(pos)
+      },
       (err) => {
+        console.warn(`[location] watchPosition error: code=${err.code} — ${err.message}`)
         if (err.code === 1) {
           notifyError(1, 'Location permission denied. Please allow location access in your browser.')
           return

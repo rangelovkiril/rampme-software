@@ -5,10 +5,9 @@ import {
 import { fetchVehiclePositions } from '../gtfs/realtime'
 import { getGtfs } from '../state'
 
-const ARRIVE_RADIUS_M = 10
-const DEPART_RADIUS_M = 50
+const RADIUS_M = 5
 const EXPIRY_SECONDS = 2 * 60 * 60
-const CHECK_INTERVAL_MS = 10_000
+const CHECK_INTERVAL_MS = 5_000
 
 function distM(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6_371_000
@@ -58,9 +57,9 @@ async function tick(): Promise<void> {
 
     const d = distM(veh.lat, veh.lng, stop.stop_lat, stop.stop_lon)
 
-    if (r.status === 'pending' && d <= ARRIVE_RADIUS_M) {
+    if (r.status === 'pending' && d <= RADIUS_M) {
       setReservationStatus(r.id, 'active')
-    } else if (r.status === 'active' && d > DEPART_RADIUS_M) {
+    } else if (r.status === 'active' && d > RADIUS_M) {
       setReservationStatus(r.id, 'done')
     }
   }
@@ -71,7 +70,7 @@ let interval: ReturnType<typeof setInterval> | null = null
 export function startProximityChecker(): void {
   if (interval) return
   interval = setInterval(() => tick().catch(console.error), CHECK_INTERVAL_MS)
-  console.log('[ramp] proximity checker started (10s interval, arrive=10m, depart=50m)')
+  console.log('[ramp] proximity checker started (5s interval, radius=5m)')
 }
 
 export function stopProximityChecker(): void {
