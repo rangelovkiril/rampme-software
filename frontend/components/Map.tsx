@@ -84,7 +84,7 @@ export default function Map() {
         onToggleTracking={toggleTracking}
       />
 
-      <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} />
+      <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} onOpenVehicle={handleVehicleOpen} />
       <SidePanel
         activePanel={activePanel}
         onClose={closePanel}

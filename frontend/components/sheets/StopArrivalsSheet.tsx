@@ -358,13 +358,7 @@ export default function StopArrivalsSheet({
                               ? "pointer"
                               : "not-allowed",
                         }}
-                        title={
-                          reserved
-                            ? "Ramp reserved"
-                            : canRequest
-                              ? "Reserve wheelchair ramp"
-                              : `Come within ${RAMP_PROXIMITY_METERS}m of the stop`
-                        }
+                        title={reserved ? "Ramp reserved" : "Reserve wheelchair ramp"}
                       >
                         {reserved ? "Reserved" : isReserving ? "..." : "Ramp"}
                       </button>
