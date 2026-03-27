@@ -129,6 +129,8 @@ export function RampProvider({ children }: { children: ReactNode }) {
     const r = await apiReserve(sid, vid, stopId, 'board')
     if (r) {
       console.log(`[ramp] board reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
+      setLockedVehicleId(vid)
+      setReservations(prev => [...prev.filter(p => p.id !== r.id), r])
       await refresh()
     }
     return r
@@ -138,6 +140,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
     const r = await apiReserve(sid, vid, stopId, 'alight')
     if (r) {
       console.log(`[ramp] alight reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
+      setReservations(prev => [...prev.filter(p => p.id !== r.id), r])
       await refresh()
     }
     return r
