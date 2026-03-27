@@ -4,8 +4,9 @@ import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 
-interface Vehicle {
+export interface Vehicle {
   id: string
+  tripId: string
   lat: number
   lng: number
   bearing: number | null
@@ -71,7 +72,7 @@ function vehicleIcon(bearing: number, routeType: number, routeName: string) {
  * Polls the backend at a fixed interval and creates, updates, or removes markers and popups to reflect the latest vehicle positions, headings, and route info. Attaches markers to an internal LayerGroup and stops polling / cleans up when the component unmounts.
  */
 interface VehiclesLayerProps {
-  onVehicleSelect?: (routeId: string, routeType: number) => void
+  onVehicleSelect?: (vehicle: Vehicle) => void
 }
 
 export default function VehiclesLayer({ onVehicleSelect }: VehiclesLayerProps) {
@@ -166,7 +167,7 @@ export default function VehiclesLayer({ onVehicleSelect }: VehiclesLayerProps) {
       }
       marker.bindPopup(popupHtml)
       if (onVehicleSelect) {
-        marker.on('click', () => onVehicleSelect(v.route_id, v.route_type))
+        marker.on('click', () => onVehicleSelect(v))
       }
       marker.addTo(group)
     }

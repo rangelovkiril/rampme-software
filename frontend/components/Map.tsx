@@ -12,6 +12,8 @@ import RouteLinesLayer from './RouteLinesLayer'
 import StopsLayer from './StopsLayer'
 import type { Stop } from './StopsLayer'
 import VehiclesLayer from './VehiclesLayer'
+import type { Vehicle } from './VehiclesLayer'
+import VehicleTripSheet from './VehicleTripSheet'
 
 const TILES = {
   light:
@@ -33,6 +35,7 @@ export default function CityMap() {
   const [tracking, setTracking] = useState(false)
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null)
   const [selectedRoute, setSelectedRoute] = useState<{ routeId: string; routeType: number } | null>(null)
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
@@ -85,7 +88,10 @@ export default function CityMap() {
           selectedStopId={selectedStop?.stop_id ?? null}
           onStopSelect={setSelectedStop}
         />
-        <VehiclesLayer onVehicleSelect={(routeId, routeType) => setSelectedRoute((prev) => prev?.routeId === routeId ? null : { routeId, routeType })} />
+        <VehiclesLayer onVehicleSelect={(v) => {
+          setSelectedRoute((prev) => prev?.routeId === v.route_id ? null : { routeId: v.route_id, routeType: v.route_type })
+          setSelectedVehicle((prev) => prev?.id === v.id ? null : v)
+        }} />
       </MapContainer>
 
       {/* Controls rendered OUTSIDE MapContainer so Leaflet cannot intercept clicks */}
@@ -101,6 +107,7 @@ export default function CityMap() {
       <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} />
         <SidePanel activePanel={activePanel} onClose={closePanel} />
       <StopArrivalsSheet stop={selectedStop} onClose={() => setSelectedStop(null)} />
+      <VehicleTripSheet vehicle={selectedVehicle} onClose={() => { setSelectedVehicle(null); setSelectedRoute(null) }} />
     </div>
   );
 }

@@ -103,6 +103,17 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     else stopTimesByStop.set(st.stop_id, [st])
   }
 
+  // Index stop_times by trip_id for fast lookup, sorted by sequence
+  const stopTimesByTrip = new Map<string, StopTime[]>()
+  for (const st of stopTimes) {
+    const arr = stopTimesByTrip.get(st.trip_id)
+    if (arr) arr.push(st)
+    else stopTimesByTrip.set(st.trip_id, [st])
+  }
+  for (const arr of stopTimesByTrip.values()) {
+    arr.sort((a, b) => a.stop_sequence - b.stop_sequence)
+  }
+
   // Parse calendar_dates.txt
   const calendarDates = parseCsv<CalendarDate>(await readFile('calendar_dates.txt'), (r) => ({
     service_id: r.service_id,
@@ -149,5 +160,5 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     `✅ GTFS loaded: ${stops.size} stops, ${routes.size} routes, ${trips.size} trips, ${stopTimes.length} stop_times, ${calendarDates.length} calendar_dates, ${shapes.size} shapes`,
   )
 
-  return { stops, stopsByCode, routes, trips, stopTimes, stopTimesByStop, calendarDates, shapes, shapesByRoute }
+  return { stops, stopsByCode, routes, trips, stopTimes, stopTimesByStop, stopTimesByTrip, calendarDates, shapes, shapesByRoute }
 }
