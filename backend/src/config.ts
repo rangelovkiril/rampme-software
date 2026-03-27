@@ -7,6 +7,8 @@ export const config = {
     refreshInterval: Number(process.env.GTFS_REFRESH_INTERVAL ?? 24 * 60 * 60 * 1000),
   },
 
+  protoPath: process.env.PROTO_PATH ?? 'proto/gtfs-realtime.proto',
+
   // When MOCK_RAMP=true, ~50% of vehicles are treated as ramp-equipped (stable per process run).
   mockRamp: process.env.MOCK_RAMP === 'true',
 
