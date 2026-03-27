@@ -1,5 +1,5 @@
-import { config } from '../config'
-import { fetchTripUpdates } from '../gtfs/realtime'
+import { fetchTripUpdates, fetchVehiclePositions } from '../gtfs/realtime'
+import { hasMockRamp } from './mock-ramp'
 import { activeServiceIds } from '../gtfs/services'
 import {
   normalizeGtfsHour,
@@ -12,6 +12,7 @@ import type { GtfsData } from '../gtfs/types'
 
 export interface ArrivalResult {
   id: string
+  vehicle_id: string | null
   route_short_name: string | null
   route_type: number | null
   headsign: string | null
@@ -29,10 +30,6 @@ interface ScheduledArrival {
   stop_id: string
 }
 
-/**
- * Computes upcoming arrivals at a stop (and its siblings),
- * merging static GTFS schedule with realtime trip-update predictions.
- */
 export async function getUpcomingArrivals(
   data: GtfsData,
   stopId: string,
@@ -49,12 +46,17 @@ export async function getUpcomingArrivals(
   const nowSec = Math.floor(now.getTime() / 1000)
 
   const scheduled = collectScheduledArrivals(data, siblingIds, services, currentTime)
-  const predictions = await collectPredictions(siblingIds, nowSec, scheduled)
+  const [predictions, vehicleByTrip] = await Promise.all([
+    collectPredictions(siblingIds, nowSec, scheduled),
+    buildVehicleByTripMap(),
+  ])
   const currentMinutes = nowTotalMinutes(now)
 
   const results = scheduled.map((sa) => {
     const trip = data.trips.get(sa.trip_id)
     const route = trip ? data.routes.get(trip.route_id) : undefined
+    const vehicleId = vehicleByTrip.get(sa.trip_id) ?? null
+    const rampKey = vehicleId ?? sa.trip_id
 
     const prediction = predictions.get(sa.trip_id)
     let eta_minutes: number
@@ -71,6 +73,7 @@ export async function getUpcomingArrivals(
 
     return {
       id: sa.trip_id,
+      vehicle_id: vehicleId,
       route_short_name: route?.route_short_name ?? null,
       route_type: route?.route_type ?? null,
       headsign: trip?.trip_headsign ?? null,
@@ -79,11 +82,25 @@ export async function getUpcomingArrivals(
       expected_time,
       eta_minutes,
       realtime: Boolean(prediction),
-      has_ramp: config.rampAll ? true : trip?.wheelchair_accessible === 1,
+      has_ramp: hasMockRamp(rampKey) || trip?.wheelchair_accessible === 1,
     }
   })
 
   return deduplicateAndSort(results, limit)
+}
+
+async function buildVehicleByTripMap(): Promise<Map<string, string>> {
+  const map = new Map<string, string>()
+  try {
+    const feed = await fetchVehiclePositions()
+    for (const e of feed.entity ?? []) {
+      const v = e.vehicle
+      const tripId = v?.trip?.tripId
+      const vehicleId = v?.vehicle?.id ?? e.id
+      if (tripId && vehicleId) map.set(tripId, vehicleId)
+    }
+  } catch {}
+  return map
 }
 
 function collectScheduledArrivals(

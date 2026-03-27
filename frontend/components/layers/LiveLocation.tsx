@@ -4,12 +4,38 @@ import L from 'leaflet'
 import { useEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
 
-const DOT_ICON = L.divIcon({
-  className: '',
-  html: '<div style="width:14px;height:14px;border-radius:50%;background:#3b82f6;border:2.5px solid #fff;box-shadow:0 0 0 4px rgba(59,130,246,0.18),0 1px 4px rgba(0,0,0,0.3)"></div>',
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-})
+function makeDotIcon(heading: number | null) {
+  const arrow = heading !== null
+    ? `<div style="
+        position:absolute;top:-10px;left:50%;transform:translateX(-50%) rotate(${heading}deg);
+        width:0;height:0;
+        border-left:5px solid transparent;
+        border-right:5px solid transparent;
+        border-bottom:10px solid #3b82f6;
+        opacity:0.85;
+      "></div>`
+    : ''
+  return L.divIcon({
+    className: '',
+    html: `<div style="position:relative;width:22px;height:22px;display:flex;align-items:center;justify-content:center;">
+      ${arrow}
+      <div style="
+        width:22px;height:22px;border-radius:50%;
+        background:#3b82f6;
+        border:3px solid #fff;
+        box-shadow:0 0 0 2px rgba(59,130,246,0.35),0 2px 8px rgba(0,0,0,0.35);
+        position:relative;z-index:1;
+      ">
+        <div style="
+          position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+          width:7px;height:7px;border-radius:50%;background:#fff;opacity:0.9;
+        "></div>
+      </div>
+    </div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  })
+}
 
 const ERROR_THROTTLE_MS = 15_000
 
@@ -51,13 +77,13 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
   function applyPosition(pos: GeolocationPosition) {
     const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude)
     const accuracy = pos.coords.accuracy
+    const heading = pos.coords.heading ?? null
 
     if (firstFixRef.current) {
       map.flyTo(latlng, 16, { duration: 1.2 })
       firstFixRef.current = false
     }
 
-    // Reset error throttle after a successful fix.
     lastErrorRef.current = null
 
     if (accuracyRef.current) {
@@ -78,21 +104,23 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
       pulseRef.current.setLatLng(latlng)
     } else {
       pulseRef.current = L.circleMarker(latlng, {
-        radius: 18,
+        radius: 22,
         fillColor: '#3b82f6',
-        fillOpacity: 0.12,
+        fillOpacity: 0.1,
         color: '#3b82f6',
-        weight: 1.5,
-        opacity: 0.25,
+        weight: 1,
+        opacity: 0.2,
         className: 'location-pulse',
       }).addTo(map)
     }
 
+    const icon = makeDotIcon(heading)
     if (dotRef.current) {
       dotRef.current.setLatLng(latlng)
+      dotRef.current.setIcon(icon)
     } else {
       dotRef.current = L.marker(latlng, {
-        icon: DOT_ICON,
+        icon,
         zIndexOffset: 9999,
         interactive: false,
       }).addTo(map)

@@ -2,17 +2,17 @@
 
 import { useEffect } from 'react'
 import type { Stop } from '@/lib/types'
-import AlertsPanel from './panels/AlertsPanel'
 import RoutesPanel from './panels/RoutesPanel'
 import StopsPanel from './panels/StopsPanel'
+import ReservationsPanel from './panels/ReservationsPanel'
 
-const PANEL_IDS = ['alerts', 'routes', 'stops'] as const
+const PANEL_IDS = ['routes', 'stops', 'reservations'] as const
 type PanelId = (typeof PANEL_IDS)[number]
 
 const PANEL_TITLES: Record<PanelId, string> = {
-  alerts: 'Известия',
   routes: 'Линии',
   stops: 'Спирки',
+  reservations: 'Резервации',
 }
 
 export interface SidePanelProps {
@@ -20,13 +20,14 @@ export interface SidePanelProps {
   onClose: () => void
   onSelectRoute?: (routeId: string, routeType: number) => void
   onSelectStop?: (stop: Stop) => void
+  onSelectVehicle?: (vehicleId: string) => void
 }
 
 function isPanelId(value: string | null): value is PanelId {
   return value !== null && PANEL_IDS.includes(value as PanelId)
 }
 
-export default function SidePanel({ activePanel, onClose, onSelectRoute, onSelectStop }: SidePanelProps) {
+export default function SidePanel({ activePanel, onClose, onSelectRoute, onSelectStop, onSelectVehicle }: SidePanelProps) {
   const isOpen = isPanelId(activePanel)
 
   useEffect(() => {
@@ -36,6 +37,11 @@ export default function SidePanel({ activePanel, onClose, onSelectRoute, onSelec
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   }, [isOpen, onClose])
+
+  const handleOpenVehicle = (vehicleId: string) => {
+    onSelectVehicle?.(vehicleId)
+    onClose()
+  }
 
   return (
     <aside
@@ -71,9 +77,9 @@ export default function SidePanel({ activePanel, onClose, onSelectRoute, onSelec
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 pb-4 lg:px-7 lg:pb-7">
-            {activePanel === 'alerts' && <AlertsPanel />}
             {activePanel === 'routes' && <RoutesPanel onSelectRoute={onSelectRoute} onClose={onClose} />}
             {activePanel === 'stops' && <StopsPanel onSelectStop={onSelectStop} onClose={onClose} />}
+            {activePanel === 'reservations' && <ReservationsPanel onOpenVehicle={handleOpenVehicle} />}
           </div>
         </>
       )}

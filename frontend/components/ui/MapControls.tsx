@@ -1,9 +1,6 @@
 'use client'
 
-import type L from 'leaflet'
-
 interface MapControlsProps {
-  map?: L.Map | null
   dark: boolean
   onToggleTheme: () => void
   tracking: boolean
@@ -12,7 +9,6 @@ interface MapControlsProps {
 }
 
 export default function MapControls({
-  map = null,
   dark,
   onToggleTheme,
   tracking,
@@ -58,35 +54,6 @@ export default function MapControls({
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
           </svg>
         )}
-      </ControlButton>
-
-      <div className="h-px w-6 self-center" style={{ background: 'var(--border)' }} />
-
-      {/* Zoom */}
-      <ControlButton onClick={() => map?.zoomIn()} title="Zoom in">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </ControlButton>
-      <ControlButton onClick={() => map?.zoomOut()} title="Zoom out">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-        >
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
       </ControlButton>
 
       <div className="h-px w-6 self-center" style={{ background: 'var(--border)' }} />

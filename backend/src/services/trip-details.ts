@@ -11,6 +11,7 @@ export interface TripStopResult {
   eta_minutes: number | null
   status: 'departed' | 'delay' | 'on_time' | 'scheduled'
   delay_minutes: number
+  realtime: boolean
 }
 
 export interface TripDetailResult {
@@ -101,8 +102,10 @@ function buildTripStop(
   let eta_minutes: number | null = null
   let status: TripStopResult['status'] = 'scheduled'
   let delay_minutes = 0
+  let realtime = false
 
   if (pred && pred.arrival > 0) {
+    realtime = true
     expected_time = unixToHHMM(pred.arrival)
 
     if (pred.arrival <= nowSec) {
@@ -138,5 +141,6 @@ function buildTripStop(
     eta_minutes,
     status,
     delay_minutes,
+    realtime,
   }
 }
