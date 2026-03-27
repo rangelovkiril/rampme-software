@@ -95,7 +95,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
     const data = await apiFetch(sid)
     setReservations(data)
     const board = data.find(
-      (r) => r.type === 'board' && (r.status === 'pending' || r.status === 'active'),
+      (r) => r.type === 'board' && r.status === 'active',
     )
     setLockedVehicleId(board?.vehicle_id ?? null)
   }, [sid])
@@ -108,7 +108,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
 
   const reserveBoard = useCallback(async (vid: string, stopId: string) => {
     const r = await apiReserve(sid, vid, stopId, 'board')
-    if (r) { await refresh(); setLockedVehicleId(vid) }
+    if (r) await refresh()
     return r
   }, [sid, refresh])
 

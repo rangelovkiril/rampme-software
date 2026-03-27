@@ -1,5 +1,6 @@
 import { fetchTripUpdates, fetchVehiclePositions } from '../gtfs/realtime'
 import { hasMockRamp } from './mock-ramp'
+import { getMockArrivalForStop } from './mock-transit'
 import { activeServiceIds } from '../gtfs/services'
 import {
   normalizeGtfsHour,
@@ -35,8 +36,12 @@ export async function getUpcomingArrivals(
   stopId: string,
   limit: number,
 ): Promise<ArrivalResult[]> {
+  const mockArrival = getMockArrivalForStop(stopId)
+
   const stop = data.stops.get(stopId)
-  if (!stop) return []
+  if (!stop) {
+    return mockArrival ? [mockArrival] : []
+  }
 
   const siblingIds = stop.stop_code ? (data.stopsByCode.get(stop.stop_code) ?? [stopId]) : [stopId]
 
@@ -85,6 +90,8 @@ export async function getUpcomingArrivals(
       has_ramp: hasMockRamp(rampKey) || trip?.wheelchair_accessible === 1,
     }
   })
+
+  if (mockArrival) results.push(mockArrival)
 
   return deduplicateAndSort(results, limit)
 }

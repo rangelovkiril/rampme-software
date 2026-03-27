@@ -7,6 +7,7 @@ import { useRamp } from "@/contexts/RampContext";
 
 const POLL_INTERVAL = 15_000;
 const MOBILE_SHEET_MAX_VH = 85;
+const RAMP_PROXIMITY_METERS = 10;
 
 interface Props {
   stop: Stop | null;
@@ -113,7 +114,7 @@ export default function StopArrivalsSheet({
     setReservingId(vehicleId);
     try {
       const res = await reserveBoard(vehicleId, stop.stop_id);
-      if (res && onVehicleLock) {
+      if (res?.status === "active" && onVehicleLock) {
         onVehicleLock(vehicleId);
       }
     } finally {
@@ -253,13 +254,12 @@ export default function StopArrivalsSheet({
                   scheduled &&
                   expected &&
                   expected !== scheduled;
-                const canRequest = isNearStop;
-                const reserved = isReserved(
-                  item.vehicle_id ?? item.id,
-                  stop.stop_id,
-                );
-                const isReserving =
-                  reservingId === (item.vehicle_id ?? item.id);
+                const vehicleId = item.vehicle_id;
+                const canRequest = isNearStop && Boolean(vehicleId);
+                const reserved = vehicleId
+                  ? isReserved(vehicleId, stop.stop_id)
+                  : false;
+                const isReserving = reservingId === vehicleId;
 
                 return (
                   <div
@@ -313,6 +313,14 @@ export default function StopArrivalsSheet({
                             ""
                           )}
                         </p>
+                        {vehicleId && (
+                          <p
+                            className="text-xs"
+                            style={{ color: "var(--text-muted)" }}
+                          >
+                            ID: {vehicleId}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -332,9 +340,7 @@ export default function StopArrivalsSheet({
                       <button
                         type="button"
                         disabled={!canRequest || reserved || isReserving}
-                        onClick={() =>
-                          handleReserve(item.vehicle_id ?? item.id)
-                        }
+                        onClick={() => vehicleId && handleReserve(vehicleId)}
                         className="stop-sheet-action h-10 rounded-lg px-3 py-1 text-base font-semibold transition-all"
                         style={{
                           background: reserved
@@ -363,10 +369,20 @@ export default function StopArrivalsSheet({
                             ? "Ramp reserved"
                             : canRequest
                               ? "Reserve wheelchair ramp"
-                              : `Come within ${RAMP_PROXIMITY_METERS}m of the stop`
+                              : vehicleId
+                                ? `Come within ${RAMP_PROXIMITY_METERS}m of the stop`
+                                : "Live vehicle id unavailable"
                         }
                       >
-                        {reserved ? "Reserved" : isReserving ? "..." : "Ramp"}
+                        {reserved
+                          ? "Reserved"
+                          : isReserving
+                            ? "..."
+                            : canRequest
+                              ? "Ramp"
+                              : vehicleId
+                                ? "Ramp"
+                                : "No ID"}
                       </button>
                     </div>
                   </div>
