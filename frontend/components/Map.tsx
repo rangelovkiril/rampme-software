@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { MapContainer, TileLayer } from 'react-leaflet'
+import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import type { Map as LeafletMap } from 'leaflet'
 import StopsLayer from './layers/StopsLayer'
 import VehiclesLayer from './layers/VehiclesLayer'
@@ -21,6 +21,17 @@ const TILES = {
 }
 
 const SOFIA_CENTER = { lat: 42.6977, lng: 23.3219 }
+
+function MapResizeHandler() {
+  const map = useMap()
+  useEffect(() => {
+    map.invalidateSize()
+    const onResize = () => map.invalidateSize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [map])
+  return null
+}
 
 export default function Map() {
   const mapRef = useRef<LeafletMap | null>(null)
@@ -74,6 +85,7 @@ export default function Map() {
         ref={(m) => { mapRef.current = m ?? null }}
       >
         <TileLayer url={dark ? TILES.dark : TILES.light} />
+        <MapResizeHandler />
         <RouteLinesLayer routeId={selectedRoute?.routeId ?? null} routeType={selectedRoute?.routeType ?? null} />
         <LiveLocation active={tracking} onError={(_, code) => { if (code === 1) setTracking(false) }} />
         <StopsLayer selectedStopId={selectedStop?.stop_id ?? null} onStopSelect={setSelectedStop} />
