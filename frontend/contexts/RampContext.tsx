@@ -114,7 +114,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
     prevReservations.current = data
     setReservations(data)
     const board = data.find(
-      (r) => r.type === 'board' && r.status === 'active',
+      (r) => r.type === 'board' && (r.status === 'pending' || r.status === 'active'),
     )
     setLockedVehicleId(board?.vehicle_id ?? null)
   }, [sid])
@@ -130,7 +130,6 @@ export function RampProvider({ children }: { children: ReactNode }) {
     if (r) {
       console.log(`[ramp] board reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
       await refresh()
-      setLockedVehicleId(vid)
     }
     return r
   }, [sid, refresh])

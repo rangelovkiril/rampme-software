@@ -34,7 +34,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
   const [reservingStopId, setReservingStopId] = useState<string | null>(null)
   const [boardingStopId, setBoardingStopId] = useState<string | null>(null)
 
-  const { reserveAlight, reserveBoard, cancel, reservations, lockedVehicleId, isReserved } = useRamp()
+  const { reserveAlight, reserveBoard, cancel, reservations, lockedVehicleId } = useRamp()
 
   const [isDragging, setIsDragging] = useState(false)
   const [dragY, setDragY] = useState(0)
@@ -179,8 +179,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                 const isAtStop = false
                 const isBoarding = boardingRes?.stop_id === stop.stop_id
                 const isAlighting = alightingRes?.stop_id === stop.stop_id
-                const stopReserved = isReserved(vehicle.id, stop.stop_id)
-                const canAlight = isLocked && !alightingRes && !isDeparted && !isAtStop && !isBoarding && !stopReserved
+                const canAlight = isLocked && !isDeparted && !isAtStop && !isBoarding && !isAlighting
                 const canBoard = !isLocked && !boardingRes && !isDeparted && !isAtStop
                 const isReservingThis = reservingStopId === stop.stop_id
                 const isBoardingThis = boardingStopId === stop.stop_id

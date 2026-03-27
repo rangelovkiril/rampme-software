@@ -33,10 +33,13 @@ export default function Map() {
   const [navCloseSignal, setNavCloseSignal] = useState(0)
 
   const { lockedVehicleId } = useRamp()
+  const vehiclesRef = useRef<Vehicle[]>([])
+  const handleVehiclesUpdate = useCallback((v: Vehicle[]) => { vehiclesRef.current = v }, [])
 
   useEffect(() => {
     if (lockedVehicleId && !selectedVehicle) {
-      setSelectedVehicle({ id: lockedVehicleId } as Vehicle)
+      const full = vehiclesRef.current.find((v) => v.id === lockedVehicleId)
+      setSelectedVehicle(full ?? { id: lockedVehicleId } as Vehicle)
       setSelectedStop(null)
     }
   }, [lockedVehicleId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -53,7 +56,8 @@ export default function Map() {
   }, [])
 
   const handleVehicleOpen = useCallback((vehicleId: string) => {
-    setSelectedVehicle({ id: vehicleId } as Vehicle)
+    const full = vehiclesRef.current.find((v) => v.id === vehicleId)
+    setSelectedVehicle(full ?? { id: vehicleId } as Vehicle)
     setSelectedStop(null)
     setNavCloseSignal(s => s + 1)
   }, [])
@@ -77,7 +81,7 @@ export default function Map() {
         <RouteLinesLayer routeId={selectedRoute?.routeId ?? null} routeType={selectedRoute?.routeType ?? null} />
         <LiveLocation active={tracking} onError={(_, code) => { if (code === 1) setTracking(false) }} />
         <StopsLayer selectedStopId={selectedStop?.stop_id ?? null} onStopSelect={setSelectedStop} />
-        <VehiclesLayer onVehicleSelect={handleVehicleSelect} selectedVehicleId={selectedVehicle?.id ?? null} />
+        <VehiclesLayer onVehicleSelect={handleVehicleSelect} selectedVehicleId={selectedVehicle?.id ?? null} onVehiclesUpdate={handleVehiclesUpdate} />
       </MapContainer>
 
       <MapControls

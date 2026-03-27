@@ -23,13 +23,16 @@ function vehicleIcon(_bearing: number, routeType: number, routeName: string) {
 interface VehiclesLayerProps {
   onVehicleSelect?: (vehicle: Vehicle) => void
   selectedVehicleId?: string | null
+  onVehiclesUpdate?: (vehicles: Vehicle[]) => void
 }
 
-export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: VehiclesLayerProps) {
+export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId, onVehiclesUpdate }: VehiclesLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.LayerGroup | null>(null)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [revision, setRevision] = useState(0)
+  const onVehiclesUpdateRef = useRef(onVehiclesUpdate)
+  onVehiclesUpdateRef.current = onVehiclesUpdate
 
   useEffect(() => {
     let active = true
@@ -37,8 +40,12 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
       try {
         const res = await fetch('/api/realtime/vehicles')
         if (!res.ok || !active) return
-        const data = await res.json()
-        if (active) setVehicles(Array.isArray(data) ? data : [])
+        const json = await res.json()
+        const data: Vehicle[] = Array.isArray(json) ? json : []
+        if (active) {
+          setVehicles(data)
+          onVehiclesUpdateRef.current?.(data)
+        }
       } catch { /* retry next interval */ }
     }
     poll()
