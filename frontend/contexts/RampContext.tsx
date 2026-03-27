@@ -1,0 +1,150 @@
+'use client'
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+
+// ── types ────────────────────────────────────────────────────────────────
+
+export interface RampReservation {
+  id: number
+  session_id: string
+  vehicle_id: string
+  stop_id: string
+  type: 'board' | 'alight'
+  status: 'pending' | 'active' | 'done' | 'cancelled' | 'expired'
+  created_at: number
+  resolved_at: number | null
+}
+
+interface RampCtx {
+  sessionId: string
+  reservations: RampReservation[]
+  lockedVehicleId: string | null
+  reserveBoard: (vehicleId: string, stopId: string) => Promise<RampReservation | null>
+  reserveAlight: (vehicleId: string, stopId: string) => Promise<RampReservation | null>
+  cancel: (id: number) => Promise<boolean>
+  isReserved: (vehicleId: string, stopId: string) => boolean
+  refresh: () => Promise<void>
+}
+
+const Ctx = createContext<RampCtx | null>(null)
+
+// ── session id ───────────────────────────────────────────────────────────
+
+function getSessionId(): string {
+  const KEY = 'rampme_session'
+  try {
+    let s = localStorage.getItem(KEY)
+    if (s) return s
+    s = crypto.randomUUID()
+    localStorage.setItem(KEY, s)
+    return s
+  } catch {
+    return crypto.randomUUID()
+  }
+}
+
+// ── api helpers ──────────────────────────────────────────────────────────
+
+const hdrs = (sid: string) => ({ 'Content-Type': 'application/json', 'X-Session-Id': sid })
+
+async function apiReserve(
+  sid: string, vehicleId: string, stopId: string, type: 'board' | 'alight',
+): Promise<RampReservation | null> {
+  try {
+    const r = await fetch('/api/ramp/reserve', {
+      method: 'POST', headers: hdrs(sid),
+      body: JSON.stringify({ vehicle_id: vehicleId, stop_id: stopId, type }),
+    })
+    return r.ok ? await r.json() : null
+  } catch { return null }
+}
+
+async function apiCancel(sid: string, id: number): Promise<boolean> {
+  try {
+    const r = await fetch(`/api/ramp/reserve/${id}`, {
+      method: 'DELETE', headers: { 'X-Session-Id': sid },
+    })
+    return r.ok
+  } catch { return false }
+}
+
+async function apiFetch(sid: string): Promise<RampReservation[]> {
+  try {
+    const r = await fetch('/api/ramp/session', { headers: { 'X-Session-Id': sid } })
+    return r.ok ? await r.json() : []
+  } catch { return [] }
+}
+
+// ── provider ─────────────────────────────────────────────────────────────
+
+export function RampProvider({ children }: { children: ReactNode }) {
+  const [sid] = useState(getSessionId)
+  const [reservations, setReservations] = useState<RampReservation[]>([])
+  const [lockedVehicleId, setLockedVehicleId] = useState<string | null>(null)
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const refresh = useCallback(async () => {
+    const data = await apiFetch(sid)
+    setReservations(data)
+    const board = data.find(
+      (r) => r.type === 'board' && (r.status === 'pending' || r.status === 'active'),
+    )
+    setLockedVehicleId(board?.vehicle_id ?? null)
+  }, [sid])
+
+  useEffect(() => {
+    refresh()
+    timer.current = setInterval(refresh, 10_000)
+    return () => { if (timer.current) clearInterval(timer.current) }
+  }, [refresh])
+
+  const reserveBoard = useCallback(async (vid: string, stopId: string) => {
+    const r = await apiReserve(sid, vid, stopId, 'board')
+    if (r) { await refresh(); setLockedVehicleId(vid) }
+    return r
+  }, [sid, refresh])
+
+  const reserveAlight = useCallback(async (vid: string, stopId: string) => {
+    const r = await apiReserve(sid, vid, stopId, 'alight')
+    if (r) await refresh()
+    return r
+  }, [sid, refresh])
+
+  const cancel = useCallback(async (id: number) => {
+    const ok = await apiCancel(sid, id)
+    if (ok) await refresh()
+    return ok
+  }, [sid, refresh])
+
+  const isReserved = useCallback(
+    (vid: string, stopId: string) =>
+      reservations.some(
+        (r) => r.vehicle_id === vid && r.stop_id === stopId &&
+          (r.status === 'pending' || r.status === 'active'),
+      ),
+    [reservations],
+  )
+
+  return (
+    <Ctx.Provider value={{
+      sessionId: sid, reservations, lockedVehicleId,
+      reserveBoard, reserveAlight, cancel, isReserved, refresh,
+    }}>
+      {children}
+    </Ctx.Provider>
+  )
+}
+
+export function useRamp() {
+  const c = useContext(Ctx)
+  if (!c) throw new Error('useRamp must be inside <RampProvider>')
+  return c
+}

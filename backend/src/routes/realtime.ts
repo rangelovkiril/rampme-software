@@ -31,7 +31,7 @@ export const realtimeRoutes = new Elysia()
         if (query.route_id) vehicles = vehicles.filter((v) => v.route_id === query.route_id)
         if (query.route_type !== undefined)
           vehicles = vehicles.filter((v) => v.route_type === Number(query.route_type))
-        if (query.low_floor === 'true') vehicles = vehicles.filter((v) => v.low_floor === true)
+        if (query.has_ramp === 'true') vehicles = vehicles.filter((v) => v.ramp_status !== 'unknown')
 
         return vehicles
       } catch (e) {
@@ -42,7 +42,7 @@ export const realtimeRoutes = new Elysia()
       query: t.Object({
         route_id: t.Optional(t.String()),
         route_type: t.Optional(t.String()),
-        low_floor: t.Optional(t.String()),
+        has_ramp: t.Optional(t.String()),
       }),
       detail: { tags: ['Realtime'], summary: 'Vehicle positions with enrichment and filters' },
     },
