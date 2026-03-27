@@ -209,15 +209,9 @@ const app = new Elysia()
           let expected_time: string | null = null
           if (prediction) {
             eta_minutes = Math.max(0, Math.round((prediction - nowSec) / 60))
-            // Convert prediction unix timestamp to HH:MM, matching GTFS 24+ hour format
             const predDate = new Date(prediction * 1000)
-            let predHour = predDate.getHours()
+            const predHour = predDate.getHours()
             const predMin = predDate.getMinutes()
-            // If scheduled time uses 24+ hours (after midnight), match format
-            if (sa.arrival_time) {
-              const schedHour = parseInt(sa.arrival_time.split(':')[0], 10)
-              if (schedHour >= 24 && predHour < 12) predHour += 24
-            }
             expected_time = `${String(predHour).padStart(2, '0')}:${String(predMin).padStart(2, '0')}`
           } else {
             // Parse scheduled arrival time to minutes from now
@@ -225,7 +219,17 @@ const app = new Elysia()
             const scheduledMinutes = h * 60 + m
             const nowMinutes = now.getHours() * 60 + now.getMinutes()
             eta_minutes = Math.max(0, scheduledMinutes - nowMinutes)
-            expected_time = sa.arrival_time ? sa.arrival_time.slice(0, 5) : null
+            // Normalize GTFS 24+ hour times (e.g. 26:52 → 02:52)
+            expected_time = sa.arrival_time
+              ? `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+              : null
+          }
+
+          // Normalize scheduled_time (GTFS allows hours >= 24 for post-midnight trips)
+          let scheduled_time: string | null = null
+          if (sa.arrival_time) {
+            const [sh, sm] = sa.arrival_time.split(':').map(Number)
+            scheduled_time = `${String(sh % 24).padStart(2, '0')}:${String(sm).padStart(2, '0')}`
           }
 
           return {
@@ -234,7 +238,7 @@ const app = new Elysia()
             route_type: route?.route_type ?? null,
             headsign: trip?.trip_headsign ?? null,
             route_id: trip?.route_id ?? null,
-            scheduled_time: sa.arrival_time ? sa.arrival_time.slice(0, 5) : null,
+            scheduled_time,
             expected_time,
             eta_minutes,
             realtime: Boolean(prediction),
@@ -335,6 +339,122 @@ const app = new Elysia()
       }),
       detail: { tags: ['Routes'], summary: 'Batch route shapes by IDs' },
     },
+  )
+
+  .get(
+    '/realtime/vehicles/:id/trip',
+    async ({ params: { id } }) => {
+      const data = gtfs
+      if (!data) return GTFS_NOT_READY()
+      try {
+        // Find the vehicle in the realtime feed
+        const feed = await fetchVehiclePositions()
+        const entity = (feed.entity ?? []).find(
+          (e: any) => (e.vehicle?.vehicle?.id ?? e.id) === id,
+        )
+        if (!entity?.vehicle) return jsonError('Vehicle not found', 404)
+
+        const v = entity.vehicle
+        const tripId = v.trip?.tripId ?? ''
+        if (!tripId) return jsonError('Vehicle has no active trip', 404)
+
+        const trip = data.trips.get(tripId)
+        const routeId = trip?.route_id ?? v.trip?.routeId ?? ''
+        const route = routeId ? data.routes.get(routeId) : undefined
+
+        // Get the stop sequence for this trip
+        const tripStopTimes = data.stopTimesByTrip.get(tripId)
+        if (!tripStopTimes || tripStopTimes.length === 0)
+          return jsonError('No stop times for this trip', 404)
+
+        // Fetch trip-updates for real-time predictions
+        const tuFeed = await fetchTripUpdates().catch(() => ({ entity: [] }))
+        const predictions = new Map<string, { arrival: number; departure: number }>()
+        for (const e of (tuFeed as any).entity ?? []) {
+          const tu = e.tripUpdate
+          if (tu?.trip?.tripId !== tripId) continue
+          for (const stu of tu.stopTimeUpdate ?? []) {
+            predictions.set(stu.stopId, {
+              arrival: Number(stu.arrival?.time ?? 0),
+              departure: Number(stu.departure?.time ?? 0),
+            })
+          }
+          break
+        }
+
+        const nowSec = Math.floor(Date.now() / 1000)
+
+        const stops = tripStopTimes.map((st) => {
+          const stop = data.stops.get(st.stop_id)
+          const pred = predictions.get(st.stop_id)
+
+          // Parse scheduled time
+          const [sh, sm] = st.arrival_time.split(':').map(Number)
+          const scheduledNorm = `${String(sh % 24).padStart(2, '0')}:${String(sm).padStart(2, '0')}`
+
+          let expected_time: string | null = null
+          let eta_minutes: number | null = null
+          let status: 'departed' | 'delay' | 'on_time' | 'scheduled' = 'scheduled'
+          let delay_minutes = 0
+
+          // Normalize GTFS 24+ hour times for calculations
+          const normH = sh % 24
+
+          if (pred && pred.arrival > 0) {
+            const predDate = new Date(pred.arrival * 1000)
+            expected_time = `${String(predDate.getHours()).padStart(2, '0')}:${String(predDate.getMinutes()).padStart(2, '0')}`
+
+            if (pred.arrival <= nowSec) {
+              status = 'departed'
+              eta_minutes = 0
+            } else {
+              eta_minutes = Math.max(0, Math.round((pred.arrival - nowSec) / 60))
+              const scheduledTotalMin = normH * 60 + sm
+              const expectedTotalMin = predDate.getHours() * 60 + predDate.getMinutes()
+              delay_minutes = expectedTotalMin - scheduledTotalMin
+              status = delay_minutes > 0 ? 'delay' : 'on_time'
+            }
+          } else {
+            // No realtime — use schedule
+            const scheduledTotalMin = normH * 60 + sm
+            const now = new Date()
+            const nowTotalMin = now.getHours() * 60 + now.getMinutes()
+            const diff = scheduledTotalMin - nowTotalMin
+            if (diff < -2) {
+              status = 'departed'
+              eta_minutes = 0
+            } else {
+              eta_minutes = Math.max(0, diff)
+            }
+            expected_time = scheduledNorm
+          }
+
+          return {
+            stop_id: st.stop_id,
+            stop_name: stop?.stop_name ?? st.stop_id,
+            stop_sequence: st.stop_sequence,
+            scheduled_time: scheduledNorm,
+            expected_time,
+            eta_minutes,
+            status,
+            delay_minutes,
+          }
+        })
+
+        return {
+          vehicle_id: id,
+          trip_id: tripId,
+          route_id: routeId,
+          route_short_name: route?.route_short_name ?? null,
+          route_type: route?.route_type ?? null,
+          headsign: trip?.trip_headsign ?? null,
+          stops,
+        }
+      } catch (e) {
+        return jsonError(`Trip info unavailable: ${e}`, 502)
+      }
+    },
+    { detail: { tags: ['Realtime'], summary: 'Trip stops for a vehicle' } },
   )
 
   .get(
