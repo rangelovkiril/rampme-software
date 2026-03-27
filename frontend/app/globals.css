@@ -10,7 +10,20 @@
 
 /* ── Theme tokens ── */
 :root {
-  --primary: #d3d3d3;
+  --control-size: 40px;
+  --control-icon-size: 16px;
+  --nav-top-offset: 16px;
+  --nav-pill-px: 16px;
+  --nav-pill-py: 8px;
+  --nav-pill-font-size: 13px;
+  --side-panel-width: 600px;
+  --side-panel-title-size: 14px;
+  --side-panel-text-size: 12px;
+  --sheet-max-width: 740px;
+  --sheet-max-height: 53vh;
+  --sheet-title-size: 18px;
+  --sheet-text-size: 14px;
+  --primary: #2563eb;
   --primary-contrast: #ffffff;
   --surface: #ffffff;
   --surface-elevated: #ffffff;
@@ -27,8 +40,8 @@
 }
 
 .dark {
-  --primary: #4b4b4b;
-  --primary-contrast: #0f172a;
+  --primary: #3b82f6;
+  --primary-contrast: #ffffff;
   --surface: #0d0d14;
   --surface-elevated: #16161f;
   --surface-overlay: rgba(22, 22, 31, 0.92);
@@ -46,6 +59,15 @@
 body {
   background: var(--surface);
   color: var(--text);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid color-mix(in oklab, var(--primary) 75%, #ffffff 25%);
+  outline-offset: 2px;
 }
 
 /* ── Leaflet ── */
@@ -79,6 +101,112 @@ body {
 
 @media (max-width: 640px) {
   .locate-btn-lift {
-    transform: translateY(calc(-54vh - 20px));
+    transform: translateY(calc(-1 * var(--sheet-max-height) - 72px));
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --control-size: 52px;
+    --control-icon-size: 20px;
+    --nav-top-offset: 22px;
+    --nav-pill-px: 22px;
+    --nav-pill-py: 12px;
+    --nav-pill-font-size: 16px;
+    --side-panel-width: 620px;
+    --side-panel-title-size: 24px;
+    --side-panel-text-size: 19px;
+    --sheet-max-width: 860px;
+    --sheet-max-height: 57vh;
+    --sheet-title-size: 21px;
+    --sheet-text-size: 15px;
+  }
+
+}
+
+.map-control-btn {
+  width: var(--control-size);
+  height: var(--control-size);
+  min-width: var(--control-size);
+  min-height: var(--control-size);
+}
+
+.map-control-btn svg {
+  width: var(--control-icon-size);
+  height: var(--control-icon-size);
+}
+
+.nav-pill {
+  padding: var(--nav-pill-py) var(--nav-pill-px);
+  font-size: var(--nav-pill-font-size);
+  min-height: var(--control-size);
+}
+
+.nav-pill svg {
+  width: var(--control-icon-size);
+  height: var(--control-icon-size);
+}
+
+.side-panel-shell {
+  width: min(var(--side-panel-width), calc(100vw - 12px));
+  max-width: calc(100vw - 12px);
+}
+
+@media (min-width: 641px) {
+  .side-panel-shell {
+    width: var(--side-panel-width);
+    max-width: var(--side-panel-width);
+  }
+}
+
+.side-panel-title {
+  font-size: var(--side-panel-title-size);
+}
+
+.side-panel-text {
+  font-size: var(--side-panel-text-size);
+  line-height: 1.55;
+}
+
+.side-panel-close {
+  width: var(--control-size);
+  height: var(--control-size);
+}
+
+.stop-sheet-shell {
+  max-width: var(--sheet-max-width);
+}
+
+@media (min-width: 641px) {
+  .stop-sheet-shell {
+    width: clamp(560px, 41vw, var(--sheet-max-width));
+  }
+}
+
+.stop-sheet-scroll {
+  max-height: var(--sheet-max-height);
+}
+
+.stop-sheet-title {
+  font-size: var(--sheet-title-size);
+}
+
+.stop-sheet-text {
+  font-size: var(--sheet-text-size);
+  line-height: 1.55;
+}
+
+.stop-sheet-action {
+  min-height: 40px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

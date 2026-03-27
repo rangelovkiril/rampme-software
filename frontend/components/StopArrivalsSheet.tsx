@@ -8,9 +8,12 @@ interface StopArrivalsSheetProps {
   onClose: () => void
 }
 
-const ARRIVALS_LIMIT = 20
+const ARRIVALS_LIMIT = 6
 const POLL_INTERVAL = 15_000
 const RAMP_PROXIMITY_METERS = 500
+const MOBILE_SHEET_MIN_VH = 18
+const MOBILE_SHEET_DEFAULT_VH = 56
+const MOBILE_SHEET_MAX_VH = 92
 
 /** Toggle ramp availability mode:
  *  true  = ramp button enabled for every bus when near stop (for testing)
@@ -46,7 +49,16 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
   const [error, setError] = useState<string | null>(null)
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null)
   const [rampOnly, setRampOnly] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [mobileHeightVh, setMobileHeightVh] = useState(MOBILE_SHEET_DEFAULT_VH)
+  const [isDraggingSheet, setIsDraggingSheet] = useState(false)
   const watchRef = useRef<number | null>(null)
+  const dragStartYRef = useRef(0)
+  const dragStartHeightRef = useRef(MOBILE_SHEET_DEFAULT_VH)
+
+  const clampSheetHeight = useCallback((heightVh: number) => {
+    return Math.min(MOBILE_SHEET_MAX_VH, Math.max(MOBILE_SHEET_MIN_VH, heightVh))
+  }, [])
 
   // Track user geolocation for ramp button proximity check
   useEffect(() => {
@@ -97,6 +109,53 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
 
   const isOpen = Boolean(stop)
 
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth <= 640)
+    updateViewport()
+    window.addEventListener('resize', updateViewport)
+    return () => window.removeEventListener('resize', updateViewport)
+  }, [])
+
+  // Reset sheet to mid position when opening/changing stop.
+  useEffect(() => {
+    if (stop) {
+      setMobileHeightVh(MOBILE_SHEET_DEFAULT_VH)
+      setIsDraggingSheet(false)
+    }
+  }, [stop])
+
+  const handleDragStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    if (!isMobile || !isOpen) return
+    const touch = event.touches[0]
+    if (!touch) return
+    setIsDraggingSheet(true)
+    dragStartYRef.current = touch.clientY
+    dragStartHeightRef.current = mobileHeightVh
+  }, [isMobile, isOpen, mobileHeightVh])
+
+  const handleDragMove = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    if (!isMobile || !isOpen || !isDraggingSheet) return
+    const touch = event.touches[0]
+    if (!touch) return
+
+    const deltaY = dragStartYRef.current - touch.clientY
+    const deltaVh = (deltaY / window.innerHeight) * 100
+    const nextHeight = clampSheetHeight(dragStartHeightRef.current + deltaVh)
+    setMobileHeightVh(nextHeight)
+    event.preventDefault()
+  }, [clampSheetHeight, isDraggingSheet, isMobile, isOpen])
+
+  const handleDragEnd = useCallback(() => {
+    if (!isDraggingSheet) return
+    setIsDraggingSheet(false)
+
+    setMobileHeightVh((currentHeight) => {
+      if (currentHeight >= 80) return MOBILE_SHEET_MAX_VH
+      if (currentHeight <= 32) return MOBILE_SHEET_MIN_VH
+      return MOBILE_SHEET_DEFAULT_VH
+    })
+  }, [isDraggingSheet])
+
   // Distance from user to stop (if available)
   const distToStop = (stop && userPos)
     ? distanceMeters(userPos.lat, userPos.lng, stop.stop_lat, stop.stop_lon)
@@ -110,17 +169,28 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[920] flex justify-center px-0 sm:px-4">
       <section
-        className={`pointer-events-auto w-full max-w-[420px] rounded-t-2xl border transition-transform duration-300 ease-out max-sm:max-w-none ${
+        className={`stop-sheet-shell pointer-events-auto flex w-full flex-col rounded-t-2xl border transition-transform ease-out max-sm:max-w-none ${
+          isDraggingSheet ? 'duration-0' : 'duration-300'
+        } ${
           isOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
         style={{
           background: 'var(--surface-elevated)',
           borderColor: 'var(--border)',
           boxShadow: 'var(--shadow-lg)',
-          color: 'var(--text)'
+          color: 'var(--text)',
+          height: isMobile && isOpen ? `${mobileHeightVh}vh` : undefined,
+          maxHeight: isMobile && isOpen ? `${MOBILE_SHEET_MAX_VH}vh` : undefined
         }}
       >
-        <div className="flex justify-center pt-2 pb-1">
+        <div
+          className="flex touch-none justify-center pt-2 pb-1"
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+          onTouchCancel={handleDragEnd}
+          role="presentation"
+        >
           <div
             className="h-1 w-12 rounded-full"
             style={{ background: 'color-mix(in oklab, var(--text) 24%, transparent)' }}
@@ -129,8 +199,8 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
 
         <div className="flex items-start justify-between gap-3 px-4 pt-1 pb-3">
           <div className="min-w-0">
-            <p className="truncate text-base font-semibold">{stop?.stop_name ?? ''}</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            <p className="stop-sheet-title truncate font-semibold">{stop?.stop_name ?? ''}</p>
+            <p className="stop-sheet-text" style={{ color: 'var(--text-secondary)' }}>
               {stop?.stop_id ?? ''}
             </p>
           </div>
@@ -139,7 +209,7 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
             <button
               type="button"
               onClick={() => setRampOnly((v) => !v)}
-              className="flex h-8 items-center gap-1 rounded-full px-3 text-xs font-semibold transition-all"
+              className="stop-sheet-action flex items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition-all"
               style={{
                 background: rampOnly ? '#3b82f6' : 'var(--control-bg)',
                 color: rampOnly ? '#fff' : 'var(--text-secondary)',
@@ -159,7 +229,7 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
             <button
               type="button"
               onClick={onClose}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-sm"
+              className="stop-sheet-action flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-sm"
               style={{ background: 'var(--control-bg)', color: 'var(--text-secondary)' }}
               aria-label="Close stop arrivals"
             >
@@ -168,21 +238,24 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
           </div>
         </div>
 
-        <div className="max-h-[54vh] overflow-y-auto px-3 pb-4">
+        <div
+          className={`stop-sheet-scroll overflow-y-auto px-3 pb-4 ${isMobile && isOpen ? 'min-h-0 flex-1' : ''}`}
+          style={isMobile && isOpen ? { maxHeight: 'none' } : undefined}
+        >
           {loading && (
-            <p className="px-2 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+            <p className="stop-sheet-text px-2 py-3" style={{ color: 'var(--text-muted)' }}>
               Loading upcoming vehicles...
             </p>
           )}
 
           {!loading && error && (
-            <p className="px-2 py-3 text-sm" style={{ color: '#ef4444' }}>
+            <p className="stop-sheet-text px-2 py-3" style={{ color: '#ef4444' }}>
               {error}
             </p>
           )}
 
           {!loading && !error && displayedArrivals.length === 0 && (
-            <p className="px-2 py-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+            <p className="stop-sheet-text px-2 py-3" style={{ color: 'var(--text-muted)' }}>
               {rampOnly
                 ? 'No vehicles with ramp available for this stop right now.'
                 : 'No active vehicles for this stop right now.'}
@@ -207,22 +280,22 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2"
+                    className="flex items-center justify-between gap-4 rounded-xl border px-4 py-3"
                     style={{
                       borderColor: 'var(--border)',
                       background: 'color-mix(in oklab, var(--surface-elevated) 85%, var(--text) 5%)'
                     }}
                   >
-                    <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 items-center gap-3">
                       <span
-                        className="inline-flex h-6 min-w-8 items-center justify-center rounded-md px-2 text-xs font-bold text-white"
+                        className="inline-flex h-8 min-w-12 items-center justify-center rounded-md px-2.5 text-base font-bold text-white"
                         style={{ background: routeColor }}
                       >
                         {item.route_short_name ?? '?'}
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-medium">{item.headsign ?? 'Route'}</p>
-                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        <p className="truncate text-lg font-semibold">{item.headsign ?? 'Route'}</p>
+                        <p className="text-base font-medium" style={{ color: 'var(--text-secondary)' }}>
                           {item.realtime && (
                             <span style={{ color: '#22c55e' }}>Live</span>
                           )}
@@ -242,7 +315,7 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold whitespace-nowrap" style={{ color: item.realtime ? '#22c55e' : 'var(--text-secondary)' }}>
+                      <span className="text-xl font-bold whitespace-nowrap" style={{ color: item.realtime ? '#22c55e' : 'var(--text-secondary)' }}>
                         {formatEta(item.eta_minutes)}
                       </span>
                       <button
@@ -251,7 +324,7 @@ export default function StopArrivalsSheet({ stop, onClose }: StopArrivalsSheetPr
                         onClick={() => {
                           if (canRequestRamp) alert(`Ramp requested for ${item.route_short_name}!`)
                         }}
-                        className="rounded-lg px-2 py-1 text-xs font-semibold transition-opacity"
+                        className="stop-sheet-action h-10 rounded-lg px-3 py-1 text-base font-semibold transition-opacity"
                         style={{
                           background: canRequestRamp ? routeColor : 'color-mix(in oklab, var(--control-bg) 88%, var(--text) 6%)',
                           color: canRequestRamp ? '#fff' : 'var(--text-muted)',
