@@ -1,6 +1,4 @@
 import { fetchTripUpdates, fetchVehiclePositions } from '../gtfs/realtime'
-import { hasMockRamp } from './mock-ramp'
-import { getMockArrivalForStop } from './mock-transit'
 import { activeServiceIds } from '../gtfs/services'
 import {
   normalizeGtfsHour,
@@ -10,6 +8,8 @@ import {
   unixToHHMM,
 } from '../gtfs/time'
 import type { GtfsData } from '../gtfs/types'
+import { hasMockRamp } from './mock-ramp'
+import { getMockArrivalForStop } from './mock-transit'
 
 export interface ArrivalResult {
   id: string
@@ -29,6 +29,7 @@ interface ScheduledArrival {
   trip_id: string
   arrival_time: string
   stop_id: string
+  rt_route_id?: string // route_id from RT feed when trip not in static GTFS
 }
 
 export async function getUpcomingArrivals(
@@ -59,7 +60,8 @@ export async function getUpcomingArrivals(
 
   const results = scheduled.map((sa) => {
     const trip = data.trips.get(sa.trip_id)
-    const route = trip ? data.routes.get(trip.route_id) : undefined
+    const routeId = trip?.route_id ?? sa.rt_route_id
+    const route = routeId ? data.routes.get(routeId) : undefined
     const vehicleId = vehicleByTrip.get(sa.trip_id) ?? null
     const rampKey = vehicleId ?? sa.trip_id
 
@@ -82,7 +84,7 @@ export async function getUpcomingArrivals(
       route_short_name: route?.route_short_name ?? null,
       route_type: route?.route_type ?? null,
       headsign: trip?.trip_headsign ?? null,
-      route_id: trip?.route_id ?? null,
+      route_id: routeId ?? null,
       scheduled_time: sa.arrival_time ? normalizeGtfsHour(sa.arrival_time) : null,
       expected_time,
       eta_minutes,
@@ -144,13 +146,19 @@ async function collectPredictions(
     const tu = e.tripUpdate
     if (!tu?.stopTimeUpdate) continue
     const tripId = tu.trip?.tripId ?? ''
+    const rtRouteId: string | undefined = tu.trip?.routeId || undefined
     for (const stu of tu.stopTimeUpdate) {
       if (siblingSet.has(stu.stopId)) {
         const arrTime = Number(stu.arrival?.time ?? stu.departure?.time ?? 0)
         if (arrTime > nowSec) {
           predictions.set(tripId, arrTime)
           if (!scheduled.some((sa) => sa.trip_id === tripId)) {
-            scheduled.push({ trip_id: tripId, arrival_time: '', stop_id: stu.stopId })
+            scheduled.push({
+              trip_id: tripId,
+              arrival_time: '',
+              stop_id: stu.stopId,
+              rt_route_id: rtRouteId,
+            })
           }
         }
         break

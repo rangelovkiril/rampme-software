@@ -1,7 +1,11 @@
 import { Elysia, t } from 'elysia'
 import { enrichVehicles } from '../gtfs/enrich'
 import { fetchTripUpdates, fetchVehiclePositions } from '../gtfs/realtime'
-import { getMockTripDetail, getMockVehicleSnapshot, isMockVehicleId } from '../services/mock-transit'
+import {
+  getMockTripDetail,
+  getMockVehicleSnapshot,
+  isMockVehicleId,
+} from '../services/mock-transit'
 import { getVehicleRampInfo } from '../services/ramp'
 import { getVehicleTripDetails } from '../services/trip-details'
 import { getGtfs, jsonError } from '../state'
@@ -41,7 +45,8 @@ export const realtimeRoutes = new Elysia()
         if (query.route_id) vehicles = vehicles.filter((v) => v.route_id === query.route_id)
         if (query.route_type !== undefined)
           vehicles = vehicles.filter((v) => v.route_type === Number(query.route_type))
-        if (query.has_ramp === 'true') vehicles = vehicles.filter((v) => v.ramp_status !== 'unknown')
+        if (query.has_ramp === 'true')
+          vehicles = vehicles.filter((v) => v.ramp_status !== 'unknown')
 
         return vehicles
       } catch (e) {
