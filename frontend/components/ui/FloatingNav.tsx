@@ -8,6 +8,7 @@ interface Props {
   activePanel: string | null;
   onTogglePanel: (name: string) => void;
   onOpenVehicle?: (vehicleId: string) => void;
+  onReservationsOpen?: () => void;
   closeSignal?: number;
 }
 
@@ -26,6 +27,7 @@ export default function FloatingNav({
   activePanel,
   onTogglePanel,
   onOpenVehicle,
+  onReservationsOpen,
   closeSignal,
 }: Props) {
   const { reservations, lockedVehicleId, cancel } = useRamp();
@@ -146,7 +148,7 @@ export default function FloatingNav({
               return (
                 <button
                   type="button"
-                  onClick={() => setSheetOpen(true)}
+                  onClick={() => { setSheetOpen(true); onReservationsOpen?.() }}
                   className="w-full cursor-pointer"
                   style={{
                     background: "transparent",

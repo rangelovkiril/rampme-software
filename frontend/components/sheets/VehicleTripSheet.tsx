@@ -172,6 +172,9 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
             const nonDeparted = trip.stops.filter((s) => s.status !== 'departed')
             const lastZeroIdx = nonDeparted.reduce((acc, s, i) => (s.eta_minutes === 0 ? i : acc), -1)
             const visibleStops = lastZeroIdx > 0 ? nonDeparted.slice(lastZeroIdx) : nonDeparted
+            const boardingSeq = boardingRes
+              ? trip.stops.find((s) => s.stop_id === boardingRes.stop_id)?.stop_sequence ?? -1
+              : -1
             return (
             <div className="relative">
               {visibleStops.map((stop, i, arr) => {
@@ -179,7 +182,8 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                 const isAtStop = false
                 const isBoarding = boardingRes?.stop_id === stop.stop_id
                 const isAlighting = alightingRes?.stop_id === stop.stop_id
-                const canAlight = isLocked && !isDeparted && !isAtStop && !isBoarding && !isAlighting
+                const isAfterBoarding = boardingSeq >= 0 && stop.stop_sequence > boardingSeq
+                const canAlight = isLocked && !isDeparted && !isAtStop && !isBoarding && !isAlighting && isAfterBoarding
                 const canBoard = !isLocked && !boardingRes && !isDeparted && !isAtStop
                 const isReservingThis = reservingStopId === stop.stop_id
                 const isBoardingThis = boardingStopId === stop.stop_id
