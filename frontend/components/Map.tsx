@@ -30,6 +30,7 @@ export default function Map() {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
   const [selectedRoute, setSelectedRoute] = useState<{ routeId: string; routeType: number } | null>(null)
   const [activePanel, setActivePanel] = useState<string | null>(null)
+  const [navCloseSignal, setNavCloseSignal] = useState(0)
 
   const { lockedVehicleId } = useRamp()
 
@@ -48,16 +49,19 @@ export default function Map() {
   const handleVehicleSelect = useCallback((v: Vehicle) => {
     setSelectedVehicle(v)
     setSelectedStop(null)
+    setNavCloseSignal(s => s + 1)
   }, [])
 
   const handleVehicleOpen = useCallback((vehicleId: string) => {
     setSelectedVehicle({ id: vehicleId } as Vehicle)
     setSelectedStop(null)
+    setNavCloseSignal(s => s + 1)
   }, [])
 
   const handleStopSelect = useCallback((s: Stop) => {
     setSelectedStop(s)
     setSelectedVehicle(null)
+    setNavCloseSignal(n => n + 1)
   }, [])
 
   return (
@@ -71,9 +75,9 @@ export default function Map() {
       >
         <TileLayer url={dark ? TILES.dark : TILES.light} />
         <RouteLinesLayer routeId={selectedRoute?.routeId ?? null} routeType={selectedRoute?.routeType ?? null} />
-        <LiveLocation active={tracking} onError={() => setTracking(false)} />
+        <LiveLocation active={tracking} onError={(_, code) => { if (code === 1) setTracking(false) }} />
         <StopsLayer selectedStopId={selectedStop?.stop_id ?? null} onStopSelect={setSelectedStop} />
-        <VehiclesLayer onVehicleSelect={handleVehicleSelect} />
+        <VehiclesLayer onVehicleSelect={handleVehicleSelect} selectedVehicleId={selectedVehicle?.id ?? null} />
       </MapContainer>
 
       <MapControls
@@ -84,7 +88,7 @@ export default function Map() {
         onToggleTracking={toggleTracking}
       />
 
-      <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} onOpenVehicle={handleVehicleOpen} />
+      <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} onOpenVehicle={handleVehicleOpen} closeSignal={navCloseSignal} />
       <SidePanel
         activePanel={activePanel}
         onClose={closePanel}

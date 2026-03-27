@@ -8,6 +8,7 @@ interface Props {
   activePanel: string | null;
   onTogglePanel: (name: string) => void;
   onOpenVehicle?: (vehicleId: string) => void;
+  closeSignal?: number;
 }
 
 interface StopMeta {
@@ -25,10 +26,14 @@ export default function FloatingNav({
   activePanel,
   onTogglePanel,
   onOpenVehicle,
+  closeSignal,
 }: Props) {
   const { reservations, lockedVehicleId, cancel } = useRamp();
   const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const dragStartY = useRef(0);
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,6 +63,10 @@ export default function FloatingNav({
   useEffect(() => {
     if (!hasActive) setSheetOpen(false);
   }, [hasActive]);
+
+  useEffect(() => {
+    if (closeSignal) setSheetOpen(false);
+  }, [closeSignal]);
 
   useEffect(() => {
     if (!lockedVehicleId) {
@@ -102,6 +111,7 @@ export default function FloatingNav({
         }}
       >
         <div
+          ref={navRef}
           className="pointer-events-auto flex flex-col gap-2 rounded-2xl border p-2 backdrop-blur-xl"
           style={{
             background: "var(--surface-overlay)",
@@ -171,7 +181,7 @@ export default function FloatingNav({
             <NavBtn
               active={activePanel === "routes"}
               onClick={() => onTogglePanel("routes")}
-              label="линии"
+              label="Линии"
             >
               <svg
                 width="15"
@@ -191,20 +201,20 @@ export default function FloatingNav({
             <NavBtn
               active={activePanel === "stops"}
               onClick={() => onTogglePanel("stops")}
-              label="спирки"
+              label="Спирки"
             >
               <svg
                 width="15"
                 height="15"
-                viewBox="0 0 24 24"
+                viewBox="0 0 24 36"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
+                <rect x="2" y="4" width="20" height="12" rx="2" />
+                <line x1="12" y1="16" x2="12" y2="36" />
               </svg>
             </NavBtn>
           </div>
@@ -228,10 +238,19 @@ export default function FloatingNav({
                 background: "var(--surface-elevated)",
                 borderColor: "var(--border)",
                 boxShadow: "var(--shadow-lg)",
+                transform: isDragging && dragY > 0 ? `translateY(${dragY}px)` : undefined,
+                transition: isDragging ? "none" : undefined,
               }}
             >
               {/* Drag handle */}
-              <div className="flex justify-center pt-3 pb-1">
+              <div
+                className="flex touch-none justify-center pt-2.5 pb-0 sm:hidden"
+                onTouchStart={(e) => { dragStartY.current = e.touches[0].clientY; setIsDragging(true); }}
+                onTouchMove={(e) => { if (!isDragging) return; const dy = e.touches[0].clientY - dragStartY.current; setDragY(Math.max(0, dy)); }}
+                onTouchEnd={() => { setIsDragging(false); if (dragY > 80) { setDragY(0); setSheetOpen(false); } else { setDragY(0); } }}
+                onTouchCancel={() => { setIsDragging(false); setDragY(0); }}
+                role="presentation"
+              >
                 <div
                   className="h-1 w-10 rounded-full"
                   style={{
@@ -251,6 +270,7 @@ export default function FloatingNav({
                     onCancel={async (id) => {
                       await cancel(id);
                     }}
+                    onOpenVehicle={onOpenVehicle}
                   />
                 )}
                 {alightingRes && (
@@ -262,6 +282,7 @@ export default function FloatingNav({
                     onCancel={async (id) => {
                       await cancel(id);
                     }}
+                    onOpenVehicle={onOpenVehicle}
                   />
                 )}
 
@@ -351,68 +372,44 @@ function ResDetailCard({
   routeName,
   type,
   onCancel,
+  onOpenVehicle,
 }: {
   res: RampReservation;
   meta: StopMeta | null;
   routeName: string | null;
   type: "board" | "alight";
   onCancel: (id: number) => Promise<void>;
+  onOpenVehicle?: (vehicleId: string) => void;
 }) {
   const typeColor = type === "board" ? "#22c55e" : "#f59e0b";
-  const typeLabel = type === "board" ? "Качване" : "Слизане";
-  const eta = meta?.eta_minutes ?? null;
-  const hasEta = eta !== null;
-  const statusLabel = hasEta ? `${eta} мин` : "Изчакване";
 
   return (
     <div
-      className="flex flex-col gap-2 rounded-2xl px-4 py-3"
-      style={{
-        background: hasEta
-          ? "color-mix(in oklab, #22c55e 12%, var(--control-bg) 88%)"
-          : "var(--control-bg)",
-      }}
+      className="flex items-center gap-3 rounded-2xl px-4 py-3"
+      style={{ background: `color-mix(in oklab, ${typeColor} 10%, var(--control-bg) 90%)` }}
     >
-      {/* Top row: badges + cancel */}
-      <div className="flex items-center gap-2">
-        <span
-          className="rounded-lg px-2 py-0.5 text-xs font-semibold"
-          style={{ background: typeColor, color: "#fff" }}
-        >
-          {typeLabel}
-        </span>
-        <span
-          className="rounded-lg px-2 py-0.5 text-xs font-semibold"
-          style={{
-            background: hasEta
-              ? "#22c55e"
-              : "color-mix(in oklab, var(--text-muted) 20%, transparent)",
-            color: hasEta ? "#fff" : "var(--text-muted)",
-          }}
-        >
-          {hasEta ? `✓ ${statusLabel}` : statusLabel}
-        </span>
-        <button
-          type="button"
-          onClick={() => onCancel(res.id)}
-          className="ml-auto cursor-pointer rounded-lg px-3 py-1 text-sm font-semibold"
-          style={{ background: "#ef4444", color: "#fff" }}
-        >
-          Отказ
-        </button>
-      </div>
-
-      {/* Route + stop */}
-      <div>
-        <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>
-          {routeName ?? "?"}
-        </p>
-        {meta?.stop_name && (
-          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-            {meta.stop_name}
-          </p>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={() => onOpenVehicle?.(res.vehicle_id)}
+        className="flex-shrink-0 rounded-lg px-3 py-1.5 text-lg font-black text-white cursor-pointer"
+        style={{ background: typeColor }}
+      >
+        {routeName ?? "?"}
+      </button>
+      <span
+        className="flex-1 truncate text-sm font-semibold"
+        style={{ color: "var(--text-muted)" }}
+      >
+        {meta?.stop_name ?? ""}
+      </span>
+      <button
+        type="button"
+        onClick={() => onCancel(res.id)}
+        className="flex-shrink-0 cursor-pointer rounded-lg px-3 py-1 text-sm font-semibold"
+        style={{ background: "#ef4444", color: "#fff" }}
+      >
+        Отказ
+      </button>
     </div>
   );
 }
