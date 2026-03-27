@@ -52,6 +52,7 @@ export interface GtfsData {
   trips: Map<string, Trip>
   stopTimes: StopTime[]
   stopTimesByStop: Map<string, StopTime[]> // stop_id → stop_times (indexed)
+  stopTimesByTrip: Map<string, StopTime[]> // trip_id → stop_times sorted by sequence
   calendarDates: CalendarDate[]
   shapes: Map<string, [number, number][]> // shape_id → sorted [[lat, lng], ...]
   shapesByRoute: Map<string, [number, number][][]> // route_id → array of polylines
