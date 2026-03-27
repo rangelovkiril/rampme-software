@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 
 WORKDIR /app
 COPY --from=build --chown=app:app /app/server ./server
+RUN mkdir -p /app/data && chown app:app /app/data
 
 USER app
 EXPOSE 3000

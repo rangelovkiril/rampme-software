@@ -1,9 +1,12 @@
 import { Elysia, t } from 'elysia'
 import {
-  createReservation,
   cancelReservation,
+  createReservation,
+  deleteVehicleHardwareUrl,
   getSessionReservations,
   getVehicleReservations,
+  listVehicleHardware,
+  setVehicleHardwareUrl,
 } from '../db/ramp'
 import { jsonError } from '../state'
 
@@ -53,8 +56,45 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
     },
     { detail: { tags: ['Ramp'], summary: 'Session reservations' } },
   )
-  .get(
-    '/vehicle/:id',
-    ({ params }) => getVehicleReservations(params.id),
-    { detail: { tags: ['Ramp'], summary: 'Vehicle reservations' } },
+  .get('/vehicle/:id', ({ params }) => getVehicleReservations(params.id), {
+    detail: { tags: ['Ramp'], summary: 'Vehicle reservations' },
+  })
+  // Hardware self-registration: device sends its vehicle_id, backend derives URL from caller IP
+  .post(
+    '/hardware/register',
+    ({ body, server, request }) => {
+      const forwarded = request.headers.get('x-forwarded-for')
+      const ip = forwarded ? forwarded.split(',')[0].trim() : server?.requestIP(request)?.address
+      if (!ip) return jsonError('Cannot determine caller IP', 400)
+      const url = `http://${ip}/status`
+      setVehicleHardwareUrl(body.vehicle_id, url)
+      console.log(`[ramp] hardware registered: vehicle ${body.vehicle_id} -> ${url}`)
+      return { ok: true, vehicle_id: body.vehicle_id, url }
+    },
+    {
+      body: t.Object({ vehicle_id: t.String({ minLength: 1 }) }),
+      detail: { tags: ['Ramp'], summary: 'Hardware self-registration (IP auto-detected)' },
+    },
+  )
+  .get('/hardware', () => listVehicleHardware(), {
+    detail: { tags: ['Ramp'], summary: 'List registered hardware devices' },
+  })
+  .put(
+    '/hardware/:vehicle_id',
+    ({ params, body }) => {
+      setVehicleHardwareUrl(params.vehicle_id, body.url)
+      return { ok: true, vehicle_id: params.vehicle_id, url: body.url }
+    },
+    {
+      body: t.Object({ url: t.String({ minLength: 7, pattern: '^https?://' }) }),
+      detail: { tags: ['Ramp'], summary: 'Register hardware URL for a vehicle' },
+    },
+  )
+  .delete(
+    '/hardware/:vehicle_id',
+    ({ params }) => {
+      if (!deleteVehicleHardwareUrl(params.vehicle_id)) return jsonError('Not found', 404)
+      return { ok: true }
+    },
+    { detail: { tags: ['Ramp'], summary: 'Remove hardware registration' } },
   )

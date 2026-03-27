@@ -11,6 +11,14 @@ db.run('PRAGMA journal_mode = WAL')
 db.run('PRAGMA busy_timeout = 3000')
 
 db.run(`
+  CREATE TABLE IF NOT EXISTS vehicle_hardware (
+    vehicle_id  TEXT PRIMARY KEY,
+    url         TEXT NOT NULL,
+    registered_at INTEGER NOT NULL DEFAULT (unixepoch())
+  )
+`)
+
+db.run(`
   CREATE TABLE IF NOT EXISTS ramp_reservations (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id  TEXT    NOT NULL,
@@ -30,6 +38,41 @@ db.run('CREATE INDEX IF NOT EXISTS idx_ramp_stat ON ramp_reservations(status)')
 
 // ── prepared statements ──────────────────────────────────────────────────
 
+const hwStmts = {
+  upsert: db.prepare(
+    `INSERT INTO vehicle_hardware (vehicle_id, url) VALUES ($vehicle_id, $url)
+     ON CONFLICT(vehicle_id) DO UPDATE SET url = excluded.url, registered_at = unixepoch()`,
+  ),
+  delete: db.prepare(`DELETE FROM vehicle_hardware WHERE vehicle_id = $vehicle_id`),
+  get: db.prepare(`SELECT url FROM vehicle_hardware WHERE vehicle_id = $vehicle_id`),
+  list: db.prepare(
+    `SELECT vehicle_id, url, registered_at FROM vehicle_hardware ORDER BY vehicle_id`,
+  ),
+}
+
+export interface VehicleHardware {
+  vehicle_id: string
+  url: string
+  registered_at: number
+}
+
+export function setVehicleHardwareUrl(vehicleId: string, url: string): void {
+  hwStmts.upsert.run({ $vehicle_id: vehicleId, $url: url })
+}
+
+export function deleteVehicleHardwareUrl(vehicleId: string): boolean {
+  return hwStmts.delete.run({ $vehicle_id: vehicleId }).changes > 0
+}
+
+export function getVehicleHardwareUrl(vehicleId: string): string | null {
+  const row = hwStmts.get.get({ $vehicle_id: vehicleId }) as { url: string } | null
+  return row?.url ?? null
+}
+
+export function listVehicleHardware(): VehicleHardware[] {
+  return hwStmts.list.all() as VehicleHardware[]
+}
+
 const stmts = {
   insert: db.prepare(`
     INSERT INTO ramp_reservations (session_id, vehicle_id, stop_id, type)
@@ -38,7 +81,7 @@ const stmts = {
   cancel: db.prepare(`
     UPDATE ramp_reservations
     SET status = 'cancelled', resolved_at = unixepoch()
-    WHERE id = $id AND session_id = $session_id AND status = 'pending'
+    WHERE id = $id AND session_id = $session_id AND status IN ('pending', 'active')
   `),
   sessionActive: db.prepare(`
     SELECT * FROM ramp_reservations
@@ -50,9 +93,7 @@ const stmts = {
     WHERE vehicle_id = $vehicle_id AND status IN ('pending','active')
     ORDER BY created_at DESC
   `),
-  allPending: db.prepare(
-    `SELECT * FROM ramp_reservations WHERE status IN ('pending','active')`,
-  ),
+  allPending: db.prepare(`SELECT * FROM ramp_reservations WHERE status IN ('pending','active')`),
   setStatus: db.prepare(`
     UPDATE ramp_reservations
     SET status = $status,
@@ -69,9 +110,7 @@ const stmts = {
       AND type = $type AND status = 'pending'
   `),
   getById: db.prepare('SELECT * FROM ramp_reservations WHERE id = $id'),
-  cleanup: db.prepare(
-    'DELETE FROM ramp_reservations WHERE created_at < unixepoch() - 86400',
-  ),
+  cleanup: db.prepare('DELETE FROM ramp_reservations WHERE created_at < unixepoch() - 86400'),
 }
 
 // ── types ────────────────────────────────────────────────────────────────

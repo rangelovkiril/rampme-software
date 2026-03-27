@@ -1,6 +1,9 @@
 # Build stage
 FROM oven/bun:1 AS build
 
+ARG BACKEND_URL=http://backend:3000
+ENV BACKEND_URL=$BACKEND_URL
+
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile

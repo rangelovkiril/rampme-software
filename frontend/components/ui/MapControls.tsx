@@ -25,12 +25,12 @@ export default function MapControls({
             height="16"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="currentColor"
+            stroke="#f59e0b"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <circle cx="12" cy="12" r="5" />
+            <circle cx="12" cy="12" r="5" fill="#fde68a" fillOpacity="0.3" />
             <line x1="12" y1="1" x2="12" y2="3" />
             <line x1="12" y1="21" x2="12" y2="23" />
             <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
@@ -45,8 +45,9 @@ export default function MapControls({
             width="16"
             height="16"
             viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
+            fill="#818cf8"
+            fillOpacity="0.2"
+            stroke="#818cf8"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -72,12 +73,11 @@ export default function MapControls({
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <circle cx="12" cy="12" r="4" />
-          <line x1="12" y1="2" x2="12" y2="6" />
-          <line x1="12" y1="18" x2="12" y2="22" />
-          <line x1="2" y1="12" x2="6" y2="12" />
-          <line x1="18" y1="12" x2="22" y2="12" />
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
         </svg>
       </ControlButton>
     </div>

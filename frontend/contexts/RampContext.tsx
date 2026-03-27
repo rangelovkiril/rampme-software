@@ -90,12 +90,31 @@ export function RampProvider({ children }: { children: ReactNode }) {
   const [reservations, setReservations] = useState<RampReservation[]>([])
   const [lockedVehicleId, setLockedVehicleId] = useState<string | null>(null)
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
+  const prevReservations = useRef<RampReservation[]>([])
 
   const refresh = useCallback(async () => {
     const data = await apiFetch(sid)
+
+    // Log status transitions: pending → active (bus arrived) or active → done (bus left)
+    for (const prev of prevReservations.current) {
+      const curr = data.find((r) => r.id === prev.id)
+      if (curr && curr.status !== prev.status) {
+        if (curr.status === 'active') {
+          console.log(`[ramp] bus arrived at stop — ${prev.type} reservation #${prev.id} is now ACTIVE (vehicle ${prev.vehicle_id}, stop ${prev.stop_id})`)
+        } else if (curr.status === 'done') {
+          console.log(`[ramp] ramp used — ${prev.type} reservation #${prev.id} DONE (vehicle ${prev.vehicle_id}, stop ${prev.stop_id})`)
+        }
+      }
+      // Reservation disappeared from active list (removed server-side)
+      if (!curr && (prev.status === 'pending' || prev.status === 'active')) {
+        console.log(`[ramp] reservation #${prev.id} removed (${prev.type}, vehicle ${prev.vehicle_id})`)
+      }
+    }
+
+    prevReservations.current = data
     setReservations(data)
     const board = data.find(
-      (r) => r.type === 'board' && (r.status === 'pending' || r.status === 'active'),
+      (r) => r.type === 'board' && r.status === 'active',
     )
     setLockedVehicleId(board?.vehicle_id ?? null)
   }, [sid])
@@ -108,13 +127,20 @@ export function RampProvider({ children }: { children: ReactNode }) {
 
   const reserveBoard = useCallback(async (vid: string, stopId: string) => {
     const r = await apiReserve(sid, vid, stopId, 'board')
-    if (r) { await refresh(); setLockedVehicleId(vid) }
+    if (r) {
+      console.log(`[ramp] board reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
+      await refresh()
+      setLockedVehicleId(vid)
+    }
     return r
   }, [sid, refresh])
 
   const reserveAlight = useCallback(async (vid: string, stopId: string) => {
     const r = await apiReserve(sid, vid, stopId, 'alight')
-    if (r) await refresh()
+    if (r) {
+      console.log(`[ramp] alight reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
+      await refresh()
+    }
     return r
   }, [sid, refresh])
 
