@@ -3,6 +3,7 @@ import {
   setReservationStatus,
 } from '../db/ramp'
 import { fetchVehiclePositions } from '../gtfs/realtime'
+import { MOCK_STOPS } from './mock-bus'
 import { getGtfs } from '../state'
 
 const RADIUS_M = 5
@@ -52,10 +53,12 @@ async function tick(): Promise<void> {
 
     const veh = vehicles.get(r.vehicle_id)
     if (!veh) continue
-    const stop = data.stops.get(r.stop_id)
-    if (!stop) continue
+    let stopCoord = data.stops.get(r.stop_id)
+      ? { stop_lat: data.stops.get(r.stop_id)!.stop_lat, stop_lon: data.stops.get(r.stop_id)!.stop_lon }
+      : (() => { const m = MOCK_STOPS.find(s => s.stopId === r.stop_id); return m ? { stop_lat: m.lat, stop_lon: m.lng } : null })()
+    if (!stopCoord) continue
 
-    const d = distM(veh.lat, veh.lng, stop.stop_lat, stop.stop_lon)
+    const d = distM(veh.lat, veh.lng, stopCoord.stop_lat, stopCoord.stop_lon)
 
     if (r.status === 'pending' && d <= RADIUS_M) {
       setReservationStatus(r.id, 'active')

@@ -13,6 +13,7 @@ export interface EnrichedVehicle {
   route_short_name: string | null;
   route_type: number | null;
   headsign: string | null;
+  label: string | null;
   ramp_status: RampStatus;
   ramp_reservations: Array<{
     id: number;
@@ -47,6 +48,7 @@ export function enrichVehicles(entities: any[], data: GtfsData): EnrichedVehicle
         route_short_name: route?.route_short_name ?? null,
         route_type: route?.route_type ?? null,
         headsign: trip?.trip_headsign ?? null,
+        label: v.vehicle?.label ?? null,
         ramp_status: ramp.ramp_status,
         ramp_reservations: ramp.reservations,
       };

@@ -86,17 +86,19 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
 
       const color = getRouteColor(v.route_type)
       const label = ROUTE_TYPE_CONFIG[v.route_type]?.label ?? 'Автобус'
+      const displayName = v.route_short_name ?? v.label ?? v.id
+      const titleLabel = v.route_short_name ? `${label} ${v.route_short_name}` : displayName
+      const headsign = v.headsign ?? ''
 
       const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:13px">
-        <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${label} ${v.route_short_name}</span>
-        <br/>${v.headsign}
+        <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${titleLabel}</span>
+        ${headsign ? `<br/>${headsign}` : ''}
         <br/><span style="opacity:0.5;font-size:11px">${v.id} · ${v.speed} km/h</span>
       </div>`
 
       let marker: L.Marker | L.CircleMarker
       if (useDetailed) {
-        if (!v.route_short_name) continue
-        marker = L.marker(latlng, { icon: vehicleIcon(v.bearing ?? 0, v.route_type ?? 3, v.route_short_name) })
+        marker = L.marker(latlng, { icon: vehicleIcon(v.bearing ?? 0, v.route_type ?? 3, displayName) })
       } else {
         marker = L.circleMarker(latlng, {
           radius: 5,

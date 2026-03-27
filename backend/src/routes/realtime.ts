@@ -1,51 +1,60 @@
-import { Elysia, t } from 'elysia'
-import { enrichVehicles } from '../gtfs/enrich'
-import { fetchTripUpdates, fetchVehiclePositions } from '../gtfs/realtime'
-import { getMockTripDetail, getMockVehicleSnapshot, isMockVehicleId } from '../services/mock-transit'
-import { getVehicleRampInfo } from '../services/ramp'
-import { getVehicleTripDetails } from '../services/trip-details'
-import { getGtfs, jsonError } from '../state'
+import { Elysia, t } from "elysia";
+import { enrichVehicles } from "../gtfs/enrich";
+import { fetchTripUpdates, fetchVehiclePositions } from "../gtfs/realtime";
+import {
+  getMockTripDetail,
+  getMockVehicleSnapshot,
+  isMockVehicleId,
+} from "../services/mock-transit";
+import { getVehicleRampInfo } from "../services/ramp";
+import { getVehicleTripDetails } from "../services/trip-details";
+import { MOCK_BUS_ID, getMockTripDetails } from "../services/mock-bus";
+import { getGtfs, jsonError } from "../state";
 
-const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
+const GTFS_NOT_READY = () => jsonError("GTFS data not yet loaded", 503);
 
 export const realtimeRoutes = new Elysia()
   .get(
-    '/realtime/trip-updates',
+    "/realtime/trip-updates",
     async () => {
       try {
-        return await fetchTripUpdates()
+        return await fetchTripUpdates();
       } catch (e) {
-        return jsonError(`Trip updates unavailable: ${e}`, 502)
+        return jsonError(`Trip updates unavailable: ${e}`, 502);
       }
     },
-    { detail: { tags: ['Realtime'], summary: 'Trip updates' } },
+    { detail: { tags: ["Realtime"], summary: "Trip updates" } },
   )
 
   .get(
-    '/realtime/vehicles',
+    "/realtime/vehicles",
     async ({ query }) => {
-      const data = getGtfs()
-      if (!data) return GTFS_NOT_READY()
+      const data = getGtfs();
+      if (!data) return GTFS_NOT_READY();
       try {
-        const feed = await fetchVehiclePositions()
-        let vehicles = enrichVehicles(feed.entity ?? [], data)
+        const feed = await fetchVehiclePositions();
+        let vehicles = enrichVehicles(feed.entity ?? [], data);
 
-        const mockVehicle = getMockVehicleSnapshot()
-        const mockRamp = getVehicleRampInfo(mockVehicle.id, true)
+        const mockVehicle = getMockVehicleSnapshot();
+        const mockRamp = getVehicleRampInfo(mockVehicle.id, true);
         vehicles.push({
           ...mockVehicle,
           ramp_status: mockRamp.ramp_status,
           ramp_reservations: mockRamp.reservations,
-        })
+        });
 
-        if (query.route_id) vehicles = vehicles.filter((v) => v.route_id === query.route_id)
+        if (query.route_id)
+          vehicles = vehicles.filter((v) => v.route_id === query.route_id);
         if (query.route_type !== undefined)
-          vehicles = vehicles.filter((v) => v.route_type === Number(query.route_type))
-        if (query.has_ramp === 'true') vehicles = vehicles.filter((v) => v.ramp_status !== 'unknown')
+          vehicles = vehicles.filter(
+            (v) => v.route_type === Number(query.route_type),
+          );
+        if (query.has_ramp === "true")
+          vehicles = vehicles.filter((v) => v.ramp_status !== "unknown");
 
-        return vehicles
+        return vehicles;
       } catch (e) {
-        return jsonError(`Vehicle positions unavailable: ${e}`, 502)
+        return jsonError(`Vehicle positions unavailable: ${e}`, 502);
       }
     },
     {
@@ -54,24 +63,26 @@ export const realtimeRoutes = new Elysia()
         route_type: t.Optional(t.String()),
         has_ramp: t.Optional(t.String()),
       }),
-      detail: { tags: ['Realtime'], summary: 'Vehicle positions with enrichment and filters' },
+      detail: {
+        tags: ["Realtime"],
+        summary: "Vehicle positions with enrichment and filters",
+      },
     },
   )
 
   .get(
-    '/realtime/vehicles/:id/trip',
+    "/realtime/vehicles/:id/trip",
     async ({ params: { id } }) => {
-      if (isMockVehicleId(id)) return getMockTripDetail()
-
-      const data = getGtfs()
-      if (!data) return GTFS_NOT_READY()
+      if (id === MOCK_BUS_ID) return getMockTripDetails();
+      const data = getGtfs();
+      if (!data) return GTFS_NOT_READY();
       try {
-        const result = await getVehicleTripDetails(data, id)
-        if (!result) return jsonError('Vehicle or trip not found', 404)
-        return result
+        const result = await getVehicleTripDetails(data, id);
+        if (!result) return jsonError("Vehicle or trip not found", 404);
+        return result;
       } catch (e) {
-        return jsonError(`Trip info unavailable: ${e}`, 502)
+        return jsonError(`Trip info unavailable: ${e}`, 502);
       }
     },
-    { detail: { tags: ['Realtime'], summary: 'Trip stops for a vehicle' } },
-  )
+    { detail: { tags: ["Realtime"], summary: "Trip stops for a vehicle" } },
+  );

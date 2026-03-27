@@ -8,6 +8,7 @@ import { stopsRoutes } from "./routes/stops";
 import { setGtfs } from "./state";
 import { swaggerPlugin } from "./swagger";
 import { rampRoutes } from "./routes/ramp";
+import { mockRoutes } from "./routes/mock";
 import { startProximityChecker } from "./services/ramp-proximity";
 
 async function initGtfs() {
@@ -26,6 +27,7 @@ const app = new Elysia()
   .use(routesRoutes)
   .use(realtimeRoutes)
   .use(rampRoutes)
+  .use(mockRoutes)
   .get("/health", () => "Ok");
 
 await initGtfs();
