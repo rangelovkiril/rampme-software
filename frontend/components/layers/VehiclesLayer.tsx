@@ -22,9 +22,10 @@ function vehicleIcon(_bearing: number, routeType: number, routeName: string) {
 
 interface VehiclesLayerProps {
   onVehicleSelect?: (vehicle: Vehicle) => void
+  selectedVehicleId?: string | null
 }
 
-export default function VehiclesLayer({ onVehicleSelect }: VehiclesLayerProps) {
+export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: VehiclesLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.LayerGroup | null>(null)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -54,6 +55,14 @@ export default function VehiclesLayer({ onVehicleSelect }: VehiclesLayerProps) {
       map.off('moveend', update)
     }
   }, [map])
+
+  // Pan map to selected vehicle whenever its position updates
+  useEffect(() => {
+    if (!selectedVehicleId) return
+    const v = vehicles.find((v) => v.id === selectedVehicleId)
+    if (!v || !Number.isFinite(v.lat) || !Number.isFinite(v.lng)) return
+    map.panTo([v.lat, v.lng], { animate: true, duration: 0.8 })
+  }, [vehicles, selectedVehicleId, map])
 
   useEffect(() => {
     if (!groupRef.current) groupRef.current = L.layerGroup()
@@ -86,15 +95,16 @@ export default function VehiclesLayer({ onVehicleSelect }: VehiclesLayerProps) {
 
       let marker: L.Marker | L.CircleMarker
       if (useDetailed) {
-        marker = L.marker(latlng, { icon: vehicleIcon(v.bearing ?? 0, v.route_type ?? 3, v.route_short_name ?? '?') })
+        if (!v.route_short_name) continue
+        marker = L.marker(latlng, { icon: vehicleIcon(v.bearing ?? 0, v.route_type ?? 3, v.route_short_name) })
       } else {
         marker = L.circleMarker(latlng, {
           radius: 5,
           fillColor: color,
           fillOpacity: 0.95,
-          color: '#ffffff',
-          opacity: 0.95,
-          weight: 1
+          color: color,
+          opacity: 0,
+          weight: 0
         })
       }
       marker.bindPopup(popupHtml)

@@ -139,22 +139,30 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
     }
 
     if (!navigator.geolocation) {
+      console.warn('[location] Geolocation not supported by this browser.')
       notifyError(0, 'Geolocation is not supported by your browser.')
       return
     }
 
     if (!window.isSecureContext) {
+      console.warn('[location] Insecure context — geolocation requires HTTPS or localhost.')
       notifyError(0, 'Location requires a secure context. Open the app on localhost or HTTPS.')
       return
     }
+
+    console.log('[location] Starting geolocation tracking...')
 
     // Reset any existing watch before starting a new tracking session.
     clearWatch()
 
     // Quick bootstrap call for immediate best-effort fix (cached or fresh).
     navigator.geolocation.getCurrentPosition(
-      applyPosition,
+      (pos) => {
+        console.log(`[location] Initial fix: ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)} ±${Math.round(pos.coords.accuracy)}m`)
+        applyPosition(pos)
+      },
       (err) => {
+        console.warn(`[location] getCurrentPosition error: code=${err.code} — ${err.message}`)
         if (err.code === 1) {
           notifyError(1, 'Location permission denied. Please allow location access in your browser.')
         } else if (err.code === 2) {
@@ -168,8 +176,12 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
     )
 
     watchRef.current = navigator.geolocation.watchPosition(
-      applyPosition,
+      (pos) => {
+        console.log(`[location] Position update: ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)} ±${Math.round(pos.coords.accuracy)}m`)
+        applyPosition(pos)
+      },
       (err) => {
+        console.warn(`[location] watchPosition error: code=${err.code} — ${err.message}`)
         if (err.code === 1) {
           notifyError(1, 'Location permission denied. Please allow location access in your browser.')
           return
