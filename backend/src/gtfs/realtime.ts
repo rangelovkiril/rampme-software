@@ -1,6 +1,6 @@
 import protobuf from 'protobufjs'
-import { createCache } from './cache'
 import { config } from '../config'
+import { createCache } from './cache'
 import descriptor from './gtfs-realtime.json'
 
 const root = protobuf.Root.fromJSON(descriptor)
