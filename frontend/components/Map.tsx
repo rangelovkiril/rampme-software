@@ -99,7 +99,15 @@ export default function CityMap() {
       />
 
       <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} />
-        <SidePanel activePanel={activePanel} onClose={closePanel} />
+        <SidePanel
+          activePanel={activePanel}
+          onClose={closePanel}
+          onSelectRoute={(routeId, routeType) => setSelectedRoute({ routeId, routeType })}
+          onSelectStop={(stop) => {
+            setSelectedStop(stop as Stop)
+            mapRef?.flyTo([stop.stop_lat, stop.stop_lon], 17, { duration: 1 })
+          }}
+        />
       <StopArrivalsSheet stop={selectedStop} onClose={() => setSelectedStop(null)} />
     </div>
   );

@@ -29,6 +29,17 @@ function parseCsv<T>(raw: string, transform: (row: Record<string, string>) => T)
   return results
 }
 
+/** Map extended GTFS route_type values to the base types used in Sofia (0=tram, 1=metro, 3=bus, 11=trolleybus) */
+function normalizeRouteType(raw: number): number {
+  if ([0, 1, 3, 11].includes(raw)) return raw
+  if (raw >= 700 && raw < 800) return 3   // Bus variants → bus
+  if (raw >= 200 && raw < 300) return 3   // Coach → bus
+  if (raw >= 800 && raw < 900) return 11  // Trolleybus variants → trolleybus
+  if (raw >= 900 && raw < 1000) return 0  // Tram variants → tram
+  if (raw >= 400 && raw < 500) return 1   // Metro/subway variants → metro
+  return 3 // Default to bus for anything else in Sofia's context
+}
+
 /**
  * Fetches a GTFS ZIP from the configured static URL, parses required CSV files, and constructs in-memory GTFS collections.
  */
@@ -69,7 +80,7 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     route_id: r.route_id,
     route_short_name: r.route_short_name,
     route_long_name: r.route_long_name,
-    route_type: Number(r.route_type),
+    route_type: normalizeRouteType(Number(r.route_type)),
   }))) {
     routes.set(r.route_id, r)
   }
