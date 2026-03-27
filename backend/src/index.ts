@@ -4,7 +4,7 @@ import { config } from './config'
 import { getVehicleExtra } from './db/vehicles'
 import { fetchTripUpdates, fetchVehiclePositions } from './gtfs/realtime'
 import { fetchStaticGtfs } from './gtfs/static'
-import type { GtfsData } from './gtfs/types'
+import type { GtfsData, Route } from './gtfs/types'
 import { swaggerPlugin } from './swagger'
 
 let gtfs: GtfsData | undefined
@@ -73,12 +73,31 @@ const app = new Elysia()
     () => {
       const data = gtfs
       if (!data) return GTFS_NOT_READY()
-      // Only return stops that have at least one scheduled trip
-      return [...data.stops.values()].filter(
-        (s) => (data.stopTimesByStop.get(s.stop_id)?.length ?? 0) > 0,
+
+      // Determine today's active service IDs
+      const now = new Date()
+      const todayStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+      const activeServices = new Set(
+        data.calendarDates
+          .filter((cd) => cd.date === todayStr && cd.exception_type === 1)
+          .map((cd) => cd.service_id),
       )
+
+      // Build set of stop IDs that have at least one trip running today
+      const activeStopIds = new Set<string>()
+      for (const [stopId, times] of data.stopTimesByStop) {
+        for (const st of times) {
+          const trip = data.trips.get(st.trip_id)
+          if (trip && activeServices.has(trip.service_id)) {
+            activeStopIds.add(stopId)
+            break
+          }
+        }
+      }
+
+      return [...data.stops.values()].filter((s) => activeStopIds.has(s.stop_id))
     },
-    { detail: { tags: ['Stops'], summary: 'All stops' } },
+    { detail: { tags: ['Stops'], summary: 'All stops (active today)' } },
   )
 
   .get(
@@ -254,9 +273,15 @@ const app = new Elysia()
     () => {
       const data = gtfs
       if (!data) return GTFS_NOT_READY()
-      return [...data.routes.values()]
+      // Deduplicate routes with the same short name and type (e.g. "11Tm" / "11TM")
+      const seen = new Map<string, Route>()
+      for (const r of data.routes.values()) {
+        const key = `${r.route_short_name.toLowerCase()}::${r.route_type}`
+        if (!seen.has(key)) seen.set(key, r)
+      }
+      return [...seen.values()]
     },
-    { detail: { tags: ['Routes'], summary: 'All routes' } },
+    { detail: { tags: ['Routes'], summary: 'All routes (deduplicated)' } },
   )
 
   .get(
