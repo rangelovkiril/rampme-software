@@ -3,20 +3,12 @@
 import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
+import { getRouteColor } from '@/lib/transit'
 
 interface RouteShape {
   route_type: number
   polylines: [number, number][][]
 }
-
-const ROUTE_COLORS: Record<number, string> = {
-  0: '#F7941D',   // tram
-  1: '#9B59B6',   // metro
-  3: '#BE1E2D',   // bus
-  11: '#27AAE1',  // trolleybus
-}
-
-const DEFAULT_COLOR = '#BE1E2D'
 
 interface RouteLinesLayerProps {
   routeId: string | null
@@ -29,21 +21,13 @@ export default function RouteLinesLayer({ routeId, routeType }: RouteLinesLayerP
   const cacheRef = useRef<Map<string, RouteShape>>(new Map())
   const [shape, setShape] = useState<RouteShape | null>(null)
 
-  // Fetch shape when routeId changes
   useEffect(() => {
-    if (!routeId) {
-      setShape(null)
-      return
-    }
+    if (!routeId) { setShape(null); return }
 
     const cached = cacheRef.current.get(routeId)
-    if (cached) {
-      setShape(cached)
-      return
-    }
+    if (cached) { setShape(cached); return }
 
     let cancelled = false
-
     async function fetchShape() {
       try {
         const res = await fetch(`/api/routes/shapes?ids=${routeId}`)
@@ -58,40 +42,29 @@ export default function RouteLinesLayer({ routeId, routeType }: RouteLinesLayerP
         }
       } catch { /* ignore */ }
     }
-
     fetchShape()
     return () => { cancelled = true }
   }, [routeId])
 
-  // Draw polylines on the map
   useEffect(() => {
-    if (!groupRef.current) {
-      groupRef.current = L.layerGroup()
-    }
+    if (!groupRef.current) groupRef.current = L.layerGroup()
     const group = groupRef.current
     group.clearLayers()
 
-    if (!shape || shape.polylines.length === 0) {
-      group.remove()
-      return
-    }
+    if (!shape || shape.polylines.length === 0) { group.remove(); return }
 
-    const color = ROUTE_COLORS[routeType ?? shape.route_type] ?? DEFAULT_COLOR
+    const color = getRouteColor(routeType ?? shape.route_type)
 
     for (const polyline of shape.polylines) {
       if (polyline.length < 2) continue
       L.polyline(polyline as L.LatLngExpression[], {
-        color,
-        weight: 4,
-        opacity: 0.8,
-        smoothFactor: 1,
+        color, weight: 4, opacity: 0.8, smoothFactor: 1,
       }).addTo(group)
     }
 
     group.addTo(map)
   }, [shape, routeType, map])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (groupRef.current) {
