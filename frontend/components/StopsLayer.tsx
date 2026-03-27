@@ -17,7 +17,10 @@ export interface StopArrival {
   route_type: number | null
   headsign: string | null
   eta_minutes?: number
-  distance_m?: number
+  scheduled_time?: string | null
+  expected_time?: string | null
+  realtime?: boolean
+  has_ramp?: boolean
 }
 
 interface StopsLayerProps {
@@ -25,7 +28,7 @@ interface StopsLayerProps {
   onStopSelect?: (stop: Stop | null) => void
 }
 
-const MIN_ZOOM_FOR_STOPS = 13
+const MIN_ZOOM_FOR_STOPS = 15
 
 function createStopIcon(selected = false) {
   return L.divIcon({

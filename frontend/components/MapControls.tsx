@@ -1,8 +1,9 @@
 'use client'
 
-import { useMap } from 'react-leaflet'
+import type L from 'leaflet'
 
 interface MapControlsProps {
+  map: L.Map | null
   dark: boolean
   onToggleTheme: () => void
   tracking: boolean
@@ -10,24 +11,14 @@ interface MapControlsProps {
   liftLocate?: boolean
 }
 
-/**
- * Renders a vertical set of map controls for theme switching, zoom, and live location tracking.
- *
- * @param dark - Whether dark mode is active; controls which theme icon is shown
- * @param onToggleTheme - Callback invoked when the theme toggle button is clicked
- * @param tracking - Whether live location tracking is active; used for the tracking button's title and active styling
- * @param onToggleTracking - Callback invoked when the live location toggle button is clicked
- * @returns The positioned React element containing the theme toggle, zoom controls, and live location toggle
- */
 export default function MapControls({
+  map,
   dark,
   onToggleTheme,
   tracking,
   onToggleTracking,
   liftLocate = false
 }: MapControlsProps) {
-  const map = useMap()
-
   return (
     <div className="absolute right-4 bottom-8 z-[800] flex flex-col gap-2">
       {/* Theme toggle */}
@@ -72,7 +63,7 @@ export default function MapControls({
       <div className="h-px w-6 self-center" style={{ background: 'var(--border)' }} />
 
       {/* Zoom */}
-      <ControlButton onClick={() => map.zoomIn()} title="Zoom in">
+      <ControlButton onClick={() => map?.zoomIn()} title="Zoom in">
         <svg
           width="16"
           height="16"
@@ -85,7 +76,7 @@ export default function MapControls({
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </ControlButton>
-      <ControlButton onClick={() => map.zoomOut()} title="Zoom out">
+      <ControlButton onClick={() => map?.zoomOut()} title="Zoom out">
         <svg
           width="16"
           height="16"
@@ -126,15 +117,6 @@ export default function MapControls({
   )
 }
 
-/**
- * Render a circular control button used by the map controls, with optional active styling and hover behavior.
- *
- * @param onClick - Handler invoked when the button is clicked
- * @param title - Tooltip text shown via the button's title attribute
- * @param children - Icon or content rendered inside the button
- * @param active - When `true`, applies active colors and disables hover background changes
- * @returns The rendered button element
- */
 function ControlButton({
   onClick,
   title,
@@ -150,6 +132,7 @@ function ControlButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       title={title}
       className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl transition-all active:scale-95 ${className}`}
