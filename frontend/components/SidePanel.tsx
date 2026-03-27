@@ -43,7 +43,7 @@ export default function SidePanel({ activePanel, onClose }: SidePanelProps) {
 
   return (
     <aside
-      className={`fixed top-0 bottom-0 left-0 z-[700] flex w-[340px] flex-col backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-sm:top-[72px] max-sm:bottom-auto max-sm:left-1/2 max-sm:w-[calc(100vw-16px)] max-sm:max-w-[430px] max-sm:-translate-x-1/2 max-sm:rounded-2xl max-sm:shadow-[var(--shadow-lg)] ${
+      className={`side-panel-shell fixed top-0 bottom-0 left-0 z-[700] flex flex-col overflow-x-hidden backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] max-sm:top-[72px] max-sm:bottom-auto max-sm:left-1/2 max-sm:-translate-x-1/2 max-sm:rounded-2xl max-sm:shadow-[var(--shadow-lg)] ${
         isOpen
           ? 'translate-x-0 max-sm:translate-y-0'
           : '-translate-x-full max-sm:translate-x-0 max-sm:-translate-y-[130%]'
@@ -55,14 +55,14 @@ export default function SidePanel({ activePanel, onClose }: SidePanelProps) {
     >
       {content && (
         <>
-          <div className="flex items-center justify-between px-5 pt-5 pb-3">
-            <h2 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>
+          <div className="flex items-center justify-between px-5 pt-5 pb-3 lg:px-7 lg:pt-7 lg:pb-4">
+            <h2 className="side-panel-title font-semibold" style={{ color: 'var(--text)' }}>
               {content.title}
             </h2>
             <button
               type="button"
               onClick={onClose}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors"
+              className="side-panel-close flex cursor-pointer items-center justify-center rounded-lg transition-colors"
               style={{ color: 'var(--text-muted)' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--control-hover)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -81,15 +81,15 @@ export default function SidePanel({ activePanel, onClose }: SidePanelProps) {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
+          <div className="flex-1 overflow-y-auto px-4 pb-4 lg:px-7 lg:pb-7">
             <div
-              className="rounded-xl p-4"
+              className="rounded-xl p-4 lg:mt-3 lg:p-6"
               style={{
                 background: 'var(--surface-elevated)',
                 border: '1px solid var(--border)'
               }}
             >
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <p className="side-panel-text break-words" style={{ color: 'var(--text-muted)' }}>
                 {content.placeholder}
               </p>
             </div>

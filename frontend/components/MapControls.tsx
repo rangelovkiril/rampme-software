@@ -3,7 +3,7 @@
 import type L from 'leaflet'
 
 interface MapControlsProps {
-  map: L.Map | null
+  map?: L.Map | null
   dark: boolean
   onToggleTheme: () => void
   tracking: boolean
@@ -12,7 +12,7 @@ interface MapControlsProps {
 }
 
 export default function MapControls({
-  map,
+  map = null,
   dark,
   onToggleTheme,
   tracking,
@@ -135,7 +135,8 @@ function ControlButton({
       type="button"
       onClick={onClick}
       title={title}
-      className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl transition-all active:scale-95 ${className}`}
+      aria-label={title}
+      className={`map-control-btn flex cursor-pointer items-center justify-center rounded-xl transition-all active:scale-95 ${className}`}
       style={{
         background: active ? '#3b82f6' : 'var(--control-bg)',
         color: active ? '#ffffff' : 'var(--text-secondary)',
