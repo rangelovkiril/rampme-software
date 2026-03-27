@@ -73,7 +73,10 @@ const app = new Elysia()
     () => {
       const data = gtfs
       if (!data) return GTFS_NOT_READY()
-      return [...data.stops.values()]
+      // Only return stops that have at least one scheduled trip
+      return [...data.stops.values()].filter(
+        (s) => (data.stopTimesByStop.get(s.stop_id)?.length ?? 0) > 0,
+      )
     },
     { detail: { tags: ['Stops'], summary: 'All stops' } },
   )
