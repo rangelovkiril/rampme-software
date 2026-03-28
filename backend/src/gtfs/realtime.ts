@@ -1,8 +1,8 @@
 import protobuf from 'protobufjs'
 import { config } from '../config'
+import { getMockBusEntity } from '../services/mock-bus'
 import { createCache } from './cache'
 import descriptor from './gtfs-realtime.json'
-import { getMockBusEntity } from '../services/mock-bus'
 
 const root = protobuf.Root.fromJSON(descriptor)
 const FeedMessage = root.lookupType('FeedMessage')

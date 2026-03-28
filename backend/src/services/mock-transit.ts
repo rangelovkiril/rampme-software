@@ -21,6 +21,7 @@ interface MockVehicleSnapshot {
   route_short_name: string
   route_type: number
   headsign: string
+  label: string | null
 }
 
 interface MockTripStop {
@@ -334,6 +335,7 @@ export function getMockVehicleSnapshot(): MockVehicleSnapshot {
     route_short_name: MOCK_ROUTE_SHORT_NAME,
     route_type: 3,
     headsign: currentHeadsign(),
+    label: null,
   }
 }
 

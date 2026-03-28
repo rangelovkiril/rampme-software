@@ -85,7 +85,7 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
       if (!bounds.contains(latlng)) continue
 
       const color = getRouteColor(v.route_type)
-      const label = ROUTE_TYPE_CONFIG[v.route_type]?.label ?? 'Автобус'
+      const label = (v.route_type != null ? ROUTE_TYPE_CONFIG[v.route_type]?.label : undefined) ?? 'Автобус'
       const displayName = v.route_short_name ?? v.label ?? v.id
       const titleLabel = v.route_short_name ? `${label} ${v.route_short_name}` : displayName
       const headsign = v.headsign ?? ''
