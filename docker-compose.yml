@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "3001:3000"
+    environment:
+      PORT: "3000"
+      MOCK_RAMP: "${MOCK_RAMP:-false}"
+      GTFS_STATIC_URL: "${GTFS_STATIC_URL:-https://gtfs.sofiatraffic.bg/api/v1/static}"
+      GTFS_RT_BASE_URL: "${GTFS_RT_BASE_URL:-https://gtfs.sofiatraffic.bg/api/v1}"
+      HARDWARE_URL: "${HARDWARE_URL:-}"
+    volumes:
+      - ramp-data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: "http://backend:3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  ramp-data:

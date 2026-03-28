@@ -4,7 +4,9 @@ FROM oven/bun:1 AS build
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
+COPY proto ./proto
 COPY src ./src
+RUN bun run proto && rm -rf proto
 
 RUN env -i PATH="$PATH" HOME="$HOME" \
     bun build src/index.ts --compile --minify --outfile server
@@ -16,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 
 WORKDIR /app
 COPY --from=build --chown=app:app /app/server ./server
+RUN mkdir -p /app/data && chown app:app /app/data
 
 USER app
 EXPOSE 3000

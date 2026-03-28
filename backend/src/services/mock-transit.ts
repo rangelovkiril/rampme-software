@@ -1,5 +1,5 @@
-import type { Stop } from '../gtfs/types'
 import { getVehicleReservations, setReservationStatus } from '../db/ramp'
+import type { Stop } from '../gtfs/types'
 
 type TripStopStatus = 'departed' | 'delay' | 'on_time' | 'scheduled'
 
@@ -120,9 +120,7 @@ function distM(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const dLon = ((lon2 - lon1) * Math.PI) / 180
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
@@ -178,7 +176,12 @@ function beginDwellAtStop(stopIdx: number, atMs: number) {
   state.lat = stop.lat
   state.lng = stop.lon
   state.speedKmh = 0
-  state.bearing = bearingDeg(stop.lat, stop.lon, MOCK_STOPS[state.toIdx].lat, MOCK_STOPS[state.toIdx].lon)
+  state.bearing = bearingDeg(
+    stop.lat,
+    stop.lon,
+    MOCK_STOPS[state.toIdx].lat,
+    MOCK_STOPS[state.toIdx].lon,
+  )
   state.servedReservationIds = servedIds
 
   const holdSeconds = servedIds.length > 0 ? RAMP_STOP_SECONDS : BASE_STOP_SECONDS

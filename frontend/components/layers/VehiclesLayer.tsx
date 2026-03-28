@@ -4,7 +4,7 @@ import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 import type { Vehicle } from '@/lib/types'
-import { ROUTE_TYPE_CONFIG, DEFAULT_ROUTE_COLOR, getRouteColor } from '@/lib/transit'
+import { getRouteColor, getRouteLabel } from '@/lib/transit'
 
 const MIN_ZOOM = 10
 const DETAIL_ZOOM = 16
@@ -92,10 +92,7 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId, onVe
       if (!bounds.contains(latlng)) continue
 
       const color = getRouteColor(v.route_type)
-      const label = ROUTE_TYPE_CONFIG[v.route_type]?.label ?? 'Автобус'
-      const displayName = v.route_short_name ?? v.label ?? v.id
-      const titleLabel = v.route_short_name ? `${label} ${v.route_short_name}` : displayName
-      const headsign = v.headsign ?? ''
+      const label = getRouteLabel(v.route_type)
 
       const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:13px">
         <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${titleLabel}</span>

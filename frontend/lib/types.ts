@@ -42,6 +42,13 @@ export interface StopArrival {
   has_ramp: boolean
 }
 
+export interface Route {
+  route_id: string
+  route_short_name: string
+  route_long_name: string
+  route_type: number
+}
+
 export interface TripData {
   vehicle_id: string
   route_short_name: string | null
