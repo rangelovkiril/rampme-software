@@ -27,7 +27,8 @@ interface RampCtx {
   sessionId: string
   reservations: RampReservation[]
   lockedVehicleId: string | null
-  reserveBoard: (vehicleId: string, stopId: string) => Promise<RampReservation | null>
+  lockedRouteShortName: string | null
+  reserveBoard: (vehicleId: string, stopId: string, routeShortName?: string | null) => Promise<RampReservation | null>
   reserveAlight: (vehicleId: string, stopId: string) => Promise<RampReservation | null>
   cancel: (id: number) => Promise<boolean>
   isReserved: (vehicleId: string, stopId: string) => boolean
@@ -89,6 +90,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
   const [sid] = useState(getSessionId)
   const [reservations, setReservations] = useState<RampReservation[]>([])
   const [lockedVehicleId, setLockedVehicleId] = useState<string | null>(null)
+  const [lockedRouteShortName, setLockedRouteShortName] = useState<string | null>(null)
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
   const prevReservations = useRef<RampReservation[]>([])
 
@@ -117,6 +119,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
       (r) => r.type === 'board' && (r.status === 'pending' || r.status === 'active'),
     )
     setLockedVehicleId(board?.vehicle_id ?? null)
+    if (!board) setLockedRouteShortName(null)
   }, [sid])
 
   useEffect(() => {
@@ -125,10 +128,11 @@ export function RampProvider({ children }: { children: ReactNode }) {
     return () => { if (timer.current) clearInterval(timer.current) }
   }, [refresh])
 
-  const reserveBoard = useCallback(async (vid: string, stopId: string) => {
+  const reserveBoard = useCallback(async (vid: string, stopId: string, routeShortName?: string | null) => {
     const r = await apiReserve(sid, vid, stopId, 'board')
     if (r) {
       console.log(`[ramp] board reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
+      if (routeShortName != null) setLockedRouteShortName(routeShortName)
       setLockedVehicleId(vid)
       setReservations(prev => [...prev.filter(p => p.id !== r.id), r])
       await refresh()
@@ -163,7 +167,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{
-      sessionId: sid, reservations, lockedVehicleId,
+      sessionId: sid, reservations, lockedVehicleId, lockedRouteShortName,
       reserveBoard, reserveAlight, cancel, isReserved, refresh,
     }}>
       {children}

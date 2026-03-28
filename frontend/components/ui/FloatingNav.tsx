@@ -30,7 +30,7 @@ export default function FloatingNav({
   onReservationsOpen,
   closeSignal,
 }: Props) {
-  const { reservations, lockedVehicleId, cancel } = useRamp();
+  const { reservations, lockedVehicleId, lockedRouteShortName, cancel } = useRamp();
   const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -158,7 +158,7 @@ export default function FloatingNav({
                 >
                   <ResBanner
                     type={primaryType}
-                    routeName={tripInfo?.route_short_name ?? null}
+                    routeName={tripInfo?.route_short_name ?? lockedRouteShortName}
                     routeType={tripInfo?.route_type ?? null}
                     stopName={primaryStop}
                     eta={primaryEta}

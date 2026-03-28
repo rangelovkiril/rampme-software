@@ -116,7 +116,8 @@ export default function StopArrivalsSheet({
     setReservingId(vehicleId);
     setReserveError(null);
     try {
-      const res = await reserveBoard(vehicleId, stop.stop_id);
+      const routeShortName = arrivals.find((a) => a.vehicle_id === vehicleId)?.route_short_name ?? null;
+      const res = await reserveBoard(vehicleId, stop.stop_id, routeShortName);
       if (res) {
         if (onVehicleLock) onVehicleLock(vehicleId);
       } else {
