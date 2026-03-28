@@ -18,7 +18,7 @@ export default function MapControls({
   return (
     <div className="absolute right-4 bottom-8 z-[800] flex flex-col gap-2">
       {/* Theme toggle */}
-      <ControlButton onClick={onToggleTheme} title={dark ? 'Light mode' : 'Dark mode'}>
+      <ControlButton onClick={onToggleTheme} title={dark ? 'Светла тема' : 'Тъмна тема'}>
         {dark ? (
           <svg
             width="16"
@@ -62,7 +62,7 @@ export default function MapControls({
       {/* Live location toggle */}
       <ControlButton
         onClick={onToggleTracking}
-        title={tracking ? 'Stop tracking' : 'Track my location'}
+        title={tracking ? 'Спри проследяването' : 'Проследи местоположение'}
         active={tracking}
         className={`transition-transform duration-300 ${liftLocate ? 'locate-btn-lift' : ''}`}
       >

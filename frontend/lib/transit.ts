@@ -26,7 +26,7 @@ export function getRouteLabel(routeType: number | null | undefined): string {
 }
 
 export function formatEta(minutes?: number): string {
-  if (typeof minutes !== 'number' || !Number.isFinite(minutes)) return 'Soon'
-  if (minutes <= 0) return 'Now'
-  return `${minutes} min`
+  if (typeof minutes !== 'number' || !Number.isFinite(minutes)) return 'Скоро'
+  if (minutes <= 0) return 'Сега'
+  return `${minutes} мин`
 }

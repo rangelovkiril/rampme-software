@@ -63,6 +63,11 @@ export default function RouteLinesLayer({ routeId, routeType }: RouteLinesLayerP
     }
 
     group.addTo(map)
+    const allPoints: L.LatLngExpression[] = shape.polylines.flat() as L.LatLngExpression[]
+    if (allPoints.length > 0) {
+      const bounds = L.latLngBounds(allPoints)
+      if (bounds.isValid()) map.fitBounds(bounds, { padding: [48, 48] })
+    }
   }, [shape, routeType, map])
 
   useEffect(() => {

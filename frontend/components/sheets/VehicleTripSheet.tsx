@@ -8,7 +8,7 @@ import { useRamp } from '@/contexts/RampContext'
 const POLL_INTERVAL = 15_000
 
 function StopStatusLabel({ stop }: { stop: TripData['stops'][number] }) {
-  if (stop.status === 'departed') return <span>Departed{stop.expected_time ? ` ${stop.expected_time}` : ''}</span>
+  if (stop.status === 'departed') return <span>Замина{stop.expected_time ? ` ${stop.expected_time}` : ''}</span>
   if (stop.realtime && stop.expected_time) {
     return (
       <span>
@@ -52,11 +52,11 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
     if (initial) setLoading(true)
     try {
       const r = await fetch(`/api/realtime/vehicles/${encodeURIComponent(vehicleId)}/trip`)
-      if (!r.ok) { if (initial) setError('Could not load trip data.'); return }
+      if (!r.ok) { if (initial) setError('Неуспешно зареждане на маршрут.'); return }
       setTrip(await r.json())
       setError(null)
     } catch {
-      if (initial) setError('Could not load trip data.')
+      if (initial) setError('Неуспешно зареждане на маршрут.')
     } finally {
       if (initial) setLoading(false)
     }
@@ -102,7 +102,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
   const routeColor = getRouteColor(routeType ?? undefined)
   const routeName = routeShortName
     ? `${getRouteLabel(routeType ?? undefined)} ${routeShortName}`
-    : 'Vehicle'
+    : 'Превозно средство'
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[930] flex justify-center px-0 sm:px-4">
@@ -147,7 +147,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                     className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
                     style={{ background: '#3b82f6', color: '#fff' }}
                   >
-                    Your ride
+                    Вашият автобус
                   </span>
                 )}
               </p>
@@ -166,7 +166,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
 
         {/* Trip stops */}
         <div className="overflow-y-auto px-4 pb-4 flex-1">
-          {loading && <p className="py-3" style={{ color: 'var(--text-muted)' }}>Loading trip...</p>}
+          {loading && <p className="py-3" style={{ color: 'var(--text-muted)' }}>Зареждане...</p>}
           {!loading && error && <p className="py-3" style={{ color: '#ef4444' }}>{error}</p>}
           {!loading && !error && trip && (() => {
             const nonDeparted = trip.stops.filter((s) => s.status !== 'departed')
@@ -246,12 +246,12 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                           <StopStatusLabel stop={stop} />
                           {isBoarding && (
                             <span className="ml-1 font-semibold" style={{ color: '#22c55e' }}>
-                              · Boarding
+                              · Качване
                             </span>
                           )}
                           {isAlighting && (
                             <span className="ml-1 font-semibold" style={{ color: '#f59e0b' }}>
-                              · Alighting
+                              · Слизане
                             </span>
                           )}
                         </p>
@@ -262,7 +262,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                           {stop.eta_minutes !== null && stop.eta_minutes !== undefined && (
                             <div className="text-right">
                               <p className="text-base font-bold">{stop.eta_minutes}</p>
-                              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>min</p>
+                              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>мин</p>
                             </div>
                           )}
 
@@ -277,7 +277,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                                 color: '#ef4444',
                               }}
                             >
-                              Cancel
+                              Откажи
                             </button>
                           ) : canAlight ? (
                             <button
@@ -287,7 +287,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                               className="rounded-lg px-2 py-1 text-xs font-semibold cursor-pointer transition-all"
                               style={{ background: routeColor, color: '#fff' }}
                             >
-                              {isReservingThis ? '...' : 'Ramp'}
+                              {isReservingThis ? '...' : 'Рампа'}
                             </button>
                           ) : canBoard ? (
                             <button
@@ -297,7 +297,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                               className="rounded-lg px-2 py-1 text-xs font-semibold cursor-pointer transition-all"
                               style={{ background: '#22c55e', color: '#fff' }}
                             >
-                              {isBoardingThis ? '...' : 'Board'}
+                              {isBoardingThis ? '...' : 'Качване'}
                             </button>
                           ) : null}
                         </div>

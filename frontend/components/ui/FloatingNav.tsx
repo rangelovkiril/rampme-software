@@ -43,8 +43,8 @@ export default function FloatingNav({
     if (!el) return;
     const update = () =>
       document.documentElement.style.setProperty(
-        "--nav-bottom",
-        `${el.getBoundingClientRect().bottom + 8}px`,
+        "--nav-height",
+        `${el.getBoundingClientRect().height + 24}px`,
       );
     update();
     const ro = new ResizeObserver(update);
@@ -107,7 +107,7 @@ export default function FloatingNav({
       <div
         className="pointer-events-none fixed left-1/2 z-[800] -translate-x-1/2"
         style={{
-          top: "var(--nav-top-offset)",
+          bottom: "16px",
           width: "calc(100vw - 2rem)",
           maxWidth: "380px",
         }}

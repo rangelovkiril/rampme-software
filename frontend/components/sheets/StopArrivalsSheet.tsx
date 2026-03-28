@@ -46,14 +46,14 @@ export default function StopArrivalsSheet({
           `/api/stops/${encodeURIComponent(stopId)}/vehicles?limit=20`,
         );
         if (!r.ok) {
-          if (initial) setError("Failed to load arrivals");
+          if (initial) setError("Грешка при зареждане");
           return;
         }
         const data = await r.json();
         setArrivals(data);
         setError(null);
       } catch {
-        if (initial) setError("Failed to load arrivals");
+        if (initial) setError("Грешка при зареждане");
       } finally {
         if (initial) setLoading(false);
       }
@@ -121,7 +121,7 @@ export default function StopArrivalsSheet({
       if (res) {
         if (onVehicleLock) onVehicleLock(vehicleId);
       } else {
-        setReserveError("Could not reserve — try again.");
+        setReserveError("Грешка при резервация. Опитайте отново.");
       }
     } finally {
       setReservingId(null);
@@ -187,7 +187,7 @@ export default function StopArrivalsSheet({
                 border: rampOnly ? "none" : "1px solid var(--border)",
               }}
               title={
-                rampOnly ? "Show all vehicles" : "Show only vehicles with ramp"
+                rampOnly ? "Покажи всички" : "Само с рампа"
               }
             >
               <svg
@@ -210,7 +210,7 @@ export default function StopArrivalsSheet({
                 <path d="M12 12l-5 5" />
                 <path d="M17 7v6" />
               </svg>
-              {rampOnly ? `Ramp (${rampCount})` : "Ramp"}
+              {rampOnly ? `Рампа (${rampCount})` : "Рампа"}
             </button>
             <button
               type="button"
@@ -250,8 +250,8 @@ export default function StopArrivalsSheet({
           {!loading && !error && sortedArrivals.length === 0 && (
             <p className="px-2 py-3" style={{ color: "var(--text-muted)" }}>
               {rampOnly
-                ? "No ramp-equipped vehicles right now."
-                : "No active vehicles right now."}
+                ? "Няма превозни средства с рампа в момента."
+                : "Няма активни превозни средства в момента."}
             </p>
           )}
           {!loading && !error && sortedArrivals.length > 0 && (
@@ -292,16 +292,16 @@ export default function StopArrivalsSheet({
                       </span>
                       <div className="min-w-0">
                         <p className="truncate text-lg font-semibold">
-                          {item.headsign ?? "Route"}
+                          {item.headsign ?? "Линия"}
                         </p>
                         <p
                           className="text-base font-medium"
                           style={{ color: "var(--text-secondary)" }}
                         >
                           {item.realtime ? (
-                            <span style={{ color: "#22c55e" }}>Live</span>
+                            <span style={{ color: "#22c55e" }}>В реално</span>
                           ) : (
-                            <span>Scheduled</span>
+                            <span>По разписание</span>
                           )}
                           {isDelayed ? (
                             <>
@@ -377,23 +377,23 @@ export default function StopArrivalsSheet({
                         }}
                         title={
                           reserved
-                            ? "Boarding reserved"
+                            ? "Резервация за качване"
                             : canRequest
-                              ? "Reserve ramp to board"
+                              ? "Резервирай рампа за качване"
                               : vehicleId
-                                ? `Come within ${RAMP_PROXIMITY_METERS}m of the stop`
-                                : "Live vehicle id unavailable"
+                                ? `Приближи се до ${RAMP_PROXIMITY_METERS}м от спирката`
+                                : "Няма данни за превозното средство"
                         }
                       >
                         {reserved
-                          ? "Reserved"
+                          ? "Резервирано"
                           : isReserving
                             ? "..."
                             : canRequest
-                              ? "Board"
+                              ? "Качване"
                               : vehicleId
-                                ? "Board"
-                                : "No ID"}
+                                ? "Качване"
+                                : "Без ID"}
                       </button>
                     </div>
                   </div>

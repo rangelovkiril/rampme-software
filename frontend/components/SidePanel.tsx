@@ -74,7 +74,7 @@ export default function SidePanel({ activePanel, onClose, onSelectRoute, onSelec
 
   return (
     <aside
-      className={`side-panel-shell fixed top-0 bottom-0 left-0 z-[700] flex flex-col overflow-x-hidden backdrop-blur-xl max-sm:top-[var(--nav-bottom,72px)] max-sm:bottom-0 max-sm:inset-x-2 max-sm:rounded-2xl max-sm:shadow-[var(--shadow-lg)] max-sm:overflow-y-hidden ${
+      className={`side-panel-shell fixed top-0 bottom-0 left-0 z-[700] flex flex-col overflow-x-hidden backdrop-blur-xl max-sm:top-2 max-sm:bottom-[var(--nav-height,80px)] max-sm:inset-x-2 max-sm:rounded-2xl max-sm:shadow-[var(--shadow-lg)] max-sm:overflow-y-hidden ${
         isDragging ? '' : 'transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]'
       } ${
         isOpen
