@@ -3,8 +3,24 @@ import './globals.css'
 import 'leaflet/dist/leaflet.css'
 
 export const metadata: Metadata = {
-  title: 'Sofia Live Transport',
-  description: 'Live public transport map for Sofia, Bulgaria'
+  title: 'RampMe',
+  description: 'Карта на градския транспорт в София с достъпност за рампа',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'RampMe',
+    statusBarStyle: 'black-translucent',
+  },
+  openGraph: {
+    title: 'RampMe',
+    description: 'Карта на градския транспорт в София с достъпност за рампа',
+    locale: 'bg_BG',
+    type: 'website',
+  },
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+    { media: '(prefers-color-scheme: light)', color: '#f5f5f5' },
+  ],
 }
 
 /**
