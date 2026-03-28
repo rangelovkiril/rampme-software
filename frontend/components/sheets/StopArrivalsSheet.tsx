@@ -25,6 +25,7 @@ export default function StopArrivalsSheet({
   const [error, setError] = useState<string | null>(null);
   const [rampOnly, setRampOnly] = useState(false);
   const [reservingId, setReservingId] = useState<string | null>(null);
+  const [reserveError, setReserveError] = useState<string | null>(null);
 
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -69,6 +70,7 @@ export default function StopArrivalsSheet({
     setArrivals([]);
     setError(null);
     setRampOnly(false);
+    setReserveError(null);
     fetchArrivals(stop.stop_id, true);
     const iv = setInterval(
       () => fetchArrivals(stop.stop_id, false),
@@ -112,10 +114,13 @@ export default function StopArrivalsSheet({
   const handleReserve = async (vehicleId: string) => {
     if (!stop || reservingId) return;
     setReservingId(vehicleId);
+    setReserveError(null);
     try {
       const res = await reserveBoard(vehicleId, stop.stop_id);
-      if (res?.status === "active" && onVehicleLock) {
-        onVehicleLock(vehicleId);
+      if (res) {
+        if (onVehicleLock) onVehicleLock(vehicleId);
+      } else {
+        setReserveError("Could not reserve — try again.");
       }
     } finally {
       setReservingId(null);
@@ -226,6 +231,11 @@ export default function StopArrivalsSheet({
           className={`stop-sheet-scroll overflow-y-auto px-3 pb-4 ${isMobile && isOpen ? "min-h-0 flex-1" : ""}`}
           style={isMobile && isOpen ? { maxHeight: "none" } : undefined}
         >
+          {reserveError && (
+            <p className="px-2 py-2 text-sm font-medium" style={{ color: "#ef4444" }}>
+              {reserveError}
+            </p>
+          )}
           {loading && (
             <p className="px-2 py-3" style={{ color: "var(--text-muted)" }}>
               Loading...
@@ -366,9 +376,9 @@ export default function StopArrivalsSheet({
                         }}
                         title={
                           reserved
-                            ? "Ramp reserved"
+                            ? "Boarding reserved"
                             : canRequest
-                              ? "Reserve wheelchair ramp"
+                              ? "Reserve ramp to board"
                               : vehicleId
                                 ? `Come within ${RAMP_PROXIMITY_METERS}m of the stop`
                                 : "Live vehicle id unavailable"
@@ -379,9 +389,9 @@ export default function StopArrivalsSheet({
                           : isReserving
                             ? "..."
                             : canRequest
-                              ? "Ramp"
+                              ? "Board"
                               : vehicleId
-                                ? "Ramp"
+                                ? "Board"
                                 : "No ID"}
                       </button>
                     </div>

@@ -18,6 +18,7 @@ export interface Vehicle {
   route_short_name: string | null
   route_type: number | null
   headsign: string | null
+  label: string | null
   ramp_status: 'unknown' | 'working' | 'in_use'
   ramp_reservations: Array<{
     id: number

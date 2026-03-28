@@ -44,34 +44,45 @@ export default function Map() {
   const [navCloseSignal, setNavCloseSignal] = useState(0)
 
   const { lockedVehicleId } = useRamp()
+  const vehiclesRef = useRef<Vehicle[]>([])
+  const handleVehiclesUpdate = useCallback((v: Vehicle[]) => { vehiclesRef.current = v }, [])
 
   useEffect(() => {
     if (lockedVehicleId && !selectedVehicle) {
-      setSelectedVehicle({ id: lockedVehicleId } as Vehicle)
+      const full = vehiclesRef.current.find((v) => v.id === lockedVehicleId)
+      setSelectedVehicle(full ?? { id: lockedVehicleId } as Vehicle)
       setSelectedStop(null)
     }
   }, [lockedVehicleId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleTheme = useCallback(() => setDark((d) => !d), [])
   const toggleTracking = useCallback(() => setTracking((t) => !t), [])
-  const togglePanel = useCallback((p: string) => setActivePanel((c) => (c === p ? null : p)), [])
+  const togglePanel = useCallback((p: string) => {
+    setActivePanel((c) => (c === p ? null : p))
+    setSelectedStop(null)
+    setSelectedVehicle(null)
+  }, [])
   const closePanel = useCallback(() => setActivePanel(null), [])
 
   const handleVehicleSelect = useCallback((v: Vehicle) => {
     setSelectedVehicle(v)
     setSelectedStop(null)
+    setActivePanel(null)
     setNavCloseSignal(s => s + 1)
   }, [])
 
   const handleVehicleOpen = useCallback((vehicleId: string) => {
-    setSelectedVehicle({ id: vehicleId } as Vehicle)
+    const full = vehiclesRef.current.find((v) => v.id === vehicleId)
+    setSelectedVehicle(full ?? { id: vehicleId } as Vehicle)
     setSelectedStop(null)
+    setActivePanel(null)
     setNavCloseSignal(s => s + 1)
   }, [])
 
   const handleStopSelect = useCallback((s: Stop) => {
     setSelectedStop(s)
     setSelectedVehicle(null)
+    setActivePanel(null)
     setNavCloseSignal(n => n + 1)
   }, [])
 
@@ -88,8 +99,8 @@ export default function Map() {
         <MapResizeHandler />
         <RouteLinesLayer routeId={selectedRoute?.routeId ?? null} routeType={selectedRoute?.routeType ?? null} />
         <LiveLocation active={tracking} onError={(_, code) => { if (code === 1) setTracking(false) }} />
-        <StopsLayer selectedStopId={selectedStop?.stop_id ?? null} onStopSelect={setSelectedStop} />
-        <VehiclesLayer onVehicleSelect={handleVehicleSelect} selectedVehicleId={selectedVehicle?.id ?? null} />
+        <StopsLayer selectedStopId={selectedStop?.stop_id ?? null} onStopSelect={handleStopSelect} />
+        <VehiclesLayer onVehicleSelect={handleVehicleSelect} selectedVehicleId={selectedVehicle?.id ?? null} onVehiclesUpdate={handleVehiclesUpdate} />
       </MapContainer>
 
       <MapControls
@@ -100,7 +111,7 @@ export default function Map() {
         onToggleTracking={toggleTracking}
       />
 
-      <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} onOpenVehicle={handleVehicleOpen} closeSignal={navCloseSignal} />
+      <FloatingNav activePanel={activePanel} onTogglePanel={togglePanel} onOpenVehicle={handleVehicleOpen} onReservationsOpen={() => { setSelectedStop(null); setSelectedVehicle(null); setActivePanel(null) }} closeSignal={navCloseSignal} />
       <SidePanel
         activePanel={activePanel}
         onClose={closePanel}

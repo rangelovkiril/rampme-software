@@ -23,13 +23,16 @@ function vehicleIcon(_bearing: number, routeType: number, routeName: string) {
 interface VehiclesLayerProps {
   onVehicleSelect?: (vehicle: Vehicle) => void
   selectedVehicleId?: string | null
+  onVehiclesUpdate?: (vehicles: Vehicle[]) => void
 }
 
-export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: VehiclesLayerProps) {
+export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId, onVehiclesUpdate }: VehiclesLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.LayerGroup | null>(null)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [revision, setRevision] = useState(0)
+  const onVehiclesUpdateRef = useRef(onVehiclesUpdate)
+  onVehiclesUpdateRef.current = onVehiclesUpdate
 
   useEffect(() => {
     let active = true
@@ -37,8 +40,12 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
       try {
         const res = await fetch('/api/realtime/vehicles')
         if (!res.ok || !active) return
-        const data = await res.json()
-        if (active) setVehicles(Array.isArray(data) ? data : [])
+        const json = await res.json()
+        const data: Vehicle[] = Array.isArray(json) ? json : []
+        if (active) {
+          setVehicles(data)
+          onVehiclesUpdateRef.current?.(data)
+        }
       } catch { /* retry next interval */ }
     }
     poll()
@@ -88,15 +95,14 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
       const label = getRouteLabel(v.route_type)
 
       const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:13px">
-        <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${label} ${v.route_short_name}</span>
-        <br/>${v.headsign}
+        <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${titleLabel}</span>
+        ${headsign ? `<br/>${headsign}` : ''}
         <br/><span style="opacity:0.5;font-size:11px">${v.id} · ${v.speed} km/h</span>
       </div>`
 
       let marker: L.Marker | L.CircleMarker
       if (useDetailed) {
-        if (!v.route_short_name) continue
-        marker = L.marker(latlng, { icon: vehicleIcon(v.bearing ?? 0, v.route_type ?? 3, v.route_short_name) })
+        marker = L.marker(latlng, { icon: vehicleIcon(v.bearing ?? 0, v.route_type ?? 3, displayName) })
       } else {
         marker = L.circleMarker(latlng, {
           radius: 5,
