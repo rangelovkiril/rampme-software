@@ -43,8 +43,8 @@ export default function FloatingNav({
     if (!el) return;
     const update = () =>
       document.documentElement.style.setProperty(
-        "--nav-height",
-        `${el.getBoundingClientRect().height + 24}px`,
+        "--nav-bottom",
+        `${el.getBoundingClientRect().bottom + 8}px`,
       );
     update();
     const ro = new ResizeObserver(update);
@@ -70,15 +70,17 @@ export default function FloatingNav({
     if (closeSignal) setSheetOpen(false);
   }, [closeSignal]);
 
+  const activeVehicleId = lockedVehicleId ?? alightingRes?.vehicle_id ?? null;
+
   useEffect(() => {
-    if (!lockedVehicleId) {
+    if (!activeVehicleId) {
       setTripInfo(null);
       return;
     }
     const load = async () => {
       try {
         const r = await fetch(
-          `/api/realtime/vehicles/${encodeURIComponent(lockedVehicleId)}/trip`,
+          `/api/realtime/vehicles/${encodeURIComponent(activeVehicleId)}/trip`,
         );
         if (!r.ok) return;
         const trip = await r.json();
@@ -99,7 +101,7 @@ export default function FloatingNav({
     load();
     const iv = setInterval(load, 15_000);
     return () => clearInterval(iv);
-  }, [lockedVehicleId]);
+  }, [activeVehicleId]);
 
   return (
     <>
@@ -107,7 +109,7 @@ export default function FloatingNav({
       <div
         className="pointer-events-none fixed left-1/2 z-[800] -translate-x-1/2"
         style={{
-          bottom: "16px",
+          top: "var(--nav-top-offset)",
           width: "calc(100vw - 2rem)",
           maxWidth: "380px",
         }}

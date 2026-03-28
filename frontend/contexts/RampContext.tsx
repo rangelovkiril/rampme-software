@@ -119,7 +119,10 @@ export function RampProvider({ children }: { children: ReactNode }) {
       (r) => r.type === 'board' && (r.status === 'pending' || r.status === 'active'),
     )
     setLockedVehicleId(board?.vehicle_id ?? null)
-    if (!board) setLockedRouteShortName(null)
+    const hasActiveAlight = data.some(
+      (r) => r.type === 'alight' && (r.status === 'pending' || r.status === 'active'),
+    )
+    if (!board && !hasActiveAlight) setLockedRouteShortName(null)
   }, [sid])
 
   useEffect(() => {
