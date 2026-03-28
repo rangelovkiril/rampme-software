@@ -4,7 +4,7 @@ import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 import type { Vehicle } from '@/lib/types'
-import { getRouteColor, getRouteLabel } from '@/lib/transit'
+import { ROUTE_TYPE_CONFIG, getRouteColor } from '@/lib/transit'
 
 const MIN_ZOOM = 10
 const DETAIL_ZOOM = 16
@@ -23,16 +23,13 @@ function vehicleIcon(_bearing: number, routeType: number, routeName: string) {
 interface VehiclesLayerProps {
   onVehicleSelect?: (vehicle: Vehicle) => void
   selectedVehicleId?: string | null
-  onVehiclesUpdate?: (vehicles: Vehicle[]) => void
 }
 
-export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId, onVehiclesUpdate }: VehiclesLayerProps) {
+export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: VehiclesLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.LayerGroup | null>(null)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [revision, setRevision] = useState(0)
-  const onVehiclesUpdateRef = useRef(onVehiclesUpdate)
-  onVehiclesUpdateRef.current = onVehiclesUpdate
 
   useEffect(() => {
     let active = true
@@ -40,12 +37,8 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId, onVe
       try {
         const res = await fetch('/api/realtime/vehicles')
         if (!res.ok || !active) return
-        const json = await res.json()
-        const data: Vehicle[] = Array.isArray(json) ? json : []
-        if (active) {
-          setVehicles(data)
-          onVehiclesUpdateRef.current?.(data)
-        }
+        const data = await res.json()
+        if (active) setVehicles(Array.isArray(data) ? data : [])
       } catch { /* retry next interval */ }
     }
     poll()
@@ -92,7 +85,10 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId, onVe
       if (!bounds.contains(latlng)) continue
 
       const color = getRouteColor(v.route_type)
-      const label = getRouteLabel(v.route_type)
+      const label = ROUTE_TYPE_CONFIG[v.route_type]?.label ?? 'Автобус'
+      const displayName = v.route_short_name ?? v.label ?? v.id
+      const titleLabel = v.route_short_name ? `${label} ${v.route_short_name}` : displayName
+      const headsign = v.headsign ?? ''
 
       const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:13px">
         <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${titleLabel}</span>

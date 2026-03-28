@@ -8,6 +8,7 @@ import {
 } from '../services/mock-transit'
 import { getVehicleRampInfo } from '../services/ramp'
 import { getVehicleTripDetails } from '../services/trip-details'
+import { MOCK_BUS_ID, getMockTripDetails } from '../services/mock-bus'
 import { getGtfs, jsonError } from '../state'
 
 const GTFS_NOT_READY = () => jsonError("GTFS data not yet loaded", 503);

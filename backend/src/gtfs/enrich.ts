@@ -13,6 +13,7 @@ export interface EnrichedVehicle {
   route_short_name: string | null
   route_type: number | null
   headsign: string | null
+  label: string | null
   ramp_status: RampStatus
   ramp_reservations: Array<{
     id: number
