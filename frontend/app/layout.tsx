@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import 'leaflet/dist/leaflet.css'
 
@@ -17,6 +17,9 @@ export const metadata: Metadata = {
     locale: 'bg_BG',
     type: 'website',
   },
+}
+
+export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
     { media: '(prefers-color-scheme: light)', color: '#f5f5f5' },
