@@ -1,7 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { activeServiceIds } from '../gtfs/services'
 import { getUpcomingArrivals } from '../services/arrivals'
-import { getMockArrivalForStop, getMockStopById, getMockStops } from '../services/mock-transit'
 import { makeSseStream } from '../sse'
 import { getGtfs, jsonError } from '../state'
 
@@ -12,7 +11,7 @@ export const stopsRoutes = new Elysia()
     '/stops',
     () => {
       const data = getGtfs()
-      if (!data) return getMockStops()
+      if (!data) return GTFS_NOT_READY()
 
       const services = activeServiceIds(data.calendarDates)
 
@@ -27,15 +26,7 @@ export const stopsRoutes = new Elysia()
         }
       }
 
-      const activeStops = [...data.stops.values()].filter((s) => activeStopIds.has(s.stop_id))
-      const mockStops = getMockStops()
-
-      const seen = new Set(activeStops.map((s) => s.stop_id))
-      for (const ms of mockStops) {
-        if (!seen.has(ms.stop_id)) activeStops.push(ms)
-      }
-
-      return activeStops
+      return [...data.stops.values()].filter((s) => activeStopIds.has(s.stop_id))
     },
     { detail: { tags: ['Stops'], summary: 'All stops (active today)' } },
   )
@@ -44,13 +35,9 @@ export const stopsRoutes = new Elysia()
     '/stops/:id',
     ({ params: { id } }) => {
       const data = getGtfs()
-      if (!data) {
-        const mockStop = getMockStopById(id)
-        if (mockStop) return mockStop
-        return GTFS_NOT_READY()
-      }
+      if (!data) return GTFS_NOT_READY()
 
-      const stop = data.stops.get(id) ?? getMockStopById(id)
+      const stop = data.stops.get(id)
       if (!stop) return jsonError('Stop not found', 404)
       return stop
     },
@@ -61,13 +48,9 @@ export const stopsRoutes = new Elysia()
     '/stops/:id/vehicles',
     async ({ params: { id }, query }) => {
       const data = getGtfs()
-      if (!data) {
-        const mockArrival = getMockArrivalForStop(id)
-        if (mockArrival) return [mockArrival]
-        return GTFS_NOT_READY()
-      }
+      if (!data) return GTFS_NOT_READY()
 
-      const stop = data.stops.get(id) ?? getMockStopById(id)
+      const stop = data.stops.get(id)
       if (!stop) return jsonError('Stop not found', 404)
 
       const rawLimit = Number(query.limit ?? '20')
@@ -93,7 +76,7 @@ export const stopsRoutes = new Elysia()
       return makeSseStream(request, async () => {
         const data = getGtfs()
         if (!data) return null
-        const stop = data.stops.get(id) ?? getMockStopById(id)
+        const stop = data.stops.get(id)
         if (!stop) return null
         return getUpcomingArrivals(data, id, limit)
       })

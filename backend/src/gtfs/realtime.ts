@@ -1,7 +1,6 @@
 import { EventEmitter } from 'node:events'
 import protobuf from 'protobufjs'
 import { config } from '../config'
-import { getMockBusEntity } from '../services/mock-bus'
 import descriptor from './gtfs-realtime.json'
 
 const root = protobuf.Root.fromJSON(descriptor)
@@ -42,21 +41,7 @@ export function fetchTripUpdates() {
   return Promise.resolve(tripUpdatesData)
 }
 
-/**
- * Returns cached vehicle positions and injects the mock ramp bus entity.
- * The mock bus computes a fresh position every call for smooth movement.
- */
-export async function fetchVehiclePositions() {
-  const feed = vehicleData ?? (await fetchFeed('vehicle-positions'))
-
-  // Deep-clone so we don't mutate the cached object
-  const entity: any[] = Array.isArray(feed.entity) ? [...feed.entity] : []
-
-  // Remove any stale mock entry (e.g. after a hot reload)
-  const filtered = entity.filter((e: any) => e.id !== getMockBusEntity().id)
-
-  return {
-    ...feed,
-    entity: [getMockBusEntity(), ...filtered],
-  }
+export function fetchVehiclePositions() {
+  if (!vehicleData) return fetchFeed('vehicle-positions')
+  return Promise.resolve(vehicleData)
 }

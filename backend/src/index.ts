@@ -2,7 +2,6 @@ import cors from '@elysiajs/cors'
 import { Elysia } from 'elysia'
 import { config } from './config'
 import { fetchStaticGtfs } from './gtfs/static'
-import { mockRoutes } from './routes/mock'
 import { rampRoutes } from './routes/ramp'
 import { realtimeRoutes } from './routes/realtime'
 import { routesRoutes } from './routes/routes'
@@ -27,7 +26,6 @@ const app = new Elysia()
   .use(routesRoutes)
   .use(realtimeRoutes)
   .use(rampRoutes)
-  .use(mockRoutes)
   .get('/health', () => 'Ok')
 
 await initGtfs()

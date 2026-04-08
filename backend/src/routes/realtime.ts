@@ -1,13 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { enrichVehicles } from '../gtfs/enrich'
 import { fetchTripUpdates, fetchVehiclePositions } from '../gtfs/realtime'
-import { getMockTripDetails, MOCK_BUS_ID } from '../services/mock-bus'
-import {
-  getMockTripDetail,
-  getMockVehicleSnapshot,
-  isMockVehicleId,
-} from '../services/mock-transit'
-import { getVehicleRampInfo } from '../services/ramp'
 import { getTripEtas, getVehicleTripDetails } from '../services/trip-details'
 import { makeSseStream } from '../sse'
 import { getGtfs, jsonError } from '../state'
@@ -23,38 +16,11 @@ async function buildEnrichedVehicles(filters: {
   if (!data) return null
   const feed = await fetchVehiclePositions()
   let vehicles = enrichVehicles(feed.entity ?? [], data)
-  const mockVehicle = getMockVehicleSnapshot()
-  const mockRamp = getVehicleRampInfo(mockVehicle.id, true)
-  vehicles.push({
-    ...mockVehicle,
-    ramp_status: mockRamp.ramp_status,
-    ramp_reservations: mockRamp.reservations,
-  })
   if (filters.route_id) vehicles = vehicles.filter((v) => v.route_id === filters.route_id)
   if (filters.route_type !== undefined)
     vehicles = vehicles.filter((v) => v.route_type === Number(filters.route_type))
   if (filters.has_ramp === 'true') vehicles = vehicles.filter((v) => v.ramp_status !== 'unknown')
   return vehicles
-}
-
-function mockTripEtas(trip: {
-  stops: {
-    stop_id: string
-    eta_minutes: number | null
-    status: string
-    expected_time: string | null
-    delay_minutes: number
-    realtime: boolean
-  }[]
-}) {
-  return trip.stops.map((s) => ({
-    stop_id: s.stop_id,
-    eta_minutes: s.eta_minutes,
-    status: s.status,
-    expected_time: s.expected_time,
-    delay_minutes: s.delay_minutes,
-    realtime: s.realtime,
-  }))
 }
 
 export const realtimeRoutes = new Elysia()
@@ -109,7 +75,6 @@ export const realtimeRoutes = new Elysia()
   .get(
     '/realtime/vehicles/:id/trip',
     async ({ params: { id } }) => {
-      if (id === MOCK_BUS_ID) return getMockTripDetails()
       const data = getGtfs()
       if (!data) return GTFS_NOT_READY()
       try {
@@ -127,8 +92,6 @@ export const realtimeRoutes = new Elysia()
     '/realtime/vehicles/:id/trip/etas',
     ({ request, params: { id } }) =>
       makeSseStream(request, async () => {
-        if (id === MOCK_BUS_ID) return mockTripEtas(getMockTripDetails())
-        if (isMockVehicleId(id)) return mockTripEtas(getMockTripDetail())
         const data = getGtfs()
         if (!data) return null
         return getTripEtas(data, id)
