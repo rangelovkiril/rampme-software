@@ -49,6 +49,15 @@ export interface Route {
   route_type: number
 }
 
+export interface TripEtaUpdate {
+  stop_id: string
+  eta_minutes: number | null
+  status: 'departed' | 'delay' | 'on_time' | 'scheduled'
+  expected_time: string | null
+  delay_minutes: number
+  realtime: boolean
+}
+
 export interface TripData {
   vehicle_id: string
   route_short_name: string | null

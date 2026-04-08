@@ -8,10 +8,36 @@ import {
   isMockVehicleId,
 } from '../services/mock-transit'
 import { getVehicleRampInfo } from '../services/ramp'
-import { getVehicleTripDetails } from '../services/trip-details'
+import { getTripEtas, getVehicleTripDetails } from '../services/trip-details'
+import { makeSseStream } from '../sse'
 import { getGtfs, jsonError } from '../state'
 
 const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
+
+async function buildEnrichedVehicles(filters: { route_id?: string; route_type?: string; has_ramp?: string }) {
+  const data = getGtfs()
+  if (!data) return null
+  const feed = await fetchVehiclePositions()
+  let vehicles = enrichVehicles(feed.entity ?? [], data)
+  const mockVehicle = getMockVehicleSnapshot()
+  const mockRamp = getVehicleRampInfo(mockVehicle.id, true)
+  vehicles.push({ ...mockVehicle, ramp_status: mockRamp.ramp_status, ramp_reservations: mockRamp.reservations })
+  if (filters.route_id) vehicles = vehicles.filter((v) => v.route_id === filters.route_id)
+  if (filters.route_type !== undefined) vehicles = vehicles.filter((v) => v.route_type === Number(filters.route_type))
+  if (filters.has_ramp === 'true') vehicles = vehicles.filter((v) => v.ramp_status !== 'unknown')
+  return vehicles
+}
+
+function mockTripEtas(trip: { stops: { stop_id: string; eta_minutes: number | null; status: string; expected_time: string | null; delay_minutes: number; realtime: boolean }[] }) {
+  return trip.stops.map((s) => ({
+    stop_id: s.stop_id,
+    eta_minutes: s.eta_minutes,
+    status: s.status,
+    expected_time: s.expected_time,
+    delay_minutes: s.delay_minutes,
+    realtime: s.realtime,
+  }))
+}
 
 export const realtimeRoutes = new Elysia()
   .get(
@@ -29,26 +55,10 @@ export const realtimeRoutes = new Elysia()
   .get(
     '/realtime/vehicles',
     async ({ query }) => {
-      const data = getGtfs()
-      if (!data) return GTFS_NOT_READY()
+      if (!getGtfs()) return GTFS_NOT_READY()
       try {
-        const feed = await fetchVehiclePositions()
-        let vehicles = enrichVehicles(feed.entity ?? [], data)
-
-        const mockVehicle = getMockVehicleSnapshot()
-        const mockRamp = getVehicleRampInfo(mockVehicle.id, true)
-        vehicles.push({
-          ...mockVehicle,
-          ramp_status: mockRamp.ramp_status,
-          ramp_reservations: mockRamp.reservations,
-        })
-
-        if (query.route_id) vehicles = vehicles.filter((v) => v.route_id === query.route_id)
-        if (query.route_type !== undefined)
-          vehicles = vehicles.filter((v) => v.route_type === Number(query.route_type))
-        if (query.has_ramp === 'true')
-          vehicles = vehicles.filter((v) => v.ramp_status !== 'unknown')
-
+        const vehicles = await buildEnrichedVehicles(query)
+        if (!vehicles) return GTFS_NOT_READY()
         return vehicles
       } catch (e) {
         return jsonError(`Vehicle positions unavailable: ${e}`, 502)
@@ -60,10 +70,21 @@ export const realtimeRoutes = new Elysia()
         route_type: t.Optional(t.String()),
         has_ramp: t.Optional(t.String()),
       }),
-      detail: {
-        tags: ['Realtime'],
-        summary: 'Vehicle positions with enrichment and filters',
-      },
+      detail: { tags: ['Realtime'], summary: 'Vehicle positions with enrichment and filters' },
+    },
+  )
+
+  .get(
+    '/realtime/vehicles/stream',
+    ({ request, query }) =>
+      makeSseStream(request, () => buildEnrichedVehicles(query).then((v) => v ?? null)),
+    {
+      query: t.Object({
+        route_id: t.Optional(t.String()),
+        route_type: t.Optional(t.String()),
+        has_ramp: t.Optional(t.String()),
+      }),
+      detail: { tags: ['Realtime'], summary: 'SSE stream of vehicle positions' },
     },
   )
 
@@ -82,4 +103,17 @@ export const realtimeRoutes = new Elysia()
       }
     },
     { detail: { tags: ['Realtime'], summary: 'Trip stops for a vehicle' } },
+  )
+
+  .get(
+    '/realtime/vehicles/:id/trip/etas',
+    ({ request, params: { id } }) =>
+      makeSseStream(request, async () => {
+        if (id === MOCK_BUS_ID) return mockTripEtas(getMockTripDetails())
+        if (isMockVehicleId(id)) return mockTripEtas(getMockTripDetail())
+        const data = getGtfs()
+        if (!data) return null
+        return getTripEtas(data, id)
+      }),
+    { detail: { tags: ['Realtime'], summary: 'SSE stream of ETA updates for a vehicle trip' } },
   )

@@ -127,7 +127,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refresh()
-    timer.current = setInterval(refresh, 10_000)
+    timer.current = setInterval(refresh, 5_000)
     return () => { if (timer.current) clearInterval(timer.current) }
   }, [refresh])
 

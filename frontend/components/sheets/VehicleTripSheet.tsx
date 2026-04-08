@@ -1,11 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Vehicle, TripData } from '@/lib/types'
+import type { Vehicle, TripData, TripEtaUpdate } from '@/lib/types'
 import { getRouteColor, getRouteLabel } from '@/lib/transit'
 import { useRamp } from '@/contexts/RampContext'
-
-const POLL_INTERVAL = 15_000
+import { useSSE } from '@/hooks/useSSE'
 
 function StopStatusLabel({ stop }: { stop: TripData['stops'][number] }) {
   if (stop.status === 'departed') return <span>Замина{stop.expected_time ? ` ${stop.expected_time}` : ''}</span>
@@ -48,27 +47,38 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
   )
   const isLocked = lockedVehicleId === vehicle?.id
 
-  const fetchTrip = useCallback(async (vehicleId: string, initial: boolean) => {
-    if (initial) setLoading(true)
+  const fetchTrip = useCallback(async (vehicleId: string) => {
+    setLoading(true)
     try {
       const r = await fetch(`/api/realtime/vehicles/${encodeURIComponent(vehicleId)}/trip`)
-      if (!r.ok) { if (initial) setError('Неуспешно зареждане на маршрут.'); return }
+      if (!r.ok) { setError('Неуспешно зареждане на маршрут.'); return }
       setTrip(await r.json())
       setError(null)
     } catch {
-      if (initial) setError('Неуспешно зареждане на маршрут.')
+      setError('Неуспешно зареждане на маршрут.')
     } finally {
-      if (initial) setLoading(false)
+      setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     if (!vehicle) { setTrip(null); return }
     setError(null)
-    fetchTrip(vehicle.id, true)
-    const iv = setInterval(() => fetchTrip(vehicle.id, false), POLL_INTERVAL)
-    return () => clearInterval(iv)
+    fetchTrip(vehicle.id)
   }, [vehicle, fetchTrip])
+
+  const etaUpdates = useSSE<TripEtaUpdate[]>(
+    vehicle ? `/api/realtime/vehicles/${encodeURIComponent(vehicle.id)}/trip/etas` : null
+  )
+
+  useEffect(() => {
+    if (!etaUpdates) return
+    setTrip((prev) => {
+      if (!prev) return prev
+      const map = new Map(etaUpdates.map((e) => [e.stop_id, e]))
+      return { ...prev, stops: prev.stops.map((s) => { const u = map.get(s.stop_id); return u ? { ...s, ...u } : s }) }
+    })
+  }, [etaUpdates])
 
   const handleReserveAlight = async (stopId: string) => {
     if (!vehicle || reservingStopId) return

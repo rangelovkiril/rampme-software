@@ -24,6 +24,48 @@ export interface TripDetailResult {
   stops: TripStopResult[]
 }
 
+export interface TripEtaUpdate {
+  stop_id: string
+  eta_minutes: number | null
+  status: TripStopResult['status']
+  expected_time: string | null
+  delay_minutes: number
+  realtime: boolean
+}
+
+/** Returns only the dynamic ETA fields for each stop — used by the SSE stream. */
+export async function getTripEtas(
+  data: GtfsData,
+  vehicleId: string,
+): Promise<TripEtaUpdate[] | null> {
+  const feed = await fetchVehiclePositions()
+  const entity = (feed.entity ?? []).find(
+    (e: any) => (e.vehicle?.vehicle?.id ?? e.id) === vehicleId,
+  )
+  if (!entity?.vehicle) return null
+
+  const tripId = entity.vehicle.trip?.tripId ?? ''
+  if (!tripId) return null
+
+  const tripStopTimes = data.stopTimesByTrip.get(tripId)
+  if (!tripStopTimes || tripStopTimes.length === 0) return null
+
+  const predictions = await fetchTripPredictions(tripId)
+  const nowSec = Math.floor(Date.now() / 1000)
+
+  return tripStopTimes.map((st) => {
+    const r = buildTripStop(data, st, predictions, nowSec)
+    return {
+      stop_id: r.stop_id,
+      eta_minutes: r.eta_minutes,
+      status: r.status,
+      expected_time: r.expected_time,
+      delay_minutes: r.delay_minutes,
+      realtime: r.realtime,
+    }
+  })
+}
+
 /**
  * Fetches the current trip for a vehicle, including all stop times
  * enriched with realtime predictions.

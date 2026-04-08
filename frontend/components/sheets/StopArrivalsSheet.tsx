@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Stop, StopArrival } from "@/lib/types";
 import { getRouteColor, formatEta } from "@/lib/transit";
 import { useRamp } from "@/contexts/RampContext";
+import { useSSE } from "@/hooks/useSSE";
 
-const POLL_INTERVAL = 15_000;
 const MOBILE_SHEET_MAX_VH = 85;
 const RAMP_PROXIMITY_METERS = 10;
 
@@ -38,46 +38,25 @@ export default function StopArrivalsSheet({
 
   const isNearStop = true;
 
-  const fetchArrivals = useCallback(
-    async (stopId: string, initial: boolean) => {
-      if (initial) setLoading(true);
-      try {
-        const r = await fetch(
-          `/api/stops/${encodeURIComponent(stopId)}/vehicles?limit=20`,
-        );
-        if (!r.ok) {
-          if (initial) setError("Грешка при зареждане");
-          return;
-        }
-        const data = await r.json();
-        setArrivals(data);
-        setError(null);
-      } catch {
-        if (initial) setError("Грешка при зареждане");
-      } finally {
-        if (initial) setLoading(false);
-      }
-    },
-    [],
+  const sseArrivals = useSSE<StopArrival[]>(
+    stop ? `/api/stops/${encodeURIComponent(stop.stop_id)}/vehicles/stream?limit=20` : null
   );
 
   useEffect(() => {
-    if (!stop) {
-      setIsOpen(false);
-      return;
-    }
+    if (!stop) { setIsOpen(false); return; }
     setIsOpen(true);
     setArrivals([]);
     setError(null);
     setRampOnly(false);
     setReserveError(null);
-    fetchArrivals(stop.stop_id, true);
-    const iv = setInterval(
-      () => fetchArrivals(stop.stop_id, false),
-      POLL_INTERVAL,
-    );
-    return () => clearInterval(iv);
-  }, [stop, fetchArrivals]);
+    setLoading(true);
+  }, [stop]);
+
+  useEffect(() => {
+    if (!sseArrivals) return;
+    setArrivals(sseArrivals);
+    setLoading(false);
+  }, [sseArrivals]);
 
   const sortedArrivals = useMemo(() => {
     const list = rampOnly ? arrivals.filter((a) => a.has_ramp) : arrivals;

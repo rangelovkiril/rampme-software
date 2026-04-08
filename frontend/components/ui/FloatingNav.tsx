@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRamp, type RampReservation } from "@/contexts/RampContext";
 import { getRouteColor } from "@/lib/transit";
+import { useSSE } from "@/hooks/useSSE";
+import type { TripEtaUpdate } from "@/lib/types";
 
 interface Props {
   activePanel: string | null;
@@ -72,36 +74,36 @@ export default function FloatingNav({
 
   const activeVehicleId = lockedVehicleId ?? alightingRes?.vehicle_id ?? null;
 
+  // Fetch static trip structure (stop names, route info) once when vehicle changes
   useEffect(() => {
-    if (!activeVehicleId) {
-      setTripInfo(null);
-      return;
-    }
-    const load = async () => {
-      try {
-        const r = await fetch(
-          `/api/realtime/vehicles/${encodeURIComponent(activeVehicleId)}/trip`,
-        );
-        if (!r.ok) return;
-        const trip = await r.json();
+    if (!activeVehicleId) { setTripInfo(null); return; }
+    fetch(`/api/realtime/vehicles/${encodeURIComponent(activeVehicleId)}/trip`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((trip) => {
+        if (!trip) return;
         const stops: TripInfo["stops"] = {};
-        for (const s of trip.stops) {
-          stops[s.stop_id] = {
-            eta_minutes: s.eta_minutes,
-            stop_name: s.stop_name,
-          };
-        }
-        setTripInfo({
-          route_short_name: trip.route_short_name,
-          route_type: trip.route_type,
-          stops,
-        });
-      } catch {}
-    };
-    load();
-    const iv = setInterval(load, 15_000);
-    return () => clearInterval(iv);
+        for (const s of trip.stops) stops[s.stop_id] = { eta_minutes: s.eta_minutes, stop_name: s.stop_name };
+        setTripInfo({ route_short_name: trip.route_short_name, route_type: trip.route_type, stops });
+      })
+      .catch(() => {});
   }, [activeVehicleId]);
+
+  // SSE stream for ETA updates only
+  const etaUpdates = useSSE<TripEtaUpdate[]>(
+    activeVehicleId ? `/api/realtime/vehicles/${encodeURIComponent(activeVehicleId)}/trip/etas` : null
+  );
+
+  useEffect(() => {
+    if (!etaUpdates) return;
+    setTripInfo((prev) => {
+      if (!prev) return prev;
+      const newStops = { ...prev.stops };
+      for (const e of etaUpdates) {
+        if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes };
+      }
+      return { ...prev, stops: newStops };
+    });
+  }, [etaUpdates]);
 
   return (
     <>

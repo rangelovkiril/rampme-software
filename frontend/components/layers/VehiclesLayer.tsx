@@ -5,10 +5,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 import type { Vehicle } from '@/lib/types'
 import { ROUTE_TYPE_CONFIG, getRouteColor } from '@/lib/transit'
+import { useSSE } from '@/hooks/useSSE'
 
 const MIN_ZOOM = 10
 const DETAIL_ZOOM = 16
-const POLL_INTERVAL = 5_000
 
 function vehicleIcon(_bearing: number, routeType: number, routeName: string) {
   const color = getRouteColor(routeType)
@@ -28,23 +28,9 @@ interface VehiclesLayerProps {
 export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: VehiclesLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.LayerGroup | null>(null)
-  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const sseVehicles = useSSE<Vehicle[]>('/api/realtime/vehicles/stream')
+  const vehicles = sseVehicles ?? []
   const [revision, setRevision] = useState(0)
-
-  useEffect(() => {
-    let active = true
-    async function poll() {
-      try {
-        const res = await fetch('/api/realtime/vehicles')
-        if (!res.ok || !active) return
-        const data = await res.json()
-        if (active) setVehicles(Array.isArray(data) ? data : [])
-      } catch { /* retry next interval */ }
-    }
-    poll()
-    const id = setInterval(poll, POLL_INTERVAL)
-    return () => { active = false; clearInterval(id) }
-  }, [])
 
   useEffect(() => {
     function update() { setRevision(r => r + 1) }
