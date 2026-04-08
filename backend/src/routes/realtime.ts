@@ -14,21 +14,39 @@ import { getGtfs, jsonError } from '../state'
 
 const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
 
-async function buildEnrichedVehicles(filters: { route_id?: string; route_type?: string; has_ramp?: string }) {
+async function buildEnrichedVehicles(filters: {
+  route_id?: string
+  route_type?: string
+  has_ramp?: string
+}) {
   const data = getGtfs()
   if (!data) return null
   const feed = await fetchVehiclePositions()
   let vehicles = enrichVehicles(feed.entity ?? [], data)
   const mockVehicle = getMockVehicleSnapshot()
   const mockRamp = getVehicleRampInfo(mockVehicle.id, true)
-  vehicles.push({ ...mockVehicle, ramp_status: mockRamp.ramp_status, ramp_reservations: mockRamp.reservations })
+  vehicles.push({
+    ...mockVehicle,
+    ramp_status: mockRamp.ramp_status,
+    ramp_reservations: mockRamp.reservations,
+  })
   if (filters.route_id) vehicles = vehicles.filter((v) => v.route_id === filters.route_id)
-  if (filters.route_type !== undefined) vehicles = vehicles.filter((v) => v.route_type === Number(filters.route_type))
+  if (filters.route_type !== undefined)
+    vehicles = vehicles.filter((v) => v.route_type === Number(filters.route_type))
   if (filters.has_ramp === 'true') vehicles = vehicles.filter((v) => v.ramp_status !== 'unknown')
   return vehicles
 }
 
-function mockTripEtas(trip: { stops: { stop_id: string; eta_minutes: number | null; status: string; expected_time: string | null; delay_minutes: number; realtime: boolean }[] }) {
+function mockTripEtas(trip: {
+  stops: {
+    stop_id: string
+    eta_minutes: number | null
+    status: string
+    expected_time: string | null
+    delay_minutes: number
+    realtime: boolean
+  }[]
+}) {
   return trip.stops.map((s) => ({
     stop_id: s.stop_id,
     eta_minutes: s.eta_minutes,

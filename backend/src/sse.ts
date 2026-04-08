@@ -25,7 +25,9 @@ export function makeSseStream(request: Request, getData: () => Promise<unknown>)
       request.signal.addEventListener('abort', () => {
         closed = true
         realtimeEvents.off('refresh', send)
-        try { controller.close() } catch {}
+        try {
+          controller.close()
+        } catch {}
       })
     },
   })
@@ -34,7 +36,7 @@ export function makeSseStream(request: Request, getData: () => Promise<unknown>)
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
     },
   })
 }
