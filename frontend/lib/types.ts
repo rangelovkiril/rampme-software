@@ -60,6 +60,7 @@ export interface TripEtaUpdate {
 
 export interface TripData {
   vehicle_id: string
+  route_id: string | null
   route_short_name: string | null
   route_type: number | null
   headsign: string | null

@@ -34,14 +34,17 @@ export default function FloatingNav({
   closeSignal,
 }: Props) {
   const { reservations, lockedVehicleId, lockedRouteShortName, cancel } = useRamp();
-  const [tripInfo, setTripInfo] = useState<TripInfo | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragY, setDragY] = useState(0);
   const dragStartY = useRef(0);
   const navRef = useRef<HTMLDivElement>(null);
-  const etaUpdatesRef = useRef<TripEtaUpdate[] | null>(null);
-  const autoCancelledRef = useRef<Set<number>>(new Set());
+
+  // ── trip info state: one per vehicle ────────────────────────────────────
+  const [primaryTripInfo, setPrimaryTripInfo] = useState<TripInfo | null>(null);
+  const [secondaryTripInfo, setSecondaryTripInfo] = useState<TripInfo | null>(null);
+  const primaryEtaRef = useRef<TripEtaUpdate[] | null>(null);
+  const secondaryEtaRef = useRef<TripEtaUpdate[] | null>(null);
 
   useEffect(() => {
     const el = navRef.current;
@@ -75,63 +78,125 @@ export default function FloatingNav({
     if (closeSignal) setSheetOpen(false);
   }, [closeSignal]);
 
-  const activeVehicleId = lockedVehicleId ?? alightingRes?.vehicle_id ?? null;
+  // ── vehicle IDs ──────────────────────────────────────────────────────────
+  // Primary: boarding vehicle (if boarding exists), otherwise alighting vehicle
+  const primaryVehicleId = boardingRes?.vehicle_id ?? alightingRes?.vehicle_id ?? null;
+  // Secondary: alighting vehicle only when it differs from the boarding vehicle
+  const secondaryVehicleId =
+    boardingRes && alightingRes && boardingRes.vehicle_id !== alightingRes.vehicle_id
+      ? alightingRes.vehicle_id
+      : null;
 
-  // Fetch static trip structure (stop names, route info) once when vehicle changes
+  // ── fetch static trip structure for primary vehicle ──────────────────────
   useEffect(() => {
-    if (!activeVehicleId) { setTripInfo(null); return; }
-    fetch(`/api/realtime/vehicles/${encodeURIComponent(activeVehicleId)}/trip`)
+    if (!primaryVehicleId) { setPrimaryTripInfo(null); return; }
+    fetch(`/api/realtime/vehicles/${encodeURIComponent(primaryVehicleId)}/trip`)
       .then((r) => (r.ok ? r.json() : null))
       .then((trip) => {
         if (!trip) return;
         const stops: TripInfo["stops"] = {};
         for (const s of trip.stops) stops[s.stop_id] = { eta_minutes: s.eta_minutes, stop_name: s.stop_name, status: s.status ?? null };
         const base: TripInfo = { route_short_name: trip.route_short_name, route_type: trip.route_type, stops };
-        // Apply any eta updates that arrived before static data loaded
-        const etas = etaUpdatesRef.current;
+        const etas = primaryEtaRef.current;
         if (etas) {
           const newStops = { ...base.stops };
           for (const e of etas) {
-            if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes };
+            if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes, status: e.status };
           }
-          setTripInfo({ ...base, stops: newStops });
+          setPrimaryTripInfo({ ...base, stops: newStops });
         } else {
-          setTripInfo(base);
+          setPrimaryTripInfo(base);
         }
       })
       .catch(() => {});
-  }, [activeVehicleId]);
+  }, [primaryVehicleId]);
 
-  // SSE stream for ETA updates only
-  const etaUpdates = useSSE<TripEtaUpdate[]>(
-    activeVehicleId ? `/realtime/vehicles/${encodeURIComponent(activeVehicleId)}/trip/etas` : null
+  // ── fetch static trip structure for secondary vehicle ────────────────────
+  useEffect(() => {
+    if (!secondaryVehicleId) { setSecondaryTripInfo(null); return; }
+    fetch(`/api/realtime/vehicles/${encodeURIComponent(secondaryVehicleId)}/trip`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((trip) => {
+        if (!trip) return;
+        const stops: TripInfo["stops"] = {};
+        for (const s of trip.stops) stops[s.stop_id] = { eta_minutes: s.eta_minutes, stop_name: s.stop_name, status: s.status ?? null };
+        const base: TripInfo = { route_short_name: trip.route_short_name, route_type: trip.route_type, stops };
+        const etas = secondaryEtaRef.current;
+        if (etas) {
+          const newStops = { ...base.stops };
+          for (const e of etas) {
+            if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes, status: e.status };
+          }
+          setSecondaryTripInfo({ ...base, stops: newStops });
+        } else {
+          setSecondaryTripInfo(base);
+        }
+      })
+      .catch(() => {});
+  }, [secondaryVehicleId]);
+
+  // ── SSE ETA updates for primary vehicle ─────────────────────────────────
+  const primaryEtaUpdates = useSSE<TripEtaUpdate[]>(
+    primaryVehicleId ? `/realtime/vehicles/${encodeURIComponent(primaryVehicleId)}/trip/etas` : null
   );
 
   useEffect(() => {
-    etaUpdatesRef.current = etaUpdates;
-    if (!etaUpdates) return;
-    setTripInfo((prev) => {
+    primaryEtaRef.current = primaryEtaUpdates;
+    if (!primaryEtaUpdates) return;
+    setPrimaryTripInfo((prev) => {
       if (!prev) return prev;
       const newStops = { ...prev.stops };
-      for (const e of etaUpdates) {
+      for (const e of primaryEtaUpdates) {
         if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes, status: e.status };
       }
       return { ...prev, stops: newStops };
     });
-  }, [etaUpdates]);
+  }, [primaryEtaUpdates]);
 
-  // Auto-cancel reservations when vehicle arrives at the stop (eta === 0)
+  // ── SSE ETA updates for secondary vehicle ────────────────────────────────
+  const secondaryEtaUpdates = useSSE<TripEtaUpdate[]>(
+    secondaryVehicleId ? `/realtime/vehicles/${encodeURIComponent(secondaryVehicleId)}/trip/etas` : null
+  );
+
   useEffect(() => {
-    if (!tripInfo) return;
-    for (const res of [boardingRes, alightingRes]) {
-      if (!res || autoCancelledRef.current.has(res.id)) continue;
-      const meta = tripInfo.stops[res.stop_id];
-      if (meta?.eta_minutes === 0) {
-        autoCancelledRef.current.add(res.id);
-        cancel(res.id);
+    secondaryEtaRef.current = secondaryEtaUpdates;
+    if (!secondaryEtaUpdates) return;
+    setSecondaryTripInfo((prev) => {
+      if (!prev) return prev;
+      const newStops = { ...prev.stops };
+      for (const e of secondaryEtaUpdates) {
+        if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes, status: e.status };
       }
-    }
-  }, [tripInfo, boardingRes, alightingRes, cancel]);
+      return { ...prev, stops: newStops };
+    });
+  }, [secondaryEtaUpdates]);
+
+  // ── stop meta helpers ────────────────────────────────────────────────────
+  const getBoardingMeta = (stopId: string): StopMeta | null =>
+    primaryTripInfo?.stops[stopId] ?? null;
+
+  const getAlightingMeta = (stopId: string): StopMeta | null =>
+    secondaryTripInfo
+      ? (secondaryTripInfo.stops[stopId] ?? null)
+      : (primaryTripInfo?.stops[stopId] ?? null);
+
+  // Route name for alighting (use secondary info if separate vehicle, else primary)
+  const alightingRouteName =
+    secondaryTripInfo?.route_short_name ??
+    (boardingRes && alightingRes && boardingRes.vehicle_id !== alightingRes.vehicle_id
+      ? null
+      : primaryTripInfo?.route_short_name ?? lockedRouteShortName);
+
+  // ── banner display order ─────────────────────────────────────────────────
+  // Active boarding always first; otherwise sort ascending by ETA (null = last)
+  const boardingEta = boardingRes ? (getBoardingMeta(boardingRes.stop_id)?.eta_minutes ?? null) : null;
+  const alightingEta = alightingRes ? (getAlightingMeta(alightingRes.stop_id)?.eta_minutes ?? null) : null;
+  const showAlightingFirst =
+    boardingRes &&
+    alightingRes &&
+    boardingRes.status !== 'active' &&
+    alightingEta !== null &&
+    (boardingEta === null || alightingEta <= boardingEta);
 
   return (
     <>
@@ -153,53 +218,84 @@ export default function FloatingNav({
             borderColor: "var(--border)",
           }}
         >
-          {/* Reservation banner — always one, pick the more urgent */}
           {hasActive ? (
-            (() => {
-              const boardEta = boardingRes
-                ? (tripInfo?.stops[boardingRes.stop_id]?.eta_minutes ?? null)
-                : null;
-              const alightEta = alightingRes
-                ? (tripInfo?.stops[alightingRes.stop_id]?.eta_minutes ?? null)
-                : null;
-              // Once boarding stop is at 0 min (vehicle arrived), switch focus to alighting
-              const boardStopMeta = boardingRes ? (tripInfo?.stops[boardingRes.stop_id] ?? null) : null;
-              const boardDone = boardEta !== null && boardEta <= 0 && boardStopMeta?.status === 'departed';
-              const primary =
-                boardingRes && alightingRes
-                  ? boardDone
-                    ? alightingRes
-                    : (boardEta ?? Infinity) <= (alightEta ?? Infinity)
-                      ? boardingRes
-                      : alightingRes
-                  : (boardingRes ?? alightingRes!);
-              const primaryType = primary === boardingRes ? "board" : "alight";
-              const primaryStopMeta = tripInfo?.stops[primary.stop_id] ?? null;
-              const primaryEta = primaryStopMeta?.eta_minutes ?? null;
-              const primaryStop = primaryStopMeta?.stop_name ?? null;
-              const primaryStatus = primaryStopMeta?.status ?? null;
-              return (
-                <button
-                  type="button"
-                  onClick={() => { setSheetOpen(true); onReservationsOpen?.() }}
-                  className="w-full cursor-pointer"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    padding: 0,
-                  }}
-                >
-                  <ResBanner
-                    type={primaryType}
-                    routeName={tripInfo?.route_short_name ?? lockedRouteShortName}
-                    routeType={tripInfo?.route_type ?? null}
-                    stopName={primaryStop}
-                    eta={primaryEta}
-                    status={primaryStatus}
-                  />
-                </button>
-              );
-            })()
+            <div className="flex flex-col gap-1.5">
+              {showAlightingFirst ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => { setSheetOpen(true); onReservationsOpen?.(); }}
+                    className="w-full cursor-pointer"
+                    style={{ background: "transparent", border: "none", padding: 0 }}
+                  >
+                    <ResBanner
+                      type="alight"
+                      routeName={alightingRouteName}
+                      routeType={secondaryTripInfo?.route_type ?? primaryTripInfo?.route_type ?? null}
+                      stopName={getAlightingMeta(alightingRes!.stop_id)?.stop_name ?? null}
+                      eta={alightingEta}
+                      status={getAlightingMeta(alightingRes!.stop_id)?.status ?? null}
+                      resStatus={alightingRes!.status as 'pending' | 'active'}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSheetOpen(true); onReservationsOpen?.(); }}
+                    className="w-full cursor-pointer"
+                    style={{ background: "transparent", border: "none", padding: 0 }}
+                  >
+                    <ResBanner
+                      type="board"
+                      routeName={primaryTripInfo?.route_short_name ?? lockedRouteShortName}
+                      routeType={primaryTripInfo?.route_type ?? null}
+                      stopName={getBoardingMeta(boardingRes!.stop_id)?.stop_name ?? null}
+                      eta={boardingEta}
+                      status={getBoardingMeta(boardingRes!.stop_id)?.status ?? null}
+                      resStatus={boardingRes!.status as 'pending' | 'active'}
+                    />
+                  </button>
+                </>
+              ) : (
+                <>
+                  {boardingRes && (
+                    <button
+                      type="button"
+                      onClick={() => { setSheetOpen(true); onReservationsOpen?.(); }}
+                      className="w-full cursor-pointer"
+                      style={{ background: "transparent", border: "none", padding: 0 }}
+                    >
+                      <ResBanner
+                        type="board"
+                        routeName={primaryTripInfo?.route_short_name ?? lockedRouteShortName}
+                        routeType={primaryTripInfo?.route_type ?? null}
+                        stopName={getBoardingMeta(boardingRes.stop_id)?.stop_name ?? null}
+                        eta={boardingEta}
+                        status={getBoardingMeta(boardingRes.stop_id)?.status ?? null}
+                        resStatus={boardingRes.status as 'pending' | 'active'}
+                      />
+                    </button>
+                  )}
+                  {alightingRes && (
+                    <button
+                      type="button"
+                      onClick={() => { setSheetOpen(true); onReservationsOpen?.(); }}
+                      className="w-full cursor-pointer"
+                      style={{ background: "transparent", border: "none", padding: 0 }}
+                    >
+                      <ResBanner
+                        type="alight"
+                        routeName={alightingRouteName}
+                        routeType={secondaryTripInfo?.route_type ?? primaryTripInfo?.route_type ?? null}
+                        stopName={getAlightingMeta(alightingRes.stop_id)?.stop_name ?? null}
+                        eta={alightingEta}
+                        status={getAlightingMeta(alightingRes.stop_id)?.status ?? null}
+                        resStatus={alightingRes.status as 'pending' | 'active'}
+                      />
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           ) : (
             <div
               className="rounded-xl px-4 py-3 text-sm font-medium text-center"
@@ -260,13 +356,11 @@ export default function FloatingNav({
       {/* Reservations detail sheet */}
       {sheetOpen && (
         <>
-          {/* Backdrop */}
           <div
             className="fixed inset-0 z-[840]"
             style={{ background: "rgba(0,0,0,0.4)" }}
             onClick={() => setSheetOpen(false)}
           />
-          {/* Sheet */}
           <div className="fixed inset-x-0 bottom-0 z-[850] flex justify-center px-0 sm:px-4">
             <section
               className="pointer-events-auto w-full rounded-t-2xl border sm:max-w-lg"
@@ -278,7 +372,6 @@ export default function FloatingNav({
                 transition: isDragging ? "none" : undefined,
               }}
             >
-              {/* Drag handle */}
               <div
                 className="flex touch-none justify-center pt-2.5 pb-0 sm:hidden"
                 onTouchStart={(e) => { dragStartY.current = e.touches[0].clientY; setIsDragging(true); }}
@@ -289,36 +382,47 @@ export default function FloatingNav({
               >
                 <div
                   className="h-1 w-10 rounded-full"
-                  style={{
-                    background:
-                      "color-mix(in oklab, var(--text) 20%, transparent)",
-                  }}
+                  style={{ background: "color-mix(in oklab, var(--text) 20%, transparent)" }}
                 />
               </div>
 
               <div className="flex flex-col gap-3 px-4 pb-5 pt-2">
+                {showAlightingFirst && alightingRes && (
+                  <ResDetailCard
+                    res={alightingRes}
+                    meta={getAlightingMeta(alightingRes.stop_id)}
+                    routeName={alightingRouteName}
+                    type="alight"
+                    onCancel={async (id) => { await cancel(id); }}
+                    onOpenVehicle={onOpenVehicle}
+                  />
+                )}
                 {boardingRes && (
                   <ResDetailCard
                     res={boardingRes}
-                    meta={tripInfo?.stops[boardingRes.stop_id] ?? null}
-                    routeName={tripInfo?.route_short_name ?? null}
+                    meta={getBoardingMeta(boardingRes.stop_id)}
+                    routeName={primaryTripInfo?.route_short_name ?? null}
                     type="board"
                     onCancel={async (id) => {
                       await cancel(id);
-                      if (alightingRes) await cancel(alightingRes.id);
+                      if (
+                        alightingRes &&
+                        boardingRes.status !== 'active' &&
+                        boardingRes.vehicle_id === alightingRes.vehicle_id
+                      ) {
+                        await cancel(alightingRes.id);
+                      }
                     }}
                     onOpenVehicle={onOpenVehicle}
                   />
                 )}
-                {alightingRes && (
+                {!showAlightingFirst && alightingRes && (
                   <ResDetailCard
                     res={alightingRes}
-                    meta={tripInfo?.stops[alightingRes.stop_id] ?? null}
-                    routeName={tripInfo?.route_short_name ?? null}
+                    meta={getAlightingMeta(alightingRes.stop_id)}
+                    routeName={alightingRouteName}
                     type="alight"
-                    onCancel={async (id) => {
-                      await cancel(id);
-                    }}
+                    onCancel={async (id) => { await cancel(id); }}
                     onOpenVehicle={onOpenVehicle}
                   />
                 )}
@@ -347,6 +451,7 @@ function ResBanner({
   stopName,
   eta,
   status,
+  resStatus,
 }: {
   type: "board" | "alight";
   routeName: string | null;
@@ -354,21 +459,32 @@ function ResBanner({
   stopName: string | null;
   eta: number | null;
   status: 'departed' | 'delay' | 'on_time' | 'scheduled' | null;
+  resStatus: 'pending' | 'active';
 }) {
   const borderColor = type === "board" ? "#22c55e" : "#f59e0b";
   const label = type === "board" ? "Качване" : "Слизане";
   const transportColor = getRouteColor(routeType);
   const isDeparted = status === 'departed';
+  // Vehicle is at the stop and the user is boarding/alighting right now
+  const isAtStop = resStatus === 'active';
+
   return (
     <div
       className="flex w-full min-w-0 items-stretch gap-3 rounded-xl p-3 text-left"
-      style={{ border: `2px solid ${borderColor}`, background: "transparent" }}
+      style={{
+        border: `2px solid ${borderColor}`,
+        background: isAtStop
+          ? `color-mix(in oklab, ${borderColor} 8%, transparent)`
+          : "transparent",
+        boxShadow: isAtStop ? `0 0 12px color-mix(in oklab, ${borderColor} 40%, transparent)` : undefined,
+        transition: "background 0.3s, box-shadow 0.3s",
+      }}
     >
       {/* Left: route badge + stop name stacked */}
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5">
         <div className="flex items-center gap-2">
           <span
-            className="rounded-lg px-2.5 py-1 text-base font-black"
+            className={isAtStop ? "animate-pulse rounded-lg px-2.5 py-1 text-base font-black" : "rounded-lg px-2.5 py-1 text-base font-black"}
             style={{ background: transportColor, color: "#fff" }}
           >
             {routeName ?? "?"}
@@ -390,8 +506,30 @@ function ResBanner({
         )}
       </div>
 
-      {/* Right: big ETA box or departed label */}
-      {isDeparted ? (
+      {/* Right: ETA / boarding state / departed */}
+      {isAtStop ? (
+        <div
+          className="flex flex-shrink-0 flex-col items-center justify-center px-2"
+          style={{ minWidth: 64 }}
+        >
+          <div className="relative flex items-center justify-center">
+            <span
+              className="absolute inline-flex h-8 w-8 rounded-full opacity-60 animate-ping"
+              style={{ background: borderColor }}
+            />
+            <span
+              className="relative inline-flex h-5 w-5 rounded-full"
+              style={{ background: borderColor }}
+            />
+          </div>
+          <p
+            className="mt-1.5 text-xs font-bold text-center leading-tight"
+            style={{ color: borderColor }}
+          >
+            {type === "board" ? "Качваш\nсе" : "Слизаш\nсега"}
+          </p>
+        </div>
+      ) : isDeparted ? (
         <div
           className="flex flex-shrink-0 flex-col items-center justify-center rounded-lg px-3"
           style={{ minWidth: 72, background: "var(--control-bg)" }}

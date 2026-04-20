@@ -24,9 +24,11 @@ function StopStatusLabel({ stop }: { stop: TripData['stops'][number] }) {
 interface Props {
   vehicle: Vehicle | null
   onClose: () => void
+  onTripLoaded?: (routeId: string | null, routeType: number | null) => void
+  compact?: boolean
 }
 
-export default function VehicleTripSheet({ vehicle, onClose }: Props) {
+export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded, compact = false }: Props) {
   const [trip, setTrip] = useState<TripData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +39,11 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
 
   const [isDragging, setIsDragging] = useState(false)
   const [dragY, setDragY] = useState(0)
+  const [localExpanded, setLocalExpanded] = useState(false)
   const dragStartY = useRef(0)
+
+  // Reset expanded state when vehicle changes
+  useEffect(() => { if (!vehicle) setLocalExpanded(false) }, [vehicle])
 
   const boardingRes = reservations.find(
     (r) => r.vehicle_id === vehicle?.id && r.type === 'board' && (r.status === 'pending' || r.status === 'active'),
@@ -48,6 +54,8 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
   const isLocked = lockedVehicleId === vehicle?.id
 
   const etaUpdatesRef = useRef<TripEtaUpdate[] | null>(null)
+  const onTripLoadedRef = useRef(onTripLoaded)
+  useEffect(() => { onTripLoadedRef.current = onTripLoaded }, [onTripLoaded])
 
   const fetchTrip = useCallback(async (vehicleId: string, signal: AbortSignal) => {
     setLoading(true)
@@ -65,6 +73,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
         setTrip(data)
       }
       setError(null)
+      onTripLoadedRef.current?.(data.route_id ?? null, data.route_type ?? null)
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') return
       setError('Неуспешно зареждане на маршрут.')
@@ -138,17 +147,31 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
           borderColor: 'var(--border)',
           boxShadow: 'var(--shadow-lg)',
           color: 'var(--text)',
-          maxHeight: '70vh',
+          maxHeight: localExpanded ? '80vh' : compact ? '35vh' : '70vh',
           transform: isDragging && dragY > 0 ? `translateY(${dragY}px)` : undefined,
-          transition: isDragging ? 'none' : undefined,
+          transition: isDragging ? 'none' : 'max-height 0.3s ease',
         }}
       >
         {/* Drag handle — mobile only */}
         <div
           className="flex touch-none justify-center pt-2.5 pb-0 sm:hidden"
           onTouchStart={(e) => { dragStartY.current = e.touches[0].clientY; setIsDragging(true) }}
-          onTouchMove={(e) => { if (!isDragging) return; const dy = e.touches[0].clientY - dragStartY.current; setDragY(Math.max(0, dy)) }}
-          onTouchEnd={() => { setIsDragging(false); if (dragY > 80) { setDragY(0); onClose() } else { setDragY(0) } }}
+          onTouchMove={(e) => {
+            if (!isDragging) return
+            const dy = e.touches[0].clientY - dragStartY.current
+            setDragY(localExpanded ? Math.max(0, dy) : dy)
+          }}
+          onTouchEnd={() => {
+            setIsDragging(false)
+            if (localExpanded) {
+              if (dragY > 80) { setDragY(0); setLocalExpanded(false) }
+              else { setDragY(0) }
+            } else {
+              if (dragY < -40) { setDragY(0); setLocalExpanded(true) }
+              else if (dragY > 80) { setDragY(0); onClose() }
+              else { setDragY(0) }
+            }
+          }}
           onTouchCancel={() => { setIsDragging(false); setDragY(0) }}
           role="presentation"
         >
@@ -256,13 +279,19 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
 
                     {/* Stop content */}
                     <div
-                      className="flex flex-1 items-center justify-between gap-2 rounded-lg"
+                      className="relative flex flex-1 items-center justify-between gap-2 rounded-lg"
                       style={{
-                        borderLeft: `3px solid ${leftBorder}`,
-                        paddingLeft: leftBorder !== 'transparent' ? 8 : 0,
+                        paddingLeft: leftBorder !== 'transparent' ? 11 : 0,
                         opacity: isDeparted ? 0.5 : 1,
                       }}
                     >
+                      {/* Left border — animated only for boarding */}
+                      {leftBorder !== 'transparent' && (
+                        <div
+                          className={`absolute left-0 top-0 bottom-0 rounded-sm${isBoarding ? ' animate-pulse' : ''}`}
+                          style={{ width: 3, background: leftBorder }}
+                        />
+                      )}
                       <div className="min-w-0">
                         <p className={`text-sm ${isDeparted ? '' : 'font-semibold'}`}>
                           {stop.stop_name}

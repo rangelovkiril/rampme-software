@@ -41,6 +41,7 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
   const sseVehicles = useSSE<Vehicle[]>('/realtime/vehicles/stream')
   const vehicles = sseVehicles ?? []
   const [revision, setRevision] = useState(0)
+  const prevSelectedRef = useRef<string | null>(null)
 
   useEffect(() => {
     function update() { setRevision(r => r + 1) }
@@ -52,12 +53,18 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
     }
   }, [map])
 
-  // Pan map to selected vehicle whenever its position updates
+  // Fly to vehicle on first selection (zoom ≥ 15); just pan on subsequent position updates
   useEffect(() => {
-    if (!selectedVehicleId) return
+    if (!selectedVehicleId) { prevSelectedRef.current = null; return }
     const v = vehicles.find((v) => v.id === selectedVehicleId)
     if (!v || !Number.isFinite(v.lat) || !Number.isFinite(v.lng)) return
-    map.panTo([v.lat, v.lng], { animate: true, duration: 0.8 })
+    const isNewSelection = prevSelectedRef.current !== selectedVehicleId
+    prevSelectedRef.current = selectedVehicleId
+    if (isNewSelection) {
+      map.flyTo([v.lat, v.lng], Math.max(map.getZoom(), 16), { animate: true, duration: 0.8 })
+    } else {
+      map.panTo([v.lat, v.lng], { animate: true, duration: 0.8 })
+    }
   }, [vehicles, selectedVehicleId, map])
 
   useEffect(() => {
