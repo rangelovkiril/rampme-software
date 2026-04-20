@@ -58,6 +58,8 @@ export default function Map() {
     setSelectedStop(null)
     setActivePanel(null)
     setNavCloseSignal(s => s + 1)
+    if (v.route_id && v.route_type != null) setSelectedRoute({ routeId: v.route_id, routeType: v.route_type })
+    if (Number.isFinite(v.lat) && Number.isFinite(v.lng)) mapRef.current?.panTo([v.lat, v.lng], { animate: true, duration: 0.6 })
   }, [])
 
   const handleVehicleOpen = useCallback((vehicleId: string) => {
@@ -70,8 +72,10 @@ export default function Map() {
   const handleStopSelect = useCallback((s: Stop) => {
     setSelectedStop(s)
     setSelectedVehicle(null)
+    setSelectedRoute(null)
     setActivePanel(null)
     setNavCloseSignal(n => n + 1)
+    mapRef.current?.panTo([s.stop_lat, s.stop_lon], { animate: true, duration: 0.6 })
   }, [])
 
   return (
@@ -118,7 +122,7 @@ export default function Map() {
         onClose={() => setSelectedStop(null)}
         onVehicleLock={handleVehicleOpen}
       />
-      <VehicleTripSheet vehicle={selectedVehicle} onClose={() => setSelectedVehicle(null)} />
+      <VehicleTripSheet vehicle={selectedVehicle} onClose={() => { setSelectedVehicle(null); setSelectedRoute(null) }} />
     </div>
   )
 }

@@ -8,7 +8,8 @@ export function useSSE<T>(url: string | null): T | null {
   useEffect(() => {
     setData(null)
     if (!url) return
-    const es = new EventSource(url)
+    const base = process.env.NEXT_PUBLIC_BACKEND_URL ?? ''
+    const es = new EventSource(base + url)
     es.onmessage = (e) => {
       try {
         setData(JSON.parse(e.data))

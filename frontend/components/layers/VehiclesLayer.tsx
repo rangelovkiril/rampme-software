@@ -20,6 +20,16 @@ function vehicleIcon(_bearing: number, routeType: number, routeName: string) {
   })
 }
 
+function vehicleDotIcon(routeType: number) {
+  const color = getRouteColor(routeType)
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:10px;height:10px;border-radius:50%;background:${color};box-shadow:0 1px 4px rgba(0,0,0,0.5);transform:translate(-50%,-50%)"></div>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  })
+}
+
 interface VehiclesLayerProps {
   onVehicleSelect?: (vehicle: Vehicle) => void
   selectedVehicleId?: string | null
@@ -28,7 +38,7 @@ interface VehiclesLayerProps {
 export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: VehiclesLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.LayerGroup | null>(null)
-  const sseVehicles = useSSE<Vehicle[]>('/api/realtime/vehicles/stream')
+  const sseVehicles = useSSE<Vehicle[]>('/realtime/vehicles/stream')
   const vehicles = sseVehicles ?? []
   const [revision, setRevision] = useState(0)
 
@@ -82,19 +92,10 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
         <br/><span style="opacity:0.5;font-size:11px">${v.id} · ${v.speed} km/h</span>
       </div>`
 
-      let marker: L.Marker | L.CircleMarker
-      if (useDetailed) {
-        marker = L.marker(latlng, { icon: vehicleIcon(v.bearing ?? 0, v.route_type ?? 3, displayName) })
-      } else {
-        marker = L.circleMarker(latlng, {
-          radius: 5,
-          fillColor: color,
-          fillOpacity: 0.95,
-          color: color,
-          opacity: 0,
-          weight: 0
-        })
-      }
+      const icon = useDetailed
+        ? vehicleIcon(v.bearing ?? 0, v.route_type ?? 3, displayName)
+        : vehicleDotIcon(v.route_type ?? 3)
+      const marker = L.marker(latlng, { icon, zIndexOffset: 1000 })
       marker.bindPopup(popupHtml)
       if (onVehicleSelect) marker.on('click', () => onVehicleSelect(v))
       marker.addTo(group)

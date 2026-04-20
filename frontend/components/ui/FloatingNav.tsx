@@ -17,6 +17,7 @@ interface Props {
 interface StopMeta {
   eta_minutes: number | null;
   stop_name: string | null;
+  status: 'departed' | 'delay' | 'on_time' | 'scheduled' | null;
 }
 
 interface TripInfo {
@@ -39,6 +40,8 @@ export default function FloatingNav({
   const [dragY, setDragY] = useState(0);
   const dragStartY = useRef(0);
   const navRef = useRef<HTMLDivElement>(null);
+  const etaUpdatesRef = useRef<TripEtaUpdate[] | null>(null);
+  const autoCancelledRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     const el = navRef.current;
@@ -82,28 +85,53 @@ export default function FloatingNav({
       .then((trip) => {
         if (!trip) return;
         const stops: TripInfo["stops"] = {};
-        for (const s of trip.stops) stops[s.stop_id] = { eta_minutes: s.eta_minutes, stop_name: s.stop_name };
-        setTripInfo({ route_short_name: trip.route_short_name, route_type: trip.route_type, stops });
+        for (const s of trip.stops) stops[s.stop_id] = { eta_minutes: s.eta_minutes, stop_name: s.stop_name, status: s.status ?? null };
+        const base: TripInfo = { route_short_name: trip.route_short_name, route_type: trip.route_type, stops };
+        // Apply any eta updates that arrived before static data loaded
+        const etas = etaUpdatesRef.current;
+        if (etas) {
+          const newStops = { ...base.stops };
+          for (const e of etas) {
+            if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes };
+          }
+          setTripInfo({ ...base, stops: newStops });
+        } else {
+          setTripInfo(base);
+        }
       })
       .catch(() => {});
   }, [activeVehicleId]);
 
   // SSE stream for ETA updates only
   const etaUpdates = useSSE<TripEtaUpdate[]>(
-    activeVehicleId ? `/api/realtime/vehicles/${encodeURIComponent(activeVehicleId)}/trip/etas` : null
+    activeVehicleId ? `/realtime/vehicles/${encodeURIComponent(activeVehicleId)}/trip/etas` : null
   );
 
   useEffect(() => {
+    etaUpdatesRef.current = etaUpdates;
     if (!etaUpdates) return;
     setTripInfo((prev) => {
       if (!prev) return prev;
       const newStops = { ...prev.stops };
       for (const e of etaUpdates) {
-        if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes };
+        if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes, status: e.status };
       }
       return { ...prev, stops: newStops };
     });
   }, [etaUpdates]);
+
+  // Auto-cancel reservations when vehicle arrives at the stop (eta === 0)
+  useEffect(() => {
+    if (!tripInfo) return;
+    for (const res of [boardingRes, alightingRes]) {
+      if (!res || autoCancelledRef.current.has(res.id)) continue;
+      const meta = tripInfo.stops[res.stop_id];
+      if (meta?.eta_minutes === 0) {
+        autoCancelledRef.current.add(res.id);
+        cancel(res.id);
+      }
+    }
+  }, [tripInfo, boardingRes, alightingRes, cancel]);
 
   return (
     <>
@@ -135,7 +163,8 @@ export default function FloatingNav({
                 ? (tripInfo?.stops[alightingRes.stop_id]?.eta_minutes ?? null)
                 : null;
               // Once boarding stop is at 0 min (vehicle arrived), switch focus to alighting
-              const boardDone = boardEta !== null && boardEta <= 0;
+              const boardStopMeta = boardingRes ? (tripInfo?.stops[boardingRes.stop_id] ?? null) : null;
+              const boardDone = boardEta !== null && boardEta <= 0 && boardStopMeta?.status === 'departed';
               const primary =
                 boardingRes && alightingRes
                   ? boardDone
@@ -145,10 +174,10 @@ export default function FloatingNav({
                       : alightingRes
                   : (boardingRes ?? alightingRes!);
               const primaryType = primary === boardingRes ? "board" : "alight";
-              const primaryEta =
-                tripInfo?.stops[primary.stop_id]?.eta_minutes ?? null;
-              const primaryStop =
-                tripInfo?.stops[primary.stop_id]?.stop_name ?? null;
+              const primaryStopMeta = tripInfo?.stops[primary.stop_id] ?? null;
+              const primaryEta = primaryStopMeta?.eta_minutes ?? null;
+              const primaryStop = primaryStopMeta?.stop_name ?? null;
+              const primaryStatus = primaryStopMeta?.status ?? null;
               return (
                 <button
                   type="button"
@@ -166,6 +195,7 @@ export default function FloatingNav({
                     routeType={tripInfo?.route_type ?? null}
                     stopName={primaryStop}
                     eta={primaryEta}
+                    status={primaryStatus}
                   />
                 </button>
               );
@@ -275,6 +305,7 @@ export default function FloatingNav({
                     type="board"
                     onCancel={async (id) => {
                       await cancel(id);
+                      if (alightingRes) await cancel(alightingRes.id);
                     }}
                     onOpenVehicle={onOpenVehicle}
                   />
@@ -315,16 +346,19 @@ function ResBanner({
   routeType,
   stopName,
   eta,
+  status,
 }: {
   type: "board" | "alight";
   routeName: string | null;
   routeType: number | null;
   stopName: string | null;
   eta: number | null;
+  status: 'departed' | 'delay' | 'on_time' | 'scheduled' | null;
 }) {
   const borderColor = type === "board" ? "#22c55e" : "#f59e0b";
   const label = type === "board" ? "Качване" : "Слизане";
   const transportColor = getRouteColor(routeType);
+  const isDeparted = status === 'departed';
   return (
     <div
       className="flex w-full min-w-0 items-stretch gap-3 rounded-xl p-3 text-left"
@@ -356,18 +390,31 @@ function ResBanner({
         )}
       </div>
 
-      {/* Right: big ETA box in transport color */}
-      {eta !== null && (
+      {/* Right: big ETA box or departed label */}
+      {isDeparted ? (
         <div
-          className="flex flex-shrink-0 flex-col items-center justify-center rounded-lg px-4"
-          style={{ minWidth: 72 }}
+          className="flex flex-shrink-0 flex-col items-center justify-center rounded-lg px-3"
+          style={{ minWidth: 72, background: "var(--control-bg)" }}
         >
-          <p className="text-4xl font-black leading-none text-white">{eta}</p>
-          <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-white opacity-80">
-            минути
-          </p>
+          <p className="text-xs font-bold text-center" style={{ color: "var(--text-muted)" }}>Замина</p>
         </div>
-      )}
+      ) : eta !== null ? (
+        <div
+          className="flex flex-shrink-0 flex-col items-center justify-center px-2"
+          style={{ minWidth: 64 }}
+        >
+          {eta === 0 ? (
+            <p className="text-sm font-black leading-tight text-center" style={{ color: borderColor }}>всеки<br/>момент</p>
+          ) : (
+            <>
+              <p className="text-4xl font-black leading-none" style={{ color: 'var(--text)' }}>{eta}</p>
+              <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                минути
+              </p>
+            </>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

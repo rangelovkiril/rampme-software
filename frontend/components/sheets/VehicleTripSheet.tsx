@@ -47,31 +47,46 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
   )
   const isLocked = lockedVehicleId === vehicle?.id
 
-  const fetchTrip = useCallback(async (vehicleId: string) => {
+  const etaUpdatesRef = useRef<TripEtaUpdate[] | null>(null)
+
+  const fetchTrip = useCallback(async (vehicleId: string, signal: AbortSignal) => {
     setLoading(true)
     try {
-      const r = await fetch(`/api/realtime/vehicles/${encodeURIComponent(vehicleId)}/trip`)
+      const r = await fetch(`/api/realtime/vehicles/${encodeURIComponent(vehicleId)}/trip`, { signal })
+      if (signal.aborted) return
       if (!r.ok) { setError('Неуспешно зареждане на маршрут.'); return }
-      setTrip(await r.json())
+      const data: TripData = await r.json()
+      if (signal.aborted) return
+      const etas = etaUpdatesRef.current
+      if (etas) {
+        const map = new Map(etas.map((e) => [e.stop_id, e]))
+        setTrip({ ...data, stops: data.stops.map((s) => { const u = map.get(s.stop_id); return u ? { ...s, ...u } : s }) })
+      } else {
+        setTrip(data)
+      }
       setError(null)
-    } catch {
+    } catch (e) {
+      if ((e as Error)?.name === 'AbortError') return
       setError('Неуспешно зареждане на маршрут.')
     } finally {
-      setLoading(false)
+      if (!signal.aborted) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     if (!vehicle) { setTrip(null); return }
     setError(null)
-    fetchTrip(vehicle.id)
+    const controller = new AbortController()
+    fetchTrip(vehicle.id, controller.signal)
+    return () => controller.abort()
   }, [vehicle, fetchTrip])
 
   const etaUpdates = useSSE<TripEtaUpdate[]>(
-    vehicle ? `/api/realtime/vehicles/${encodeURIComponent(vehicle.id)}/trip/etas` : null
+    vehicle ? `/realtime/vehicles/${encodeURIComponent(vehicle.id)}/trip/etas` : null
   )
 
   useEffect(() => {
+    etaUpdatesRef.current = etaUpdates
     if (!etaUpdates) return
     setTrip((prev) => {
       if (!prev) return prev
@@ -157,7 +172,7 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                     className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
                     style={{ background: '#3b82f6', color: '#fff' }}
                   >
-                    Вашият автобус
+                    Вашето превозно средство
                   </span>
                 )}
               </p>
@@ -193,8 +208,8 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                 const isBoarding = boardingRes?.stop_id === stop.stop_id
                 const isAlighting = alightingRes?.stop_id === stop.stop_id
                 const isAfterBoarding = boardingSeq >= 0 && stop.stop_sequence > boardingSeq
-                const canAlight = isLocked && !isDeparted && !isAtStop && !isBoarding && !isAlighting && isAfterBoarding
-                const canBoard = !isLocked && !boardingRes && !isDeparted && !isAtStop
+                const canAlight = isLocked && !alightingRes && !isDeparted && !isAtStop && !isBoarding && !isAlighting && isAfterBoarding
+                const canBoard = !isLocked && !boardingRes && !alightingRes && !isDeparted && !isAtStop
                 const isReservingThis = reservingStopId === stop.stop_id
                 const isBoardingThis = boardingStopId === stop.stop_id
                 const isLast = i === arr.length - 1
@@ -271,8 +286,14 @@ export default function VehicleTripSheet({ vehicle, onClose }: Props) {
                         <div className="flex items-start gap-2" style={{ flexShrink: 0 }}>
                           {stop.eta_minutes !== null && stop.eta_minutes !== undefined && (
                             <div className="text-right">
-                              <p className="text-base font-bold">{stop.eta_minutes}</p>
-                              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>мин</p>
+                              {stop.eta_minutes === 0 ? (
+                                <p className="text-xs font-bold leading-tight" style={{ color: '#22c55e' }}>всеки<br/>момент</p>
+                              ) : (
+                                <>
+                                  <p className="text-base font-bold">{stop.eta_minutes}</p>
+                                  <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>мин</p>
+                                </>
+                              )}
                             </div>
                           )}
 

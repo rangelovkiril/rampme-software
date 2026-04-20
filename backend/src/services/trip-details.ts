@@ -165,7 +165,7 @@ function buildTripStop(
     const scheduledTotalMin = normH * 60 + minutes
     const currentMinutes = nowTotalMinutes()
     const diff = scheduledTotalMin - currentMinutes
-    if (diff < -2) {
+    if (diff < 0) {
       status = 'departed'
       eta_minutes = 0
     } else {

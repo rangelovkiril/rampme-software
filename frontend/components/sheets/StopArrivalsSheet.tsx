@@ -39,7 +39,7 @@ export default function StopArrivalsSheet({
   const isNearStop = true;
 
   const sseArrivals = useSSE<StopArrival[]>(
-    stop ? `/api/stops/${encodeURIComponent(stop.stop_id)}/vehicles/stream?limit=20` : null
+    stop ? `/stops/${encodeURIComponent(stop.stop_id)}/vehicles/stream?limit=20` : null
   );
 
   useEffect(() => {
