@@ -2,15 +2,28 @@ export const config = {
   port: Number(process.env.PORT ?? 3000),
 
   gtfs: {
-    staticUrl: process.env.GTFS_STATIC_URL ?? 'https://gtfs.sofiatraffic.bg/api/v1/static',
-    realtimeBaseUrl: process.env.GTFS_RT_BASE_URL ?? 'https://gtfs.sofiatraffic.bg/api/v1',
-    refreshInterval: Number(process.env.GTFS_REFRESH_INTERVAL ?? 24 * 60 * 60 * 1000),
+    staticUrl:
+      process.env.GTFS_STATIC_URL ??
+      "https://gtfs.sofiatraffic.bg/api/v1/static",
+    realtimeBaseUrl:
+      process.env.GTFS_RT_BASE_URL ?? "https://gtfs.sofiatraffic.bg/api/v1",
+    refreshInterval: Number(
+      process.env.GTFS_REFRESH_INTERVAL ?? 24 * 60 * 60 * 1000,
+    ),
   },
 
-  protoPath: process.env.PROTO_PATH ?? 'proto/gtfs-realtime.proto',
+  protoPath: process.env.PROTO_PATH ?? "proto/gtfs-realtime.proto",
 
-  rampDbPath: process.env.RAMP_DB_PATH ?? './data/ramp.db',
+  mockRamp: process.env.MOCK_RAMP === "true",
 
-  // Global hardware URL - used for all vehicles without a per-vehicle mapping (MVP)
-  hardwareUrl: process.env.HARDWARE_URL ?? null,
-} as const
+  rampDbPath: process.env.RAMP_DB_PATH ?? "./data/ramp.db",
+
+  mqtt: {
+    url: process.env.MQTT_URL ?? "mqtts://broker.hivemq.com:8883",
+    username: process.env.MQTT_USERNAME,
+    password: process.env.MQTT_PASSWORD,
+    clientId:
+      process.env.MQTT_CLIENT_ID ??
+      `rampme-backend-${Math.random().toString(16).slice(2, 8)}`,
+  },
+} as const;
