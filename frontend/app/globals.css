@@ -53,7 +53,8 @@
   --control-hover: #242432;
   --map-bg: #0d0d14;
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-lg:
+    0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 body {
@@ -80,7 +81,6 @@ textarea:focus-visible {
 .leaflet-control-zoom,
 .leaflet-control-attribution {
   display: none !important;
-
 }
 
 .dark .leaflet-tile-pane {
@@ -94,9 +94,18 @@ textarea:focus-visible {
 }
 
 @keyframes loc-pulse {
-  0% { opacity: 0.5; stroke-width: 1.5; }
-  50% { opacity: 0.15; stroke-width: 3; }
-  100% { opacity: 0.5; stroke-width: 1.5; }
+  0% {
+    opacity: 0.5;
+    stroke-width: 1.5;
+  }
+  50% {
+    opacity: 0.15;
+    stroke-width: 3;
+  }
+  100% {
+    opacity: 0.5;
+    stroke-width: 1.5;
+  }
 }
 
 @media (max-width: 640px) {
@@ -121,7 +130,6 @@ textarea:focus-visible {
     --sheet-title-size: 21px;
     --sheet-text-size: 15px;
   }
-
 }
 
 .map-control-btn {
@@ -209,4 +217,18 @@ textarea:focus-visible {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+@keyframes res-banner-pulse {
+  0%,
+  100% {
+    background: color-mix(in oklab, var(--res-color) 18%, transparent);
+  }
+  50% {
+    background: color-mix(in oklab, var(--res-color) 6%, transparent);
+  }
+}
+
+.res-banner-active {
+  animation: res-banner-pulse 1.6s ease-in-out infinite;
 }

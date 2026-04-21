@@ -17,7 +17,7 @@ interface Props {
 interface StopMeta {
   eta_minutes: number | null;
   stop_name: string | null;
-  status: 'departed' | 'delay' | 'on_time' | 'scheduled' | null;
+  status: "departed" | "delay" | "on_time" | "scheduled" | null;
 }
 
 interface TripInfo {
@@ -33,7 +33,8 @@ export default function FloatingNav({
   onReservationsOpen,
   closeSignal,
 }: Props) {
-  const { reservations, lockedVehicleId, lockedRouteShortName, cancel } = useRamp();
+  const { reservations, lockedVehicleId, lockedRouteShortName, cancel } =
+    useRamp();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragY, setDragY] = useState(0);
@@ -42,7 +43,9 @@ export default function FloatingNav({
 
   // ── trip info state: one per vehicle ────────────────────────────────────
   const [primaryTripInfo, setPrimaryTripInfo] = useState<TripInfo | null>(null);
-  const [secondaryTripInfo, setSecondaryTripInfo] = useState<TripInfo | null>(null);
+  const [secondaryTripInfo, setSecondaryTripInfo] = useState<TripInfo | null>(
+    null,
+  );
   const primaryEtaRef = useRef<TripEtaUpdate[] | null>(null);
   const secondaryEtaRef = useRef<TripEtaUpdate[] | null>(null);
 
@@ -80,28 +83,48 @@ export default function FloatingNav({
 
   // ── vehicle IDs ──────────────────────────────────────────────────────────
   // Primary: boarding vehicle (if boarding exists), otherwise alighting vehicle
-  const primaryVehicleId = boardingRes?.vehicle_id ?? alightingRes?.vehicle_id ?? null;
+  const primaryVehicleId =
+    boardingRes?.vehicle_id ?? alightingRes?.vehicle_id ?? null;
   // Secondary: alighting vehicle only when it differs from the boarding vehicle
   const secondaryVehicleId =
-    boardingRes && alightingRes && boardingRes.vehicle_id !== alightingRes.vehicle_id
+    boardingRes &&
+    alightingRes &&
+    boardingRes.vehicle_id !== alightingRes.vehicle_id
       ? alightingRes.vehicle_id
       : null;
 
   // ── fetch static trip structure for primary vehicle ──────────────────────
   useEffect(() => {
-    if (!primaryVehicleId) { setPrimaryTripInfo(null); return; }
+    if (!primaryVehicleId) {
+      setPrimaryTripInfo(null);
+      return;
+    }
     fetch(`/api/realtime/vehicles/${encodeURIComponent(primaryVehicleId)}/trip`)
       .then((r) => (r.ok ? r.json() : null))
       .then((trip) => {
         if (!trip) return;
         const stops: TripInfo["stops"] = {};
-        for (const s of trip.stops) stops[s.stop_id] = { eta_minutes: s.eta_minutes, stop_name: s.stop_name, status: s.status ?? null };
-        const base: TripInfo = { route_short_name: trip.route_short_name, route_type: trip.route_type, stops };
+        for (const s of trip.stops)
+          stops[s.stop_id] = {
+            eta_minutes: s.eta_minutes,
+            stop_name: s.stop_name,
+            status: s.status ?? null,
+          };
+        const base: TripInfo = {
+          route_short_name: trip.route_short_name,
+          route_type: trip.route_type,
+          stops,
+        };
         const etas = primaryEtaRef.current;
         if (etas) {
           const newStops = { ...base.stops };
           for (const e of etas) {
-            if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes, status: e.status };
+            if (newStops[e.stop_id])
+              newStops[e.stop_id] = {
+                ...newStops[e.stop_id],
+                eta_minutes: e.eta_minutes,
+                status: e.status,
+              };
           }
           setPrimaryTripInfo({ ...base, stops: newStops });
         } else {
@@ -113,19 +136,38 @@ export default function FloatingNav({
 
   // ── fetch static trip structure for secondary vehicle ────────────────────
   useEffect(() => {
-    if (!secondaryVehicleId) { setSecondaryTripInfo(null); return; }
-    fetch(`/api/realtime/vehicles/${encodeURIComponent(secondaryVehicleId)}/trip`)
+    if (!secondaryVehicleId) {
+      setSecondaryTripInfo(null);
+      return;
+    }
+    fetch(
+      `/api/realtime/vehicles/${encodeURIComponent(secondaryVehicleId)}/trip`,
+    )
       .then((r) => (r.ok ? r.json() : null))
       .then((trip) => {
         if (!trip) return;
         const stops: TripInfo["stops"] = {};
-        for (const s of trip.stops) stops[s.stop_id] = { eta_minutes: s.eta_minutes, stop_name: s.stop_name, status: s.status ?? null };
-        const base: TripInfo = { route_short_name: trip.route_short_name, route_type: trip.route_type, stops };
+        for (const s of trip.stops)
+          stops[s.stop_id] = {
+            eta_minutes: s.eta_minutes,
+            stop_name: s.stop_name,
+            status: s.status ?? null,
+          };
+        const base: TripInfo = {
+          route_short_name: trip.route_short_name,
+          route_type: trip.route_type,
+          stops,
+        };
         const etas = secondaryEtaRef.current;
         if (etas) {
           const newStops = { ...base.stops };
           for (const e of etas) {
-            if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes, status: e.status };
+            if (newStops[e.stop_id])
+              newStops[e.stop_id] = {
+                ...newStops[e.stop_id],
+                eta_minutes: e.eta_minutes,
+                status: e.status,
+              };
           }
           setSecondaryTripInfo({ ...base, stops: newStops });
         } else {
@@ -137,7 +179,9 @@ export default function FloatingNav({
 
   // ── SSE ETA updates for primary vehicle ─────────────────────────────────
   const primaryEtaUpdates = useSSE<TripEtaUpdate[]>(
-    primaryVehicleId ? `/realtime/vehicles/${encodeURIComponent(primaryVehicleId)}/trip/etas` : null
+    primaryVehicleId
+      ? `/realtime/vehicles/${encodeURIComponent(primaryVehicleId)}/trip/etas`
+      : null,
   );
 
   useEffect(() => {
@@ -147,7 +191,12 @@ export default function FloatingNav({
       if (!prev) return prev;
       const newStops = { ...prev.stops };
       for (const e of primaryEtaUpdates) {
-        if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes, status: e.status };
+        if (newStops[e.stop_id])
+          newStops[e.stop_id] = {
+            ...newStops[e.stop_id],
+            eta_minutes: e.eta_minutes,
+            status: e.status,
+          };
       }
       return { ...prev, stops: newStops };
     });
@@ -155,7 +204,9 @@ export default function FloatingNav({
 
   // ── SSE ETA updates for secondary vehicle ────────────────────────────────
   const secondaryEtaUpdates = useSSE<TripEtaUpdate[]>(
-    secondaryVehicleId ? `/realtime/vehicles/${encodeURIComponent(secondaryVehicleId)}/trip/etas` : null
+    secondaryVehicleId
+      ? `/realtime/vehicles/${encodeURIComponent(secondaryVehicleId)}/trip/etas`
+      : null,
   );
 
   useEffect(() => {
@@ -165,7 +216,12 @@ export default function FloatingNav({
       if (!prev) return prev;
       const newStops = { ...prev.stops };
       for (const e of secondaryEtaUpdates) {
-        if (newStops[e.stop_id]) newStops[e.stop_id] = { ...newStops[e.stop_id], eta_minutes: e.eta_minutes, status: e.status };
+        if (newStops[e.stop_id])
+          newStops[e.stop_id] = {
+            ...newStops[e.stop_id],
+            eta_minutes: e.eta_minutes,
+            status: e.status,
+          };
       }
       return { ...prev, stops: newStops };
     });
@@ -183,18 +239,24 @@ export default function FloatingNav({
   // Route name for alighting (use secondary info if separate vehicle, else primary)
   const alightingRouteName =
     secondaryTripInfo?.route_short_name ??
-    (boardingRes && alightingRes && boardingRes.vehicle_id !== alightingRes.vehicle_id
+    (boardingRes &&
+    alightingRes &&
+    boardingRes.vehicle_id !== alightingRes.vehicle_id
       ? null
-      : primaryTripInfo?.route_short_name ?? lockedRouteShortName);
+      : (primaryTripInfo?.route_short_name ?? lockedRouteShortName));
 
   // ── banner display order ─────────────────────────────────────────────────
   // Active boarding always first; otherwise sort ascending by ETA (null = last)
-  const boardingEta = boardingRes ? (getBoardingMeta(boardingRes.stop_id)?.eta_minutes ?? null) : null;
-  const alightingEta = alightingRes ? (getAlightingMeta(alightingRes.stop_id)?.eta_minutes ?? null) : null;
+  const boardingEta = boardingRes
+    ? (getBoardingMeta(boardingRes.stop_id)?.eta_minutes ?? null)
+    : null;
+  const alightingEta = alightingRes
+    ? (getAlightingMeta(alightingRes.stop_id)?.eta_minutes ?? null)
+    : null;
   const showAlightingFirst =
     boardingRes &&
     alightingRes &&
-    boardingRes.status !== 'active' &&
+    boardingRes.status !== "active" &&
     alightingEta !== null &&
     (boardingEta === null || alightingEta <= boardingEta);
 
@@ -202,6 +264,7 @@ export default function FloatingNav({
     <>
       {/* Nav pill */}
       <div
+        data-floating-nav
         className="pointer-events-none fixed left-1/2 z-[800] -translate-x-1/2"
         style={{
           top: "var(--nav-top-offset)",
@@ -224,34 +287,64 @@ export default function FloatingNav({
                 <>
                   <button
                     type="button"
-                    onClick={() => { setSheetOpen(true); onReservationsOpen?.(); }}
+                    onClick={() => {
+                      setSheetOpen(true);
+                      onReservationsOpen?.();
+                    }}
                     className="w-full cursor-pointer"
-                    style={{ background: "transparent", border: "none", padding: 0 }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                    }}
                   >
                     <ResBanner
                       type="alight"
                       routeName={alightingRouteName}
-                      routeType={secondaryTripInfo?.route_type ?? primaryTripInfo?.route_type ?? null}
-                      stopName={getAlightingMeta(alightingRes!.stop_id)?.stop_name ?? null}
+                      routeType={
+                        secondaryTripInfo?.route_type ??
+                        primaryTripInfo?.route_type ??
+                        null
+                      }
+                      stopName={
+                        getAlightingMeta(alightingRes!.stop_id)?.stop_name ??
+                        null
+                      }
                       eta={alightingEta}
-                      status={getAlightingMeta(alightingRes!.stop_id)?.status ?? null}
-                      resStatus={alightingRes!.status as 'pending' | 'active'}
+                      status={
+                        getAlightingMeta(alightingRes!.stop_id)?.status ?? null
+                      }
+                      resStatus={alightingRes!.status as "pending" | "active"}
                     />
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setSheetOpen(true); onReservationsOpen?.(); }}
+                    onClick={() => {
+                      setSheetOpen(true);
+                      onReservationsOpen?.();
+                    }}
                     className="w-full cursor-pointer"
-                    style={{ background: "transparent", border: "none", padding: 0 }}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                    }}
                   >
                     <ResBanner
                       type="board"
-                      routeName={primaryTripInfo?.route_short_name ?? lockedRouteShortName}
+                      routeName={
+                        primaryTripInfo?.route_short_name ??
+                        lockedRouteShortName
+                      }
                       routeType={primaryTripInfo?.route_type ?? null}
-                      stopName={getBoardingMeta(boardingRes!.stop_id)?.stop_name ?? null}
+                      stopName={
+                        getBoardingMeta(boardingRes!.stop_id)?.stop_name ?? null
+                      }
                       eta={boardingEta}
-                      status={getBoardingMeta(boardingRes!.stop_id)?.status ?? null}
-                      resStatus={boardingRes!.status as 'pending' | 'active'}
+                      status={
+                        getBoardingMeta(boardingRes!.stop_id)?.status ?? null
+                      }
+                      resStatus={boardingRes!.status as "pending" | "active"}
                     />
                   </button>
                 </>
@@ -260,36 +353,67 @@ export default function FloatingNav({
                   {boardingRes && (
                     <button
                       type="button"
-                      onClick={() => { setSheetOpen(true); onReservationsOpen?.(); }}
+                      onClick={() => {
+                        setSheetOpen(true);
+                        onReservationsOpen?.();
+                      }}
                       className="w-full cursor-pointer"
-                      style={{ background: "transparent", border: "none", padding: 0 }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        padding: 0,
+                      }}
                     >
                       <ResBanner
                         type="board"
-                        routeName={primaryTripInfo?.route_short_name ?? lockedRouteShortName}
+                        routeName={
+                          primaryTripInfo?.route_short_name ??
+                          lockedRouteShortName
+                        }
                         routeType={primaryTripInfo?.route_type ?? null}
-                        stopName={getBoardingMeta(boardingRes.stop_id)?.stop_name ?? null}
+                        stopName={
+                          getBoardingMeta(boardingRes.stop_id)?.stop_name ??
+                          null
+                        }
                         eta={boardingEta}
-                        status={getBoardingMeta(boardingRes.stop_id)?.status ?? null}
-                        resStatus={boardingRes.status as 'pending' | 'active'}
+                        status={
+                          getBoardingMeta(boardingRes.stop_id)?.status ?? null
+                        }
+                        resStatus={boardingRes.status as "pending" | "active"}
                       />
                     </button>
                   )}
                   {alightingRes && (
                     <button
                       type="button"
-                      onClick={() => { setSheetOpen(true); onReservationsOpen?.(); }}
+                      onClick={() => {
+                        setSheetOpen(true);
+                        onReservationsOpen?.();
+                      }}
                       className="w-full cursor-pointer"
-                      style={{ background: "transparent", border: "none", padding: 0 }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        padding: 0,
+                      }}
                     >
                       <ResBanner
                         type="alight"
                         routeName={alightingRouteName}
-                        routeType={secondaryTripInfo?.route_type ?? primaryTripInfo?.route_type ?? null}
-                        stopName={getAlightingMeta(alightingRes.stop_id)?.stop_name ?? null}
+                        routeType={
+                          secondaryTripInfo?.route_type ??
+                          primaryTripInfo?.route_type ??
+                          null
+                        }
+                        stopName={
+                          getAlightingMeta(alightingRes.stop_id)?.stop_name ??
+                          null
+                        }
                         eta={alightingEta}
-                        status={getAlightingMeta(alightingRes.stop_id)?.status ?? null}
-                        resStatus={alightingRes.status as 'pending' | 'active'}
+                        status={
+                          getAlightingMeta(alightingRes.stop_id)?.status ?? null
+                        }
+                        resStatus={alightingRes.status as "pending" | "active"}
                       />
                     </button>
                   )}
@@ -368,21 +492,45 @@ export default function FloatingNav({
                 background: "var(--surface-elevated)",
                 borderColor: "var(--border)",
                 boxShadow: "var(--shadow-lg)",
-                transform: isDragging && dragY > 0 ? `translateY(${dragY}px)` : undefined,
+                transform:
+                  isDragging && dragY > 0
+                    ? `translateY(${dragY}px)`
+                    : undefined,
                 transition: isDragging ? "none" : undefined,
               }}
             >
               <div
                 className="flex touch-none justify-center pt-2.5 pb-0 sm:hidden"
-                onTouchStart={(e) => { dragStartY.current = e.touches[0].clientY; setIsDragging(true); }}
-                onTouchMove={(e) => { if (!isDragging) return; const dy = e.touches[0].clientY - dragStartY.current; setDragY(Math.max(0, dy)); }}
-                onTouchEnd={() => { setIsDragging(false); if (dragY > 80) { setDragY(0); setSheetOpen(false); } else { setDragY(0); } }}
-                onTouchCancel={() => { setIsDragging(false); setDragY(0); }}
+                onTouchStart={(e) => {
+                  dragStartY.current = e.touches[0].clientY;
+                  setIsDragging(true);
+                }}
+                onTouchMove={(e) => {
+                  if (!isDragging) return;
+                  const dy = e.touches[0].clientY - dragStartY.current;
+                  setDragY(Math.max(0, dy));
+                }}
+                onTouchEnd={() => {
+                  setIsDragging(false);
+                  if (dragY > 80) {
+                    setDragY(0);
+                    setSheetOpen(false);
+                  } else {
+                    setDragY(0);
+                  }
+                }}
+                onTouchCancel={() => {
+                  setIsDragging(false);
+                  setDragY(0);
+                }}
                 role="presentation"
               >
                 <div
                   className="h-1 w-10 rounded-full"
-                  style={{ background: "color-mix(in oklab, var(--text) 20%, transparent)" }}
+                  style={{
+                    background:
+                      "color-mix(in oklab, var(--text) 20%, transparent)",
+                  }}
                 />
               </div>
 
@@ -393,7 +541,9 @@ export default function FloatingNav({
                     meta={getAlightingMeta(alightingRes.stop_id)}
                     routeName={alightingRouteName}
                     type="alight"
-                    onCancel={async (id) => { await cancel(id); }}
+                    onCancel={async (id) => {
+                      await cancel(id);
+                    }}
                     onOpenVehicle={onOpenVehicle}
                   />
                 )}
@@ -407,7 +557,7 @@ export default function FloatingNav({
                       await cancel(id);
                       if (
                         alightingRes &&
-                        boardingRes.status !== 'active' &&
+                        boardingRes.status !== "active" &&
                         boardingRes.vehicle_id === alightingRes.vehicle_id
                       ) {
                         await cancel(alightingRes.id);
@@ -422,7 +572,9 @@ export default function FloatingNav({
                     meta={getAlightingMeta(alightingRes.stop_id)}
                     routeName={alightingRouteName}
                     type="alight"
-                    onCancel={async (id) => { await cancel(id); }}
+                    onCancel={async (id) => {
+                      await cancel(id);
+                    }}
                     onOpenVehicle={onOpenVehicle}
                   />
                 )}
@@ -458,33 +610,37 @@ function ResBanner({
   routeType: number | null;
   stopName: string | null;
   eta: number | null;
-  status: 'departed' | 'delay' | 'on_time' | 'scheduled' | null;
-  resStatus: 'pending' | 'active';
+  status: "departed" | "delay" | "on_time" | "scheduled" | null;
+  resStatus: "pending" | "active";
 }) {
   const borderColor = type === "board" ? "#22c55e" : "#f59e0b";
   const label = type === "board" ? "Качване" : "Слизане";
   const transportColor = getRouteColor(routeType);
-  const isDeparted = status === 'departed';
+  const isDeparted = status === "departed";
   // Vehicle is at the stop and the user is boarding/alighting right now
-  const isAtStop = resStatus === 'active';
+  const isAtStop = resStatus === "active";
 
   return (
     <div
-      className="flex w-full min-w-0 items-stretch gap-3 rounded-xl p-3 text-left"
+      className={
+        isAtStop
+          ? "res-banner-active flex w-full min-w-0 items-stretch gap-3 rounded-xl p-3 text-left"
+          : "flex w-full min-w-0 items-stretch gap-3 rounded-xl p-3 text-left"
+      }
       style={{
         border: `2px solid ${borderColor}`,
         background: isAtStop
-          ? `color-mix(in oklab, ${borderColor} 8%, transparent)`
+          ? `color-mix(in oklab, ${borderColor} 18%, transparent)`
           : "transparent",
-        boxShadow: isAtStop ? `0 0 12px color-mix(in oklab, ${borderColor} 40%, transparent)` : undefined,
-        transition: "background 0.3s, box-shadow 0.3s",
+        transition: "background 0.3s",
+        ["--res-color" as string]: borderColor,
       }}
     >
       {/* Left: route badge + stop name stacked */}
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5">
         <div className="flex items-center gap-2">
           <span
-            className={isAtStop ? "animate-pulse rounded-lg px-2.5 py-1 text-base font-black" : "rounded-lg px-2.5 py-1 text-base font-black"}
+            className="rounded-lg px-2.5 py-1 text-base font-black"
             style={{ background: transportColor, color: "#fff" }}
           >
             {routeName ?? "?"}
@@ -506,47 +662,45 @@ function ResBanner({
         )}
       </div>
 
-      {/* Right: ETA / boarding state / departed */}
+      {/* Right: boarding-now / ETA — both same visual size */}
       {isAtStop ? (
         <div
-          className="flex flex-shrink-0 flex-col items-center justify-center px-2"
-          style={{ minWidth: 64 }}
+          className="flex flex-shrink-0 items-center justify-center px-2"
+          style={{ minWidth: 72 }}
         >
-          <div className="relative flex items-center justify-center">
-            <span
-              className="absolute inline-flex h-8 w-8 rounded-full opacity-60 animate-ping"
-              style={{ background: borderColor }}
-            />
-            <span
-              className="relative inline-flex h-5 w-5 rounded-full"
-              style={{ background: borderColor }}
-            />
-          </div>
           <p
-            className="mt-1.5 text-xs font-bold text-center leading-tight"
-            style={{ color: borderColor }}
+            className="text-base font-black leading-tight text-center whitespace-nowrap"
+            style={{ color: "#ffffff" }}
           >
-            {type === "board" ? "Качваш\nсе" : "Слизаш\nсега"}
+            {type === "board" ? "Качваш се" : "Слизаш сега"}
           </p>
-        </div>
-      ) : isDeparted ? (
-        <div
-          className="flex flex-shrink-0 flex-col items-center justify-center rounded-lg px-3"
-          style={{ minWidth: 72, background: "var(--control-bg)" }}
-        >
-          <p className="text-xs font-bold text-center" style={{ color: "var(--text-muted)" }}>Замина</p>
         </div>
       ) : eta !== null ? (
         <div
           className="flex flex-shrink-0 flex-col items-center justify-center px-2"
-          style={{ minWidth: 64 }}
+          style={{ minWidth: 72 }}
         >
           {eta === 0 ? (
-            <p className="text-sm font-black leading-tight text-center" style={{ color: borderColor }}>всеки<br/>момент</p>
+            <p
+              className="text-base font-black leading-tight text-center"
+              style={{ color: "#ffffff" }}
+            >
+              всеки
+              <br />
+              момент
+            </p>
           ) : (
             <>
-              <p className="text-4xl font-black leading-none" style={{ color: 'var(--text)' }}>{eta}</p>
-              <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+              <p
+                className="text-4xl font-black leading-none"
+                style={{ color: "var(--text)" }}
+              >
+                {eta}
+              </p>
+              <p
+                className="mt-0.5 text-xs font-semibold uppercase tracking-wide"
+                style={{ color: "var(--text-muted)" }}
+              >
                 минути
               </p>
             </>
@@ -577,7 +731,9 @@ function ResDetailCard({
   return (
     <div
       className="flex items-center gap-3 rounded-2xl px-4 py-3"
-      style={{ background: `color-mix(in oklab, ${typeColor} 10%, var(--control-bg) 90%)` }}
+      style={{
+        background: `color-mix(in oklab, ${typeColor} 10%, var(--control-bg) 90%)`,
+      }}
     >
       <button
         type="button"
