@@ -44,7 +44,11 @@ const stmts = {
   `),
   sessionActive: db.prepare(`
     SELECT * FROM ramp_reservations
-    WHERE session_id = $session_id AND status IN ('pending','active')
+    WHERE session_id = $session_id
+      AND (
+        status IN ('pending', 'active')
+        OR (status IN ('expired', 'done', 'cancelled') AND resolved_at > unixepoch() - 300)
+      )
     ORDER BY created_at DESC
   `),
   vehicleActive: db.prepare(`
