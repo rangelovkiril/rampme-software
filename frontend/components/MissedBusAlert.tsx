@@ -1,9 +1,17 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRamp } from '@/contexts/RampContext'
 
 export default function MissedBusAlert() {
   const { missedBusAlert, dismissMissedBusAlert } = useRamp()
+
+  useEffect(() => {
+    if (!missedBusAlert) return
+    const t = setTimeout(dismissMissedBusAlert, 6000)
+    return () => clearTimeout(t)
+  }, [missedBusAlert, dismissMissedBusAlert])
+
   if (!missedBusAlert) return null
 
   return (
