@@ -1,4 +1,4 @@
-import type { GtfsData } from './gtfs/types'
+import type { GtfsData } from '../gtfs/types'
 
 let gtfs: GtfsData | undefined
 
@@ -15,16 +15,4 @@ export function jsonError(message: string, status: number) {
     status,
     headers: { 'Content-Type': 'application/json' },
   })
-}
-
-export function requireGtfs(): GtfsData {
-  const data = gtfs
-  if (!data) throw new GtfsNotReadyError()
-  return data
-}
-
-export class GtfsNotReadyError extends Error {
-  constructor() {
-    super('GTFS data not yet loaded')
-  }
 }

@@ -1,48 +1,50 @@
-import cors from '@elysiajs/cors'
-import { Elysia } from 'elysia'
-import { config } from './config'
-import { fetchStaticGtfs } from './gtfs/static'
-import { initMqtt } from './mqtt'
-import { rampRoutes } from './routes/ramp'
-import { realtimeRoutes } from './routes/realtime'
-import { routesRoutes } from './routes/routes'
-import { stopsRoutes } from './routes/stops'
-import { resyncAllReservations, subscribeToHardwareStates } from './services/ramp-mqtt'
-import { startProximityChecker } from './services/ramp-proximity'
-import { setGtfs } from './state'
-import { swaggerPlugin } from './swagger'
+import cors from "@elysiajs/cors";
+import { Elysia } from "elysia";
+import { config } from "./config";
+import { swaggerPlugin } from "./config/swagger";
+import { fetchStaticGtfs } from "./gtfs/static";
+import { initMqtt } from "./services/mqtt";
+import { rampRoutes } from "./routes/ramp";
+import { realtimeRoutes } from "./routes/realtime";
+import { transitRoutes } from "./routes/transit";
+import { stopsRoutes } from "./routes/stops";
+import {
+  resyncAllReservations,
+  subscribeToHardwareStates,
+} from "./services/ramp/bridge";
+import { startProximityChecker } from "./services/ramp/proximity";
+import { setGtfs } from "./services/state";
 
 async function initGtfs() {
   try {
-    setGtfs(await fetchStaticGtfs())
+    setGtfs(await fetchStaticGtfs());
   } catch (e) {
-    console.error('Failed to load GTFS static data:', e)
+    console.error("Failed to load GTFS static data:", e);
   }
 }
 
-// MQTT first — so reservation routes and proximity have a live publisher
 await initMqtt(config.mqtt.url, {
   username: config.mqtt.username,
   password: config.mqtt.password,
   clientId: config.mqtt.clientId,
-})
-subscribeToHardwareStates()
-resyncAllReservations()
+});
+subscribeToHardwareStates();
+resyncAllReservations();
 
-startProximityChecker()
+startProximityChecker();
 
 const app = new Elysia()
   .use(swaggerPlugin)
   .use(cors())
   .use(stopsRoutes)
-  .use(routesRoutes)
+  .use(transitRoutes)
   .use(realtimeRoutes)
   .use(rampRoutes)
-  .get('/health', () => 'Ok')
+  .get("/health", () => "Ok");
 
-await initGtfs()
-setInterval(initGtfs, config.gtfs.refreshInterval)
+app.listen(config.port);
 
-app.listen(config.port)
+await initGtfs();
+setInterval(initGtfs, config.gtfs.refreshInterval);
 
-console.log(`GTFS server running at http://localhost:${app.server?.port}`)
+console.log(`GTFS server running at http://localhost:${app.server?.port}`);

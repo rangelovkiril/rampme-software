@@ -1,5 +1,5 @@
 /**
- * ramp-proximity.ts — GPS proximity detection.
+ * proximity.ts — GPS proximity detection.
  *
  * Single responsibility: when a vehicle's GPS position is within RADIUS_M
  * of a stop that has pending reservations for that vehicle, publish a
@@ -9,15 +9,15 @@
  * for too long, or whose creation time is older than EXPIRY_SECONDS.
  */
 
-import { getAllActiveReservations, setReservationStatus } from '../db/ramp'
-import { fetchVehiclePositions } from '../gtfs/realtime'
+import { getAllActiveReservations, setReservationStatus } from '../../db/ramp'
+import { fetchVehiclePositions } from '../../gtfs/realtime'
 import { getGtfs } from '../state'
 import {
   clearDeployTrigger,
   markDeployTriggered,
   publishDeploy,
   wasDeployTriggered,
-} from './ramp-mqtt'
+} from './bridge'
 
 const RADIUS_M = 50
 const EXPIRY_SECONDS = 2 * 60 * 60
@@ -109,11 +109,4 @@ export function startProximityChecker(): void {
   if (interval) return
   interval = setInterval(() => tick().catch(console.error), CHECK_INTERVAL_MS)
   console.log(`[proximity] started (${CHECK_INTERVAL_MS}ms interval, radius=${RADIUS_M}m)`)
-}
-
-export function stopProximityChecker(): void {
-  if (interval) {
-    clearInterval(interval)
-    interval = null
-  }
 }

@@ -8,8 +8,8 @@ import {
 import {
   publishCancelReservation,
   publishNewReservation,
-} from "../services/ramp-mqtt";
-import { jsonError } from "../state";
+} from "../services/ramp/bridge";
+import { jsonError } from "../services/state";
 
 function sessionId(headers: Record<string, string | undefined>): string | null {
   const s = headers["x-session-id"];

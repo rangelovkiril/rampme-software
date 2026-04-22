@@ -1,13 +1,13 @@
-import { fetchTripUpdates, fetchVehiclePositions } from '../gtfs/realtime'
-import { activeServiceIds } from '../gtfs/services'
+import { fetchTripUpdates, fetchVehiclePositions } from '../../gtfs/realtime'
+import { activeServiceIds } from '../../gtfs/services'
 import {
   normalizeGtfsHour,
   nowHHMMSS,
   nowTotalMinutes,
   parseGtfsTime,
   unixToHHMM,
-} from '../gtfs/time'
-import type { GtfsData } from '../gtfs/types'
+} from '../../gtfs/time'
+import type { GtfsData } from '../../gtfs/types'
 
 export interface ArrivalResult {
   id: string

@@ -1,5 +1,5 @@
 /**
- * ramp-mqtt.ts — Bridges reservations ↔ hardware over MQTT.
+ * bridge.ts — Bridges reservations ↔ hardware over MQTT.
  *
  * Topic design (payload-based, no info duplicated in topic):
  *
@@ -25,7 +25,7 @@ import {
   getVehicleReservations,
   setReservationStatus,
   type RampReservation,
-} from "../db/ramp";
+} from "../../db/ramp";
 import { getMqtt, jsonParse } from "../mqtt";
 
 const DEPLOY_TIMEOUT_MS = parseInt(

@@ -1,4 +1,4 @@
-import { getVehicleRampInfo, type RampStatus } from '../services/ramp'
+import { getVehicleRampInfo, type RampStatus } from '../services/ramp/status'
 import type { GtfsData } from './types'
 
 export interface EnrichedVehicle {

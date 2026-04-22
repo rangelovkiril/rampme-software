@@ -1,6 +1,6 @@
-import { fetchTripUpdates, fetchVehiclePositions } from '../gtfs/realtime'
-import { normalizeGtfsHour, nowTotalMinutes, parseGtfsTime, unixToHHMM } from '../gtfs/time'
-import type { GtfsData } from '../gtfs/types'
+import { fetchTripUpdates, fetchVehiclePositions } from '../../gtfs/realtime'
+import { normalizeGtfsHour, nowTotalMinutes, parseGtfsTime, unixToHHMM } from '../../gtfs/time'
+import type { GtfsData } from '../../gtfs/types'
 
 export interface TripStopResult {
   stop_id: string
