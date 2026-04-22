@@ -76,11 +76,7 @@ export class MQTTHub {
     }
   }
 
-  publish(
-    topic: string,
-    payload: unknown,
-    opts?: { qos?: 0 | 1 | 2; retain?: boolean },
-  ): void {
+  publish(topic: string, payload: unknown, opts?: { qos?: 0 | 1 | 2; retain?: boolean }): void {
     const buf = typeof payload === 'string' ? payload : JSON.stringify(payload)
     this.client.publish(topic, buf, {
       qos: opts?.qos ?? 1,
