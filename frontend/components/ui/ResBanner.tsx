@@ -29,6 +29,9 @@ export function ResBanner({
 
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
       className={
         isAtStop
           ? "res-banner-active flex w-full min-w-0 items-stretch gap-3 rounded-xl p-3 text-left"
@@ -77,9 +80,21 @@ export function ResBanner({
         >
           <p
             className="text-base font-black leading-tight text-center whitespace-nowrap"
-            style={{ color: "#ffffff" }}
+            style={{ color: "var(--text)" }}
           >
             {type === "board" ? "Качваш се" : "Слизаш сега"}
+          </p>
+        </div>
+      ) : isDeparted ? (
+        <div
+          className="flex flex-shrink-0 items-center justify-center px-2"
+          style={{ minWidth: 72 }}
+        >
+          <p
+            className="text-base font-black leading-tight text-center whitespace-nowrap"
+            style={{ color: "#ef4444" }}
+          >
+            Замина
           </p>
         </div>
       ) : eta !== null ? (
@@ -90,7 +105,7 @@ export function ResBanner({
           {eta === 0 ? (
             <p
               className="text-base font-black leading-tight text-center"
-              style={{ color: "#ffffff" }}
+              style={{ color: "var(--text)" }}
             >
               всеки
               <br />

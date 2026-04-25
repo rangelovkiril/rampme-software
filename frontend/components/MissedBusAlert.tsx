@@ -36,7 +36,7 @@ export default function MissedBusAlert() {
         fontSize: '0.95rem',
       }}
     >
-      <span>{missedBusAlert}</span>
+      <span>{missedBusAlert.message}</span>
       <button
         type="button"
         onClick={dismissMissedBusAlert}

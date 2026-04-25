@@ -20,6 +20,10 @@ async function initGtfs() {
   }
 }
 
+if (!config.mqtt.url) {
+  console.error('FATAL: MQTT_URL env var is required')
+  process.exit(1)
+}
 await initMqtt(config.mqtt.url, {
   username: config.mqtt.username,
   password: config.mqtt.password,

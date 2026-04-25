@@ -18,17 +18,14 @@ interface Sub {
 
 export const jsonParse: Parser<unknown> = (buf) => JSON.parse(buf.toString())
 
-const toRegex = (p: string) =>
-  new RegExp(
-    '^' +
-      p
-        .split('/')
-        .map((s) =>
-          s === '+' ? '[^/]+' : s === '#' ? '.*' : s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-        )
-        .join('/') +
-      '$',
-  )
+const toRegex = (p: string) => {
+  const segments = p.split('/')
+  const trailingHash = segments[segments.length - 1] === '#'
+  const base = (trailingHash ? segments.slice(0, -1) : segments)
+    .map((s) => (s === '+' ? '[^/]+' : s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    .join('/')
+  return new RegExp('^' + base + (trailingHash ? '(?:$|/.*)' : '') + '$')
+}
 
 export class MQTTHub {
   private subs: Sub[] = []

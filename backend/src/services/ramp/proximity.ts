@@ -14,6 +14,7 @@ import { fetchVehiclePositions } from '../../gtfs/realtime'
 import { getGtfs } from '../state'
 import {
   clearDeployTrigger,
+  isDeployInFlight,
   markDeployTriggered,
   publishDeploy,
   wasDeployTriggered,
@@ -87,12 +88,12 @@ async function tick(): Promise<void> {
     const d = distM(veh.lat, veh.lng, stop.stop_lat, stop.stop_lon)
     const atStop = d <= RADIUS_M
 
-    if (atStop && r.status === 'pending' && !wasDeployTriggered(r.vehicle_id, r.stop_id)) {
+    if (atStop && r.status === 'pending' && !isDeployInFlight(r.vehicle_id)) {
       console.log(
         `[proximity] vehicle ${r.vehicle_id} at stop ${r.stop_id} (${d.toFixed(0)}m) — triggering deploy for #${r.id}`,
       )
-      publishDeploy(r.vehicle_id)
       markDeployTriggered(r.vehicle_id, r.stop_id)
+      publishDeploy(r.vehicle_id)
     }
 
     // If vehicle moved away from a previously-deployed stop, clear the flag

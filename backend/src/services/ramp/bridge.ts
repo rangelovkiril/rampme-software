@@ -20,6 +20,8 @@
  *   5. if no "deploying" within DEPLOY_TIMEOUT_MS after deploy cmd → expire reservations
  */
 
+import { Type, type Static } from '@sinclair/typebox'
+import { Value } from '@sinclair/typebox/value'
 import {
   getAllActiveReservations,
   getVehicleReservations,
@@ -60,6 +62,10 @@ export function markDeployTriggered(vehicleId: string, stopId: string): void {
 
 export function wasDeployTriggered(vehicleId: string, stopId: string): boolean {
   return deployedFor.get(vehicleId) === stopId
+}
+
+export function isDeployInFlight(vehicleId: string): boolean {
+  return deployedFor.has(vehicleId)
 }
 
 export function clearDeployTrigger(vehicleId: string): void {
@@ -116,10 +122,19 @@ export function publishDeploy(vehicleId: string): void {
   )
 }
 
-interface HardwareState {
-  state: 'idle' | 'deploying' | 'deployed' | 'retracting' | 'done' | 'error'
-  reason?: string
-}
+const HardwareStateSchema = Type.Object({
+  state: Type.Union([
+    Type.Literal('idle'),
+    Type.Literal('deploying'),
+    Type.Literal('deployed'),
+    Type.Literal('retracting'),
+    Type.Literal('done'),
+    Type.Literal('error'),
+  ]),
+  reason: Type.Optional(Type.String()),
+})
+
+type HardwareState = Static<typeof HardwareStateSchema>
 
 /**
  * Handle state updates from hardware. "done" means the ramp cycle finished
@@ -177,7 +192,11 @@ export function subscribeToHardwareStates(): void {
   mqtt.on('ramp/+/state', jsonParse, (topic, payload) => {
     const vehicleId = topic.split('/')[1]
     if (!vehicleId) return
-    handleHardwareState(vehicleId, payload as HardwareState)
+    if (!Value.Check(HardwareStateSchema, payload)) {
+      console.error(`[ramp-mqtt] invalid state payload from ${vehicleId}:`, payload)
+      return
+    }
+    handleHardwareState(vehicleId, payload)
   })
 }
 
