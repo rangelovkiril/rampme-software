@@ -126,10 +126,7 @@ export async function getVehicleTripDetails(
   }
 }
 
-async function fetchTripPredictions(
-  tripId: string,
-  nowSec: number,
-): Promise<TripPredictions> {
+async function fetchTripPredictions(tripId: string, nowSec: number): Promise<TripPredictions> {
   const tuFeed = await fetchTripUpdates().catch(() => ({ entity: [] }))
   const byStopId = new Map<string, TripPrediction>()
   const byStopSequence = new Map<number, TripPrediction>()
@@ -179,7 +176,8 @@ function buildTripStop(
   // appears multiple times in the same trip.
   const pred =
     predBySequence ??
-    (predictions.nextUpcomingSequence !== null && st.stop_sequence < predictions.nextUpcomingSequence
+    (predictions.nextUpcomingSequence !== null &&
+    st.stop_sequence < predictions.nextUpcomingSequence
       ? undefined
       : predById)
 
@@ -213,7 +211,8 @@ function buildTripStop(
     const definitelyPassedByVehicleSequence =
       currentStopSequence !== null && st.stop_sequence < currentStopSequence
     const definitelyPassedBySequence =
-      predictions.nextUpcomingSequence !== null && st.stop_sequence < predictions.nextUpcomingSequence
+      predictions.nextUpcomingSequence !== null &&
+      st.stop_sequence < predictions.nextUpcomingSequence
 
     if (definitelyPassedByVehicleSequence || definitelyPassedBySequence) {
       status = 'departed'
@@ -284,11 +283,7 @@ function parseStopSequence(raw: unknown): number | null {
 
 function projectGtfsMinutesNear(totalGtfsMinutes: number, targetMinutes: number): number {
   const day = 24 * 60
-  const candidates = [
-    totalGtfsMinutes - day,
-    totalGtfsMinutes,
-    totalGtfsMinutes + day,
-  ]
+  const candidates = [totalGtfsMinutes - day, totalGtfsMinutes, totalGtfsMinutes + day]
 
   let best = candidates[0]
   let bestDistance = Math.abs(candidates[0] - targetMinutes)
