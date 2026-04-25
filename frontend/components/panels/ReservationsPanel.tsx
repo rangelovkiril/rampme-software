@@ -7,7 +7,7 @@ const STATUS_LABEL: Record<RampReservation['status'], string> = {
   active: 'Активна',
   done: 'Приключена',
   cancelled: 'Отказана',
-  expired: 'Изтекла',
+  expired: 'Замина',
 }
 
 const STATUS_COLOR: Record<RampReservation['status'], string> = {
@@ -15,7 +15,7 @@ const STATUS_COLOR: Record<RampReservation['status'], string> = {
   active: '#22c55e',
   done: 'var(--text-muted)',
   cancelled: 'var(--text-muted)',
-  expired: 'var(--text-muted)',
+  expired: '#ef4444',
 }
 
 interface Props {

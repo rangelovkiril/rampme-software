@@ -98,16 +98,18 @@ export default function Map() {
     } catch {}
   }, []);
 
-  const handleStopSelect = useCallback((s: Stop) => {
+  const handleStopSelect = useCallback((s: Stop | null) => {
     setSelectedStop(s);
     setSelectedVehicle(null);
     setSelectedRoute(null);
     setActivePanel(null);
     setNavCloseSignal((n) => n + 1);
-    mapRef.current?.panTo([s.stop_lat, s.stop_lon], {
-      animate: true,
-      duration: 0.6,
-    });
+    if (s) {
+      mapRef.current?.panTo([s.stop_lat, s.stop_lon], {
+        animate: true,
+        duration: 0.6,
+      });
+    }
   }, []);
 
   // Close the vehicle sheet WITHOUT triggering a map refit/zoom-out.

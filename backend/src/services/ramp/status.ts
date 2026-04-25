@@ -1,4 +1,4 @@
-import { getVehicleReservations, type RampReservation } from '../db/ramp'
+import { getVehicleReservations, type RampReservation } from '../../db/ramp'
 
 export type RampStatus = 'unknown' | 'working' | 'in_use'
 

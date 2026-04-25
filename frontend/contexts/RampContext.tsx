@@ -28,6 +28,8 @@ interface RampCtx {
   reservations: RampReservation[]
   lockedVehicleId: string | null
   lockedRouteShortName: string | null
+  missedBusAlert: { message: string; nonce: number } | null
+  dismissMissedBusAlert: () => void
   reserveBoard: (vehicleId: string, stopId: string, routeShortName?: string | null) => Promise<RampReservation | null>
   reserveAlight: (vehicleId: string, stopId: string) => Promise<RampReservation | null>
   cancel: (id: number) => Promise<boolean>
@@ -91,6 +93,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
   const [reservations, setReservations] = useState<RampReservation[]>([])
   const [lockedVehicleId, setLockedVehicleId] = useState<string | null>(null)
   const [lockedRouteShortName, setLockedRouteShortName] = useState<string | null>(null)
+  const [missedBusAlert, setMissedBusAlert] = useState<{ message: string; nonce: number } | null>(null)
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
   const prevReservations = useRef<RampReservation[]>([])
 
@@ -105,6 +108,8 @@ export function RampProvider({ children }: { children: ReactNode }) {
           console.log(`[ramp] bus arrived at stop — ${prev.type} reservation #${prev.id} is now ACTIVE (vehicle ${prev.vehicle_id}, stop ${prev.stop_id})`)
         } else if (curr.status === 'done') {
           console.log(`[ramp] ramp used — ${prev.type} reservation #${prev.id} DONE (vehicle ${prev.vehicle_id}, stop ${prev.stop_id})`)
+        } else if (curr.status === 'expired') {
+          setMissedBusAlert({ message: 'Автобусът замина без да разгъне рампата.', nonce: Date.now() })
         }
       }
       // Reservation disappeared from active list (removed server-side)
@@ -168,9 +173,12 @@ export function RampProvider({ children }: { children: ReactNode }) {
     [reservations],
   )
 
+  const dismissMissedBusAlert = useCallback(() => setMissedBusAlert(null), [])
+
   return (
     <Ctx.Provider value={{
       sessionId: sid, reservations, lockedVehicleId, lockedRouteShortName,
+      missedBusAlert, dismissMissedBusAlert,
       reserveBoard, reserveAlight, cancel, isReserved, refresh,
     }}>
       {children}

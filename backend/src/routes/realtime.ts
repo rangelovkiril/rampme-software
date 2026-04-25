@@ -1,9 +1,9 @@
 import { Elysia, t } from 'elysia'
 import { enrichVehicles } from '../gtfs/enrich'
 import { fetchTripUpdates, fetchVehiclePositions } from '../gtfs/realtime'
-import { getTripEtas, getVehicleTripDetails } from '../services/trip-details'
-import { makeSseStream } from '../sse'
-import { getGtfs, jsonError } from '../state'
+import { makeSseStream } from '../services/sse'
+import { getGtfs, jsonError } from '../services/state'
+import { getTripEtas, getVehicleTripDetails } from '../services/transit/trip-details'
 
 const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
 

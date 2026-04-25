@@ -1,4 +1,4 @@
-import { realtimeEvents } from './gtfs/realtime'
+import { realtimeEvents } from '../gtfs/realtime'
 
 /**
  * Creates an SSE Response that sends data immediately on connect, then again

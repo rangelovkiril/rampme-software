@@ -1,8 +1,8 @@
 import { Elysia, t } from 'elysia'
 import { activeServiceIds } from '../gtfs/services'
-import { getUpcomingArrivals } from '../services/arrivals'
-import { makeSseStream } from '../sse'
-import { getGtfs, jsonError } from '../state'
+import { makeSseStream } from '../services/sse'
+import { getGtfs, jsonError } from '../services/state'
+import { getUpcomingArrivals } from '../services/transit/arrivals'
 
 const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
 
