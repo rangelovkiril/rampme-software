@@ -20,20 +20,6 @@ async function initGtfs() {
   }
 }
 
-if (!config.mqtt.url) {
-  console.error('FATAL: MQTT_URL env var is required')
-  process.exit(1)
-}
-await initMqtt(config.mqtt.url, {
-  username: config.mqtt.username,
-  password: config.mqtt.password,
-  clientId: config.mqtt.clientId,
-  keepalive: 30,
-  clean: true,
-})
-subscribeToHardwareStates()
-resyncAllReservations()
-
 startProximityChecker()
 
 const app = new Elysia()
@@ -46,8 +32,22 @@ const app = new Elysia()
   .get('/health', () => 'Ok')
 
 app.listen(config.port)
+console.log(`GTFS server running at http://localhost:${app.server?.port}`)
 
 await initGtfs()
 setInterval(initGtfs, config.gtfs.refreshInterval)
 
-console.log(`GTFS server running at http://localhost:${app.server?.port}`)
+if (!config.mqtt.url) {
+  console.error('MQTT_URL not set — skipping MQTT')
+} else {
+  initMqtt(config.mqtt.url, {
+    username: config.mqtt.username,
+    password: config.mqtt.password,
+    clientId: config.mqtt.clientId,
+    keepalive: 30,
+    clean: true,
+  }).then(() => {
+    subscribeToHardwareStates()
+    resyncAllReservations()
+  }).catch((e) => console.error('MQTT init failed:', e))
+}

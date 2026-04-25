@@ -7,7 +7,9 @@ const root = protobuf.Root.fromJSON(descriptor)
 const FeedMessage = root.lookupType('FeedMessage')
 
 async function fetchFeed(endpoint: string) {
-  const res = await fetch(`${config.gtfs.realtimeBaseUrl}/${endpoint}`)
+  const res = await fetch(`${config.gtfs.realtimeBaseUrl}/${endpoint}`, {
+    signal: AbortSignal.timeout(4_000),
+  })
   if (!res.ok) throw new Error(`GTFS-RT ${endpoint}: ${res.status}`)
   const buf = new Uint8Array(await res.arrayBuffer())
   return FeedMessage.decode(buf).toJSON()
@@ -29,12 +31,14 @@ async function refreshFeeds() {
   ])
   if (trips.status === 'fulfilled') tripUpdatesData = trips.value
   if (vehicles.status === 'fulfilled') vehicleData = vehicles.value
-  realtimeEvents.emit('refresh')
 }
 
-// Initial fetch, then refresh every 5s
+// Fetch data in background independently of SSE push rate
 refreshFeeds()
 setInterval(() => refreshFeeds().catch(() => {}), REFRESH_INTERVAL_MS)
+
+// Push to SSE clients every 5s regardless of fetch timing
+setInterval(() => realtimeEvents.emit('refresh'), REFRESH_INTERVAL_MS)
 
 export function fetchTripUpdates() {
   if (!tripUpdatesData) return fetchFeed('trip-updates')
