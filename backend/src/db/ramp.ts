@@ -11,14 +11,6 @@ db.run('PRAGMA journal_mode = WAL')
 db.run('PRAGMA busy_timeout = 3000')
 
 db.run(`
-  CREATE TABLE IF NOT EXISTS vehicle_hardware (
-    vehicle_id  TEXT PRIMARY KEY,
-    url         TEXT NOT NULL,
-    registered_at INTEGER NOT NULL DEFAULT (unixepoch())
-  )
-`)
-
-db.run(`
   CREATE TABLE IF NOT EXISTS ramp_reservations (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id  TEXT    NOT NULL,
@@ -36,43 +28,6 @@ db.run('CREATE INDEX IF NOT EXISTS idx_ramp_veh  ON ramp_reservations(vehicle_id
 db.run('CREATE INDEX IF NOT EXISTS idx_ramp_ses  ON ramp_reservations(session_id, status)')
 db.run('CREATE INDEX IF NOT EXISTS idx_ramp_stat ON ramp_reservations(status)')
 
-// ── prepared statements ──────────────────────────────────────────────────
-
-const hwStmts = {
-  upsert: db.prepare(
-    `INSERT INTO vehicle_hardware (vehicle_id, url) VALUES ($vehicle_id, $url)
-     ON CONFLICT(vehicle_id) DO UPDATE SET url = excluded.url, registered_at = unixepoch()`,
-  ),
-  delete: db.prepare(`DELETE FROM vehicle_hardware WHERE vehicle_id = $vehicle_id`),
-  get: db.prepare(`SELECT url FROM vehicle_hardware WHERE vehicle_id = $vehicle_id`),
-  list: db.prepare(
-    `SELECT vehicle_id, url, registered_at FROM vehicle_hardware ORDER BY vehicle_id`,
-  ),
-}
-
-export interface VehicleHardware {
-  vehicle_id: string
-  url: string
-  registered_at: number
-}
-
-export function setVehicleHardwareUrl(vehicleId: string, url: string): void {
-  hwStmts.upsert.run({ $vehicle_id: vehicleId, $url: url })
-}
-
-export function deleteVehicleHardwareUrl(vehicleId: string): boolean {
-  return hwStmts.delete.run({ $vehicle_id: vehicleId }).changes > 0
-}
-
-export function getVehicleHardwareUrl(vehicleId: string): string | null {
-  const row = hwStmts.get.get({ $vehicle_id: vehicleId }) as { url: string } | null
-  return row?.url ?? null
-}
-
-export function listVehicleHardware(): VehicleHardware[] {
-  return hwStmts.list.all() as VehicleHardware[]
-}
-
 const stmts = {
   insert: db.prepare(`
     INSERT INTO ramp_reservations (session_id, vehicle_id, stop_id, type)
@@ -85,7 +40,11 @@ const stmts = {
   `),
   sessionActive: db.prepare(`
     SELECT * FROM ramp_reservations
-    WHERE session_id = $session_id AND status IN ('pending','active')
+    WHERE session_id = $session_id
+      AND (
+        status IN ('pending', 'active')
+        OR (status IN ('expired', 'done', 'cancelled') AND resolved_at > unixepoch() - 300)
+      )
     ORDER BY created_at DESC
   `),
   vehicleActive: db.prepare(`
@@ -113,8 +72,6 @@ const stmts = {
   cleanup: db.prepare('DELETE FROM ramp_reservations WHERE created_at < unixepoch() - 86400'),
 }
 
-// ── types ────────────────────────────────────────────────────────────────
-
 export interface RampReservation {
   id: number
   session_id: string
@@ -126,8 +83,6 @@ export interface RampReservation {
   resolved_at: number | null
 }
 
-// ── public API ───────────────────────────────────────────────────────────
-
 const MAX_ACTIVE = 2
 
 export function createReservation(
@@ -136,10 +91,19 @@ export function createReservation(
   stopId: string,
   type: 'board' | 'alight',
 ): RampReservation | { error: string } {
-  const { cnt } = stmts.sessionCount.get({ $session_id: sessionId }) as { cnt: number }
+  const { cnt } = stmts.sessionCount.get({ $session_id: sessionId }) as {
+    cnt: number
+  }
   if (cnt >= MAX_ACTIVE) return { error: `Max ${MAX_ACTIVE} active reservations` }
 
-  if (stmts.duplicate.get({ $sid: sessionId, $vid: vehicleId, $stop: stopId, $type: type })) {
+  if (
+    stmts.duplicate.get({
+      $sid: sessionId,
+      $vid: vehicleId,
+      $stop: stopId,
+      $type: type,
+    })
+  ) {
     return { error: 'Already reserved' }
   }
 
@@ -152,16 +116,24 @@ export function createReservation(
   return stmts.getById.get({ $id: r.lastInsertRowid }) as RampReservation
 }
 
-export function cancelReservation(id: number, sessionId: string): boolean {
-  return stmts.cancel.run({ $id: id, $session_id: sessionId }).changes > 0
+export function cancelReservation(id: number, sessionId: string): RampReservation | null {
+  const before = stmts.getById.get({ $id: id }) as RampReservation | null
+  if (!before || before.session_id !== sessionId) return null
+  const changes = stmts.cancel.run({ $id: id, $session_id: sessionId }).changes
+  if (changes === 0) return null
+  return before
 }
 
 export function getSessionReservations(sessionId: string): RampReservation[] {
-  return stmts.sessionActive.all({ $session_id: sessionId }) as RampReservation[]
+  return stmts.sessionActive.all({
+    $session_id: sessionId,
+  }) as RampReservation[]
 }
 
 export function getVehicleReservations(vehicleId: string): RampReservation[] {
-  return stmts.vehicleActive.all({ $vehicle_id: vehicleId }) as RampReservation[]
+  return stmts.vehicleActive.all({
+    $vehicle_id: vehicleId,
+  }) as RampReservation[]
 }
 
 export function getAllActiveReservations(): RampReservation[] {

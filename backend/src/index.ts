@@ -1,36 +1,53 @@
 import cors from '@elysiajs/cors'
 import { Elysia } from 'elysia'
 import { config } from './config'
+import { swaggerPlugin } from './config/swagger'
 import { fetchStaticGtfs } from './gtfs/static'
 import { rampRoutes } from './routes/ramp'
 import { realtimeRoutes } from './routes/realtime'
-import { routesRoutes } from './routes/routes'
 import { stopsRoutes } from './routes/stops'
-import { startProximityChecker } from './services/ramp-proximity'
-import { setGtfs } from './state'
-import { swaggerPlugin } from './swagger'
+import { transitRoutes } from './routes/transit'
+import { initMqtt } from './services/mqtt'
+import { resyncAllReservations, subscribeToHardwareStates } from './services/ramp/bridge'
+import { startProximityChecker } from './services/ramp/proximity'
+import { setGtfs } from './services/state'
 
 async function initGtfs() {
   try {
-    startProximityChecker()
     setGtfs(await fetchStaticGtfs())
   } catch (e) {
     console.error('Failed to load GTFS static data:', e)
   }
 }
 
+if (!config.mqtt.url) {
+  console.error('FATAL: MQTT_URL env var is required')
+  process.exit(1)
+}
+await initMqtt(config.mqtt.url, {
+  username: config.mqtt.username,
+  password: config.mqtt.password,
+  clientId: config.mqtt.clientId,
+  keepalive: 30,
+  clean: true,
+})
+subscribeToHardwareStates()
+resyncAllReservations()
+
+startProximityChecker()
+
 const app = new Elysia()
   .use(swaggerPlugin)
   .use(cors())
   .use(stopsRoutes)
-  .use(routesRoutes)
+  .use(transitRoutes)
   .use(realtimeRoutes)
   .use(rampRoutes)
   .get('/health', () => 'Ok')
 
+app.listen(config.port)
+
 await initGtfs()
 setInterval(initGtfs, config.gtfs.refreshInterval)
-
-app.listen(config.port)
 
 console.log(`GTFS server running at http://localhost:${app.server?.port}`)

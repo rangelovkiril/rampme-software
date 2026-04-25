@@ -1,29 +1,39 @@
 services:
   backend:
-    build:
-      context: ./backend
+    image: ghcr.io/rangelovkiril/hacktues12-backend:latest
+    pull_policy: always
+    restart: unless-stopped
     ports:
       - "3001:3000"
-    environment:
-      PORT: "3000"
-      MOCK_RAMP: "${MOCK_RAMP:-false}"
-      GTFS_STATIC_URL: "${GTFS_STATIC_URL:-https://gtfs.sofiatraffic.bg/api/v1/static}"
-      GTFS_RT_BASE_URL: "${GTFS_RT_BASE_URL:-https://gtfs.sofiatraffic.bg/api/v1}"
-      HARDWARE_URL: "${HARDWARE_URL:-}"
+    env_file:
+      - ./backend/.env
     volumes:
       - ramp-data:/app/data
-    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-        BACKEND_URL: "http://backend:3000"
+    image: ghcr.io/rangelovkiril/hacktues12-frontend:latest
+    pull_policy: always
+    restart: unless-stopped
     ports:
       - "3000:3000"
     depends_on:
       - backend
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  watchtower:
+    image: containrrr/watchtower:latest
     restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_POLL_INTERVAL: "60"
+      WATCHTOWER_ROLLING_RESTART: "true"
+      TZ: "Europe/Sofia"
 
 volumes:
   ramp-data:

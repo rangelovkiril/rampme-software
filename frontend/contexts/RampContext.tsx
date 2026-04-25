@@ -27,7 +27,10 @@ interface RampCtx {
   sessionId: string
   reservations: RampReservation[]
   lockedVehicleId: string | null
-  reserveBoard: (vehicleId: string, stopId: string) => Promise<RampReservation | null>
+  lockedRouteShortName: string | null
+  missedBusAlert: { message: string; nonce: number } | null
+  dismissMissedBusAlert: () => void
+  reserveBoard: (vehicleId: string, stopId: string, routeShortName?: string | null) => Promise<RampReservation | null>
   reserveAlight: (vehicleId: string, stopId: string) => Promise<RampReservation | null>
   cancel: (id: number) => Promise<boolean>
   isReserved: (vehicleId: string, stopId: string) => boolean
@@ -89,6 +92,8 @@ export function RampProvider({ children }: { children: ReactNode }) {
   const [sid] = useState(getSessionId)
   const [reservations, setReservations] = useState<RampReservation[]>([])
   const [lockedVehicleId, setLockedVehicleId] = useState<string | null>(null)
+  const [lockedRouteShortName, setLockedRouteShortName] = useState<string | null>(null)
+  const [missedBusAlert, setMissedBusAlert] = useState<{ message: string; nonce: number } | null>(null)
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
   const prevReservations = useRef<RampReservation[]>([])
 
@@ -103,6 +108,8 @@ export function RampProvider({ children }: { children: ReactNode }) {
           console.log(`[ramp] bus arrived at stop — ${prev.type} reservation #${prev.id} is now ACTIVE (vehicle ${prev.vehicle_id}, stop ${prev.stop_id})`)
         } else if (curr.status === 'done') {
           console.log(`[ramp] ramp used — ${prev.type} reservation #${prev.id} DONE (vehicle ${prev.vehicle_id}, stop ${prev.stop_id})`)
+        } else if (curr.status === 'expired') {
+          setMissedBusAlert({ message: 'Автобусът замина без да разгъне рампата.', nonce: Date.now() })
         }
       }
       // Reservation disappeared from active list (removed server-side)
@@ -114,23 +121,29 @@ export function RampProvider({ children }: { children: ReactNode }) {
     prevReservations.current = data
     setReservations(data)
     const board = data.find(
-      (r) => r.type === 'board' && r.status === 'active',
+      (r) => r.type === 'board' && (r.status === 'pending' || r.status === 'active'),
     )
     setLockedVehicleId(board?.vehicle_id ?? null)
+    const hasActiveAlight = data.some(
+      (r) => r.type === 'alight' && (r.status === 'pending' || r.status === 'active'),
+    )
+    if (!board && !hasActiveAlight) setLockedRouteShortName(null)
   }, [sid])
 
   useEffect(() => {
     refresh()
-    timer.current = setInterval(refresh, 10_000)
+    timer.current = setInterval(refresh, 5_000)
     return () => { if (timer.current) clearInterval(timer.current) }
   }, [refresh])
 
-  const reserveBoard = useCallback(async (vid: string, stopId: string) => {
+  const reserveBoard = useCallback(async (vid: string, stopId: string, routeShortName?: string | null) => {
     const r = await apiReserve(sid, vid, stopId, 'board')
     if (r) {
       console.log(`[ramp] board reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
-      await refresh()
+      if (routeShortName != null) setLockedRouteShortName(routeShortName)
       setLockedVehicleId(vid)
+      setReservations(prev => [...prev.filter(p => p.id !== r.id), r])
+      await refresh()
     }
     return r
   }, [sid, refresh])
@@ -139,6 +152,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
     const r = await apiReserve(sid, vid, stopId, 'alight')
     if (r) {
       console.log(`[ramp] alight reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
+      setReservations(prev => [...prev.filter(p => p.id !== r.id), r])
       await refresh()
     }
     return r
@@ -159,9 +173,12 @@ export function RampProvider({ children }: { children: ReactNode }) {
     [reservations],
   )
 
+  const dismissMissedBusAlert = useCallback(() => setMissedBusAlert(null), [])
+
   return (
     <Ctx.Provider value={{
-      sessionId: sid, reservations, lockedVehicleId,
+      sessionId: sid, reservations, lockedVehicleId, lockedRouteShortName,
+      missedBusAlert, dismissMissedBusAlert,
       reserveBoard, reserveAlight, cancel, isReserved, refresh,
     }}>
       {children}

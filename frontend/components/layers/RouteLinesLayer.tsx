@@ -13,13 +13,17 @@ interface RouteShape {
 interface RouteLinesLayerProps {
   routeId: string | null
   routeType: number | null
+  autoFit?: boolean
 }
 
-export default function RouteLinesLayer({ routeId, routeType }: RouteLinesLayerProps) {
+export default function RouteLinesLayer({ routeId, routeType, autoFit = true }: RouteLinesLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.LayerGroup | null>(null)
   const cacheRef = useRef<Map<string, RouteShape>>(new Map())
   const [shape, setShape] = useState<RouteShape | null>(null)
+  // Use a ref so fitBounds only fires when shape loads, not when autoFit prop changes
+  const autoFitRef = useRef(autoFit)
+  useEffect(() => { autoFitRef.current = autoFit }, [autoFit])
 
   useEffect(() => {
     if (!routeId) { setShape(null); return }
@@ -63,7 +67,14 @@ export default function RouteLinesLayer({ routeId, routeType }: RouteLinesLayerP
     }
 
     group.addTo(map)
-  }, [shape, routeType, map])
+    if (autoFit) {
+      const allPoints: L.LatLngExpression[] = shape.polylines.flat() as L.LatLngExpression[]
+      if (allPoints.length > 0) {
+        const bounds = L.latLngBounds(allPoints)
+        if (bounds.isValid()) map.fitBounds(bounds, { padding: [48, 48] })
+      }
+    }
+  }, [shape, routeType, autoFit, map])
 
   useEffect(() => {
     return () => {

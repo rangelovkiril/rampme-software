@@ -1,5 +1,4 @@
-import { hasMockRamp } from '../services/mock-ramp'
-import { getVehicleRampInfo, type RampStatus } from '../services/ramp'
+import { getVehicleRampInfo, type RampStatus } from '../services/ramp/status'
 import type { GtfsData } from './types'
 
 export interface EnrichedVehicle {
@@ -13,6 +12,7 @@ export interface EnrichedVehicle {
   route_short_name: string | null
   route_type: number | null
   headsign: string | null
+  label: string | null
   ramp_status: RampStatus
   ramp_reservations: Array<{
     id: number
@@ -34,7 +34,8 @@ export function enrichVehicles(entities: any[], data: GtfsData): EnrichedVehicle
       const routeId = trip?.route_id ?? rawRouteId
       const route = routeId ? data.routes.get(routeId) : undefined
       const vehicleId = v.vehicle?.id ?? e.id
-      const ramp = getVehicleRampInfo(vehicleId, hasMockRamp(vehicleId))
+      const hasRamp = trip?.wheelchair_accessible === 1
+      const ramp = getVehicleRampInfo(vehicleId, hasRamp)
 
       return {
         id: vehicleId,
@@ -47,6 +48,7 @@ export function enrichVehicles(entities: any[], data: GtfsData): EnrichedVehicle
         route_short_name: route?.route_short_name ?? null,
         route_type: route?.route_type ?? null,
         headsign: trip?.trip_headsign ?? null,
+        label: v.vehicle?.label ?? null,
         ramp_status: ramp.ramp_status,
         ramp_reservations: ramp.reservations,
       }

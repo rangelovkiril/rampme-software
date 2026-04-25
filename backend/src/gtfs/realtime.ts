@@ -1,6 +1,6 @@
+import { EventEmitter } from 'node:events'
 import protobuf from 'protobufjs'
 import { config } from '../config'
-import { createCache } from './cache'
 import descriptor from './gtfs-realtime.json'
 
 const root = protobuf.Root.fromJSON(descriptor)
@@ -13,8 +13,35 @@ async function fetchFeed(endpoint: string) {
   return FeedMessage.decode(buf).toJSON()
 }
 
-const tripUpdatesCache = createCache<any>(15_000)
-const vehicleCache = createCache<any>(15_000)
+const REFRESH_INTERVAL_MS = 5_000
 
-export const fetchTripUpdates = () => tripUpdatesCache(() => fetchFeed('trip-updates'))
-export const fetchVehiclePositions = () => vehicleCache(() => fetchFeed('vehicle-positions'))
+let tripUpdatesData: any = null
+let vehicleData: any = null
+
+// Emits 'refresh' after every successful feed update so SSE streams can push to clients
+export const realtimeEvents = new EventEmitter()
+realtimeEvents.setMaxListeners(0)
+
+async function refreshFeeds() {
+  const [trips, vehicles] = await Promise.allSettled([
+    fetchFeed('trip-updates'),
+    fetchFeed('vehicle-positions'),
+  ])
+  if (trips.status === 'fulfilled') tripUpdatesData = trips.value
+  if (vehicles.status === 'fulfilled') vehicleData = vehicles.value
+  realtimeEvents.emit('refresh')
+}
+
+// Initial fetch, then refresh every 5s
+refreshFeeds()
+setInterval(() => refreshFeeds().catch(() => {}), REFRESH_INTERVAL_MS)
+
+export function fetchTripUpdates() {
+  if (!tripUpdatesData) return fetchFeed('trip-updates')
+  return Promise.resolve(tripUpdatesData)
+}
+
+export function fetchVehiclePositions() {
+  if (!vehicleData) return fetchFeed('vehicle-positions')
+  return Promise.resolve(vehicleData)
+}

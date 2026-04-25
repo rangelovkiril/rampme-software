@@ -9,11 +9,14 @@ export const config = {
 
   protoPath: process.env.PROTO_PATH ?? 'proto/gtfs-realtime.proto',
 
-  // When MOCK_RAMP=true, ~50% of vehicles are treated as ramp-equipped (stable per process run).
   mockRamp: process.env.MOCK_RAMP === 'true',
 
   rampDbPath: process.env.RAMP_DB_PATH ?? './data/ramp.db',
 
-  // Global hardware URL - used for all vehicles without a per-vehicle mapping (MVP)
-  hardwareUrl: process.env.HARDWARE_URL ?? null,
+  mqtt: {
+    url: process.env.MQTT_URL,
+    username: process.env.MQTT_USERNAME,
+    password: process.env.MQTT_PASSWORD,
+    clientId: process.env.MQTT_CLIENT_ID ?? 'rampme-backend',
+  },
 } as const

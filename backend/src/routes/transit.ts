@@ -1,10 +1,10 @@
 import { Elysia, t } from 'elysia'
 import type { Route } from '../gtfs/types'
-import { getGtfs, jsonError } from '../state'
+import { getGtfs, jsonError } from '../services/state'
 
 const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
 
-export const routesRoutes = new Elysia()
+export const transitRoutes = new Elysia()
   .get(
     '/routes',
     () => {

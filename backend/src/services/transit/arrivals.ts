@@ -1,15 +1,13 @@
-import { fetchTripUpdates, fetchVehiclePositions } from '../gtfs/realtime'
-import { activeServiceIds } from '../gtfs/services'
+import { fetchTripUpdates, fetchVehiclePositions } from '../../gtfs/realtime'
+import { activeServiceIds } from '../../gtfs/services'
 import {
   normalizeGtfsHour,
   nowHHMMSS,
   nowTotalMinutes,
   parseGtfsTime,
   unixToHHMM,
-} from '../gtfs/time'
-import type { GtfsData } from '../gtfs/types'
-import { hasMockRamp } from './mock-ramp'
-import { getMockArrivalForStop } from './mock-transit'
+} from '../../gtfs/time'
+import type { GtfsData } from '../../gtfs/types'
 
 export interface ArrivalResult {
   id: string
@@ -37,12 +35,8 @@ export async function getUpcomingArrivals(
   stopId: string,
   limit: number,
 ): Promise<ArrivalResult[]> {
-  const mockArrival = getMockArrivalForStop(stopId)
-
   const stop = data.stops.get(stopId)
-  if (!stop) {
-    return mockArrival ? [mockArrival] : []
-  }
+  if (!stop) return []
 
   const siblingIds = stop.stop_code ? (data.stopsByCode.get(stop.stop_code) ?? [stopId]) : [stopId]
 
@@ -63,7 +57,6 @@ export async function getUpcomingArrivals(
     const routeId = trip?.route_id ?? sa.rt_route_id
     const route = routeId ? data.routes.get(routeId) : undefined
     const vehicleId = vehicleByTrip.get(sa.trip_id) ?? null
-    const rampKey = vehicleId ?? sa.trip_id
 
     const prediction = predictions.get(sa.trip_id)
     let eta_minutes: number
@@ -89,11 +82,9 @@ export async function getUpcomingArrivals(
       expected_time,
       eta_minutes,
       realtime: Boolean(prediction),
-      has_ramp: hasMockRamp(rampKey) || trip?.wheelchair_accessible === 1,
+      has_ramp: trip?.wheelchair_accessible === 1,
     }
   })
-
-  if (mockArrival) results.push(mockArrival)
 
   return deduplicateAndSort(results, limit)
 }

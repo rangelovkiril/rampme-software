@@ -1,13 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { Stop, StopArrival } from "@/lib/types";
 import { getRouteColor, formatEta } from "@/lib/transit";
 import { useRamp } from "@/contexts/RampContext";
+import { useSSE } from "@/hooks/useSSE";
 
-const POLL_INTERVAL = 15_000;
-const MOBILE_SHEET_MAX_VH = 85;
 const RAMP_PROXIMITY_METERS = 10;
+// Gap between top of sheet and bottom of floating nav
+const TOP_GAP = 12;
+// Fallback viewport ratio for max height when nav can't be measured
+const MAX_FALLBACK_RATIO = 0.85;
+// How far below min-height the user must drag to dismiss
+const DISMISS_OFFSET = 60;
 
 interface Props {
   stop: Stop | null;
@@ -25,40 +37,68 @@ export default function StopArrivalsSheet({
   const [error, setError] = useState<string | null>(null);
   const [rampOnly, setRampOnly] = useState(false);
   const [reservingId, setReservingId] = useState<string | null>(null);
+  const [reserveError, setReserveError] = useState<string | null>(null);
 
   const [isOpen, setIsOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [mobileHeightVh, setMobileHeightVh] = useState(50);
-  const dragStartY = useRef(0);
-  const dragStartVh = useRef(50);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+
+  // Height state (mobile only)
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [minHeight, setMinHeight] = useState(240);
+  const [maxHeight, setMaxHeight] = useState(
+    typeof window !== "undefined"
+      ? window.innerHeight * MAX_FALLBACK_RATIO
+      : 600,
+  );
+  const [height, setHeight] = useState(360);
+
+  // Drag state
+  const dragging = useRef(false);
+  const dragStartY = useRef(0);
+  const dragStartHeight = useRef(0);
 
   const { reserveBoard, isReserved } = useRamp();
 
   const isNearStop = true;
 
-  const fetchArrivals = useCallback(
-    async (stopId: string, initial: boolean) => {
-      if (initial) setLoading(true);
-      try {
-        const r = await fetch(
-          `/api/stops/${encodeURIComponent(stopId)}/vehicles?limit=20`,
-        );
-        if (!r.ok) {
-          if (initial) setError("Failed to load arrivals");
-          return;
-        }
-        const data = await r.json();
-        setArrivals(data);
-        setError(null);
-      } catch {
-        if (initial) setError("Failed to load arrivals");
-      } finally {
-        if (initial) setLoading(false);
-      }
-    },
-    [],
+  const sseArrivals = useSSE<StopArrival[]>(
+    stop
+      ? `/api/stops/${encodeURIComponent(stop.stop_id)}/vehicles/stream?limit=20`
+      : null,
   );
+
+  // ─── Measure bounds relative to FloatingNav ──────────────────────────
+  const measure = useCallback(() => {
+    if (typeof window === "undefined") return;
+
+    // min = handle + header + some breathing room for 1 row (~80px)
+    const headerH = headerRef.current?.offsetHeight ?? 64;
+    const handleH = 16; // pt-2 pb-1 + pill height
+    const computedMin = handleH + headerH + 100;
+
+    // max = space between bottom of viewport and bottom of floating nav
+    let computedMax = window.innerHeight * MAX_FALLBACK_RATIO;
+    const nav = document.querySelector<HTMLElement>("[data-floating-nav]");
+    if (nav) {
+      const navRect = nav.getBoundingClientRect();
+      computedMax = window.innerHeight - navRect.bottom - TOP_GAP;
+    }
+    if (computedMax < computedMin + 40) computedMax = computedMin + 40;
+
+    setMinHeight(computedMin);
+    setMaxHeight(computedMax);
+    setHeight((h) => Math.min(Math.max(h, computedMin), computedMax));
+  }, []);
+
+  useLayoutEffect(() => {
+    measure();
+  }, [measure, stop]);
+
+  useEffect(() => {
+    const onResize = () => measure();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [measure]);
 
   useEffect(() => {
     if (!stop) {
@@ -69,53 +109,121 @@ export default function StopArrivalsSheet({
     setArrivals([]);
     setError(null);
     setRampOnly(false);
-    fetchArrivals(stop.stop_id, true);
-    const iv = setInterval(
-      () => fetchArrivals(stop.stop_id, false),
-      POLL_INTERVAL,
-    );
-    return () => clearInterval(iv);
-  }, [stop, fetchArrivals]);
+    setReserveError(null);
+    setLoading(true);
+    // Open at a reasonable default — around 60% of available range
+    requestAnimationFrame(() => {
+      measure();
+      setHeight((h) => {
+        const target = minHeight + (maxHeight - minHeight) * 0.6;
+        return Math.min(Math.max(target, minHeight), maxHeight);
+      });
+    });
+  }, [stop, measure]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!stop) return;
+
+    let active = true;
+    const controller = new AbortController();
+
+    const loadArrivals = async () => {
+      try {
+        const res = await fetch(
+          `/api/stops/${encodeURIComponent(stop.stop_id)}/vehicles?limit=20`,
+          { signal: controller.signal },
+        );
+        if (controller.signal.aborted || !active) return;
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = (await res.json()) as StopArrival[];
+        if (!controller.signal.aborted && active) {
+          setArrivals(Array.isArray(data) ? data : []);
+          setError(null);
+        }
+      } catch (e) {
+        if (!controller.signal.aborted && active) {
+          setError("Неуспешно зареждане на пристигащи превозни средства.");
+        }
+      } finally {
+        if (!controller.signal.aborted && active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadArrivals();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [stop]);
+
+  useEffect(() => {
+    if (!sseArrivals) return;
+    setArrivals(sseArrivals);
+    setLoading(false);
+    setError(null);
+  }, [sseArrivals]);
 
   const sortedArrivals = useMemo(() => {
     const list = rampOnly ? arrivals.filter((a) => a.has_ramp) : arrivals;
     return [...list].sort((a, b) => {
-      if (a.has_ramp && !b.has_ramp) return -1;
-      if (!a.has_ramp && b.has_ramp) return 1;
-      return a.eta_minutes - b.eta_minutes;
+      const etaDiff = a.eta_minutes - b.eta_minutes;
+      if (etaDiff !== 0) return etaDiff;
+      if (a.has_ramp === b.has_ramp) return 0;
+      return a.has_ramp ? -1 : 1;
     });
   }, [arrivals, rampOnly]);
 
   const rampCount = arrivals.filter((a) => a.has_ramp).length;
 
   const handleDragStart = (e: React.TouchEvent) => {
-    setIsDragging(true);
+    dragging.current = true;
     dragStartY.current = e.touches[0].clientY;
-    dragStartVh.current = mobileHeightVh;
+    dragStartHeight.current = height;
   };
   const handleDragMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    const dy = dragStartY.current - e.touches[0].clientY;
-    const dvh = (dy / window.innerHeight) * 100;
-    setMobileHeightVh(
-      Math.min(MOBILE_SHEET_MAX_VH, Math.max(30, dragStartVh.current + dvh)),
-    );
+    if (!dragging.current) return;
+    const y = e.touches[0].clientY;
+    const delta = dragStartY.current - y;
+    const raw = dragStartHeight.current + delta;
+
+    let h = raw;
+    if (h > maxHeight) h = maxHeight + (h - maxHeight) * 0.25;
+    if (h < minHeight) h = minHeight + (h - minHeight) * 0.6;
+
+    setHeight(h);
   };
   const handleDragEnd = () => {
-    setIsDragging(false);
-    if (mobileHeightVh < 35) {
+    if (!dragging.current) return;
+    dragging.current = false;
+    if (height < minHeight - DISMISS_OFFSET) {
       setIsOpen(false);
       onClose();
+      return;
     }
+    if (height < minHeight) setHeight(minHeight);
+    else if (height > maxHeight) setHeight(maxHeight);
   };
 
   const handleReserve = async (vehicleId: string) => {
     if (!stop || reservingId) return;
     setReservingId(vehicleId);
+    setReserveError(null);
     try {
-      const res = await reserveBoard(vehicleId, stop.stop_id);
-      if (res?.status === "active" && onVehicleLock) {
-        onVehicleLock(vehicleId);
+      const routeShortName =
+        arrivals.find((a) => a.vehicle_id === vehicleId)?.route_short_name ??
+        null;
+      const res = await reserveBoard(vehicleId, stop.stop_id, routeShortName);
+      if (res) {
+        if (onVehicleLock) onVehicleLock(vehicleId);
+      } else {
+        setReserveError("Грешка при резервация. Опитайте отново.");
       }
     } finally {
       setReservingId(null);
@@ -127,17 +235,20 @@ export default function StopArrivalsSheet({
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[920] flex justify-center px-0 sm:px-4">
       <section
-        className={`stop-sheet-shell pointer-events-auto flex w-full flex-col rounded-t-2xl border transition-transform ease-out max-sm:max-w-none ${
-          isDragging ? "duration-0" : "duration-300"
-        } ${isOpen ? "translate-y-0" : "translate-y-full"}`}
+        className={`stop-sheet-shell pointer-events-auto flex w-full flex-col rounded-t-2xl border ease-out max-sm:max-w-none ${
+          isOpen ? "translate-y-0" : "translate-y-full"
+        }`}
         style={{
           background: "var(--surface-elevated)",
           borderColor: "var(--border)",
           boxShadow: "var(--shadow-lg)",
           color: "var(--text)",
-          height: isMobile && isOpen ? `${mobileHeightVh}vh` : undefined,
-          maxHeight:
-            isMobile && isOpen ? `${MOBILE_SHEET_MAX_VH}vh` : undefined,
+          height: isMobile && isOpen ? `${height}px` : undefined,
+          maxHeight: isMobile && isOpen ? `${maxHeight}px` : undefined,
+          transition: dragging.current
+            ? "none"
+            : "height 0.28s cubic-bezier(0.32, 0.72, 0, 1), transform 0.3s",
+          willChange: "height",
         }}
       >
         {/* Drag handle */}
@@ -158,8 +269,11 @@ export default function StopArrivalsSheet({
         </div>
 
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 px-4 pt-1 pb-3">
-          <div className="min-w-0">
+        <div
+          ref={headerRef}
+          className="flex items-start justify-between gap-3 px-4 pt-1 pb-3"
+        >
+          <div className="min-w-0 flex-1">
             <p className="stop-sheet-title truncate font-semibold">
               {stop.stop_name}
             </p>
@@ -170,7 +284,7 @@ export default function StopArrivalsSheet({
               {stop.stop_id}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => setRampOnly((v) => !v)}
@@ -180,9 +294,7 @@ export default function StopArrivalsSheet({
                 color: rampOnly ? "#fff" : "var(--text-secondary)",
                 border: rampOnly ? "none" : "1px solid var(--border)",
               }}
-              title={
-                rampOnly ? "Show all vehicles" : "Show only vehicles with ramp"
-              }
+              title={rampOnly ? "Покажи всички" : "Само с рампа"}
             >
               <svg
                 width="14"
@@ -204,7 +316,7 @@ export default function StopArrivalsSheet({
                 <path d="M12 12l-5 5" />
                 <path d="M17 7v6" />
               </svg>
-              {rampOnly ? `Ramp (${rampCount})` : "Ramp"}
+              {rampOnly ? `Рампа (${rampCount})` : "Рампа"}
             </button>
             <button
               type="button"
@@ -226,9 +338,17 @@ export default function StopArrivalsSheet({
           className={`stop-sheet-scroll overflow-y-auto px-3 pb-4 ${isMobile && isOpen ? "min-h-0 flex-1" : ""}`}
           style={isMobile && isOpen ? { maxHeight: "none" } : undefined}
         >
+          {reserveError && (
+            <p
+              className="px-2 py-2 text-sm font-medium"
+              style={{ color: "#ef4444" }}
+            >
+              {reserveError}
+            </p>
+          )}
           {loading && (
             <p className="px-2 py-3" style={{ color: "var(--text-muted)" }}>
-              Loading...
+              Зареждане...
             </p>
           )}
           {!loading && error && (
@@ -239,8 +359,8 @@ export default function StopArrivalsSheet({
           {!loading && !error && sortedArrivals.length === 0 && (
             <p className="px-2 py-3" style={{ color: "var(--text-muted)" }}>
               {rampOnly
-                ? "No ramp-equipped vehicles right now."
-                : "No active vehicles right now."}
+                ? "Няма превозни средства с рампа в момента."
+                : "Няма активни превозни средства в момента."}
             </p>
           )}
           {!loading && !error && sortedArrivals.length > 0 && (
@@ -264,69 +384,70 @@ export default function StopArrivalsSheet({
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between gap-4 rounded-xl border px-4 py-3"
+                    className="flex items-center gap-3 rounded-xl border px-3 py-3"
                     style={{
+                      lineHeight: 1.2,
                       borderColor: reserved ? "#3b82f6" : "var(--border)",
                       background: reserved
                         ? "color-mix(in oklab, #3b82f6 12%, var(--surface-elevated) 88%)"
                         : "color-mix(in oklab, var(--surface-elevated) 85%, var(--text) 5%)",
                     }}
                   >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span
-                        className="inline-flex h-8 min-w-12 items-center justify-center rounded-md px-2.5 text-base font-bold text-white"
-                        style={{ background: routeColor }}
+                    {/* Route badge */}
+                    <span
+                      className="inline-flex h-9 min-w-12 items-center justify-center rounded-md px-2.5 text-base font-bold text-white shrink-0"
+                      style={{ background: routeColor }}
+                    >
+                      {item.route_short_name ?? "?"}
+                    </span>
+
+                    {/* Middle: headsign + status + vehicle id */}
+                    <div className="min-w-0 flex-1">
+                      {/* Headsign */}
+                      <div className="truncate text-base font-semibold">
+                        {item.headsign ?? "Линия"}
+                      </div>
+
+                      {/* Status line — time only (no "В реално" label) */}
+                      <div
+                        className="flex items-center gap-1.5 text-sm whitespace-nowrap"
+                        style={{ color: "var(--text-secondary)", marginTop: 2 }}
                       >
-                        {item.route_short_name ?? "?"}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-lg font-semibold">
-                          {item.headsign ?? "Route"}
-                        </p>
-                        <p
-                          className="text-base font-medium"
-                          style={{ color: "var(--text-secondary)" }}
-                        >
-                          {item.realtime ? (
-                            <span style={{ color: "#22c55e" }}>Live</span>
-                          ) : (
-                            <span>Scheduled</span>
-                          )}
-                          {isDelayed ? (
-                            <>
-                              {" · "}
-                              <span
-                                style={{
-                                  textDecoration: "line-through",
-                                  opacity: 0.5,
-                                }}
-                              >
-                                {scheduled}
-                              </span>{" "}
-                              <span style={{ color: "#f59e0b" }}>
-                                {expected}
-                              </span>
-                            </>
-                          ) : scheduled ? (
-                            ` · ${scheduled}`
-                          ) : (
-                            ""
-                          )}
-                        </p>
-                        {vehicleId && (
-                          <p
-                            className="text-xs"
-                            style={{ color: "var(--text-muted)" }}
+                        {isDelayed ? (
+                          <>
+                            <span
+                              style={{
+                                textDecoration: "line-through",
+                                opacity: 0.5,
+                              }}
+                            >
+                              {scheduled}
+                            </span>
+                            <span style={{ color: "#f59e0b", fontWeight: 600 }}>
+                              {expected}
+                            </span>
+                          </>
+                        ) : expected ? (
+                          <span
+                            style={{
+                              color: item.realtime
+                                ? "#22c55e"
+                                : "var(--text-secondary)",
+                              fontWeight: 600,
+                            }}
                           >
-                            ID: {vehicleId}
-                          </p>
-                        )}
+                            {expected}
+                          </span>
+                        ) : scheduled ? (
+                          <span>{scheduled}</span>
+                        ) : null}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    {/* Right: ETA + ramp button, center-aligned stack */}
+                    <div className="flex flex-col items-center gap-1.5 shrink-0">
                       <span
-                        className="text-xl font-bold whitespace-nowrap"
+                        className="text-xl font-bold leading-none whitespace-nowrap"
                         style={{
                           color: item.realtime
                             ? "#22c55e"
@@ -336,12 +457,11 @@ export default function StopArrivalsSheet({
                         {formatEta(item.eta_minutes)}
                       </span>
 
-                      {/* Ramp button — inline state, no alert */}
                       <button
                         type="button"
                         disabled={!canRequest || reserved || isReserving}
                         onClick={() => vehicleId && handleReserve(vehicleId)}
-                        className="stop-sheet-action h-10 rounded-lg px-3 py-1 text-base font-semibold transition-all"
+                        className="stop-sheet-action rounded-lg px-3 py-1.5 text-sm font-semibold transition-all whitespace-nowrap"
                         style={{
                           background: reserved
                             ? "#22c55e"
@@ -366,23 +486,23 @@ export default function StopArrivalsSheet({
                         }}
                         title={
                           reserved
-                            ? "Ramp reserved"
+                            ? "Резервация за качване"
                             : canRequest
-                              ? "Reserve wheelchair ramp"
+                              ? "Резервирай рампа за качване"
                               : vehicleId
-                                ? `Come within ${RAMP_PROXIMITY_METERS}m of the stop`
-                                : "Live vehicle id unavailable"
+                                ? `Приближи се до ${RAMP_PROXIMITY_METERS}м от спирката`
+                                : "Няма данни за превозното средство"
                         }
                       >
                         {reserved
-                          ? "Reserved"
+                          ? "Резервирано"
                           : isReserving
                             ? "..."
                             : canRequest
-                              ? "Ramp"
+                              ? "Качване"
                               : vehicleId
-                                ? "Ramp"
-                                : "No ID"}
+                                ? "Качване"
+                                : "Без ID"}
                       </button>
                     </div>
                   </div>
