@@ -50,7 +50,7 @@ const DISMISS_OFFSET = 60;
 // Gap between top of sheet and bottom of floating nav
 const TOP_GAP = 12;
 // Fallback viewport-relative max, if nav measurement fails
-const MAX_FALLBACK_RATIO = 0.9;
+const MAX_FALLBACK_RATIO = 0.85;
 
 export default function VehicleTripSheet({
   vehicle,
@@ -63,6 +63,7 @@ export default function VehicleTripSheet({
   const [error, setError] = useState<string | null>(null);
   const [reservingStopId, setReservingStopId] = useState<string | null>(null);
   const [boardingStopId, setBoardingStopId] = useState<string | null>(null);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
   const { reserveAlight, reserveBoard, cancel, reservations, lockedVehicleId } =
     useRamp();
@@ -74,7 +75,7 @@ export default function VehicleTripSheet({
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Measured bounds
-  const [minHeight, setMinHeight] = useState(180);
+  const [minHeight, setMinHeight] = useState(240);
   const [maxHeight, setMaxHeight] = useState(
     typeof window !== "undefined"
       ? window.innerHeight * MAX_FALLBACK_RATIO
@@ -82,7 +83,7 @@ export default function VehicleTripSheet({
   );
 
   // Current sheet height in px
-  const [height, setHeight] = useState(180);
+  const [height, setHeight] = useState(360);
 
   // Drag state
   const dragging = useRef(false);
@@ -91,21 +92,12 @@ export default function VehicleTripSheet({
 
   // ─── Measure min / max ─────────────────────────────────────────────────
   const measure = useCallback(() => {
-    // min = handle + header + ~2 stop rows (or however many exist if fewer)
+    if (typeof window === "undefined") return;
+
+    // Keep same minimum sizing model as stop sheet for visual consistency.
     const handleH = handleRef.current?.offsetHeight ?? 16;
     const headerH = headerRef.current?.offsetHeight ?? 56;
-    const rows =
-      scrollRef.current?.querySelectorAll<HTMLElement>("[data-stop-row]");
-    let twoRowsH = 0;
-    if (rows && rows.length > 0) {
-      const take = Math.min(2, rows.length);
-      for (let i = 0; i < take; i++) twoRowsH += rows[i].offsetHeight;
-      if (rows.length < 2) twoRowsH = Math.max(twoRowsH, 120);
-    } else {
-      twoRowsH = 120; // fallback until stops render
-    }
-    const scrollPadding = 24; // px-4 pb-4 on scroll container
-    const computedMin = handleH + headerH + twoRowsH + scrollPadding;
+    const computedMin = handleH + headerH + 100;
 
     // max = distance from bottom of viewport up to bottom of floating nav
     let computedMax = window.innerHeight * MAX_FALLBACK_RATIO;
@@ -136,12 +128,13 @@ export default function VehicleTripSheet({
     if (!vehicle) return;
     const id = requestAnimationFrame(() => {
       measure();
-      const handleH = handleRef.current?.offsetHeight ?? 16;
-      const headerH = headerRef.current?.offsetHeight ?? 56;
-      setHeight(handleH + headerH + 120 + 24);
+      setHeight((h) => {
+        const target = minHeight + (maxHeight - minHeight) * 0.6;
+        return Math.min(Math.max(target, minHeight), maxHeight);
+      });
     });
     return () => cancelAnimationFrame(id);
-  }, [vehicle, measure]);
+  }, [vehicle, measure, minHeight, maxHeight]);
 
   const boardingRes = reservations.find(
     (r) =>
@@ -296,13 +289,14 @@ export default function VehicleTripSheet({
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[930] flex justify-center px-0 sm:px-4">
       <section
         ref={sectionRef}
-        className="pointer-events-auto flex w-full flex-col rounded-t-2xl border max-sm:max-w-none"
+        className="stop-sheet-shell pointer-events-auto flex w-full flex-col rounded-t-2xl border max-sm:max-w-none"
         style={{
           background: "var(--surface-elevated)",
           borderColor: "var(--border)",
           boxShadow: "var(--shadow-lg)",
           color: "var(--text)",
-          height: `${height}px`,
+          height: isMobile ? `${height}px` : undefined,
+          maxHeight: isMobile ? `${maxHeight}px` : undefined,
           transition: dragging.current
             ? "none"
             : "height 0.28s cubic-bezier(0.32, 0.72, 0, 1)",
@@ -377,8 +371,8 @@ export default function VehicleTripSheet({
         {/* Trip stops — always scrollable, at any height */}
         <div
           ref={scrollRef}
-          className="overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-4 flex-1"
-          style={{ WebkitOverflowScrolling: "touch" }}
+          className={`stop-sheet-scroll overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-4 ${isMobile ? "min-h-0 flex-1" : ""}`}
+          style={isMobile ? { WebkitOverflowScrolling: "touch", maxHeight: "none" } : undefined}
         >
           {loading && (
             <p className="py-3" style={{ color: "var(--text-muted)" }}>

@@ -63,7 +63,7 @@ export default function StopArrivalsSheet({
 
   const sseArrivals = useSSE<StopArrival[]>(
     stop
-      ? `/stops/${encodeURIComponent(stop.stop_id)}/vehicles/stream?limit=20`
+      ? `/api/stops/${encodeURIComponent(stop.stop_id)}/vehicles/stream?limit=20`
       : null,
   );
 
@@ -122,17 +122,61 @@ export default function StopArrivalsSheet({
   }, [stop, measure]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (!stop) return;
+
+    let active = true;
+    const controller = new AbortController();
+
+    const loadArrivals = async () => {
+      try {
+        const res = await fetch(
+          `/api/stops/${encodeURIComponent(stop.stop_id)}/vehicles?limit=20`,
+          { signal: controller.signal },
+        );
+        if (controller.signal.aborted || !active) return;
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = (await res.json()) as StopArrival[];
+        if (!controller.signal.aborted && active) {
+          setArrivals(Array.isArray(data) ? data : []);
+          setError(null);
+        }
+      } catch (e) {
+        if (!controller.signal.aborted && active) {
+          setError("Неуспешно зареждане на пристигащи превозни средства.");
+        }
+      } finally {
+        if (!controller.signal.aborted && active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadArrivals();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [stop]);
+
+  useEffect(() => {
     if (!sseArrivals) return;
     setArrivals(sseArrivals);
     setLoading(false);
+    setError(null);
   }, [sseArrivals]);
 
   const sortedArrivals = useMemo(() => {
     const list = rampOnly ? arrivals.filter((a) => a.has_ramp) : arrivals;
     return [...list].sort((a, b) => {
-      if (a.has_ramp && !b.has_ramp) return -1;
-      if (!a.has_ramp && b.has_ramp) return 1;
-      return a.eta_minutes - b.eta_minutes;
+      const etaDiff = a.eta_minutes - b.eta_minutes;
+      if (etaDiff !== 0) return etaDiff;
+      if (a.has_ramp === b.has_ramp) return 0;
+      return a.has_ramp ? -1 : 1;
     });
   }, [arrivals, rampOnly]);
 
