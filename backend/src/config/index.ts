@@ -17,7 +17,6 @@ export const config = {
     url: process.env.MQTT_URL ?? 'mqtts://broker.hivemq.com:8883',
     username: process.env.MQTT_USERNAME,
     password: process.env.MQTT_PASSWORD,
-    clientId:
-      process.env.MQTT_CLIENT_ID ?? `rampme-backend-${Math.random().toString(16).slice(2, 8)}`,
+    clientId: process.env.MQTT_CLIENT_ID ?? 'rampme-backend',
   },
 } as const

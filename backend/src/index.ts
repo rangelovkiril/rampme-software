@@ -24,6 +24,8 @@ await initMqtt(config.mqtt.url, {
   username: config.mqtt.username,
   password: config.mqtt.password,
   clientId: config.mqtt.clientId,
+  keepalive: 30,
+  clean: true,
 })
 subscribeToHardwareStates()
 resyncAllReservations()
