@@ -6,6 +6,8 @@ inputs:
     required: true
   image:
     required: true
+  registry-username:
+    required: true
   tag-latest:
     default: "false"
   registry-token:
@@ -17,7 +19,7 @@ runs:
     - uses: docker/login-action@v3
       with:
         registry: ghcr.io
-        username: ${{ github.actor }}
+        username: ${{ inputs.registry-username }}
         password: ${{ inputs.registry-token }}
 
     - uses: docker/build-push-action@v6
