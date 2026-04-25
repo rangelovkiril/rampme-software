@@ -24,7 +24,7 @@ const toRegex = (p: string) => {
   const base = (trailingHash ? segments.slice(0, -1) : segments)
     .map((s) => (s === '+' ? '[^/]+' : s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
     .join('/')
-  return new RegExp('^' + base + (trailingHash ? '(?:$|/.*)' : '') + '$')
+  return new RegExp(`^${base}${trailingHash ? '(?:$|/.*)' : ''}$`)
 }
 
 export class MQTTHub {

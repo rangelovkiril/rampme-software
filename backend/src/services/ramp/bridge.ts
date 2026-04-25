@@ -20,7 +20,7 @@
  *   5. if no "deploying" within DEPLOY_TIMEOUT_MS after deploy cmd → expire reservations
  */
 
-import { Type, type Static } from '@sinclair/typebox'
+import { type Static, Type } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import {
   getAllActiveReservations,
