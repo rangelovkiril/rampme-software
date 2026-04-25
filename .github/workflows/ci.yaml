@@ -44,6 +44,6 @@ jobs:
         with:
           context: ./${{ matrix.app }}
           image: hacktues12-${{ matrix.app }}
-          registry-username: ${{ github.repository_owner }}
-          registry-token: ${{ secrets.GHCR_TOKEN }}
+          registry-username: ${{ github.actor }}
+          registry-token: ${{ secrets.GITHUB_TOKEN }}
           tag-latest: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
