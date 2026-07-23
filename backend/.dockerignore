@@ -1,9 +1,10 @@
-.env.local
-.env*.local
 node_modules
-.next
+data
+.env
+.env.*
 .git
 .github
 Dockerfile
 .dockerignore
+claude.md
 *.md

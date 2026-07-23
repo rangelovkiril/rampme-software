@@ -1,0 +1,102 @@
+name: Pipeline
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      timestamp: ${{ steps.timestamp.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - '.github/**'
+            backend:
+              - 'backend/**'
+              - '.github/**'
+      - id: timestamp
+        run: echo "value=$(date -u +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+
+  check:
+    name: Check ${{ matrix.app }}
+    needs: [changes]
+    if: needs.changes.outputs[matrix.app] == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        include:
+          - app: frontend
+            build: true
+          - app: backend
+            build: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/check
+        with:
+          app: ${{ matrix.app }}
+          build: ${{ matrix.build }}
+
+  build:
+    name: Build ${{ matrix.app }}
+    needs: [changes, check]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs[matrix.app] == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        app: [frontend, backend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-image
+        with:
+          context: ./${{ matrix.app }}
+          image: hacktues12-${{ matrix.app }}
+          tag: stage-${{ needs.changes.outputs.timestamp }}
+          registry-username: ${{ github.actor }}
+          registry-token: ${{ secrets.GITHUB_TOKEN }}
+
+  promote-production:
+    name: Promote ${{ matrix.app }} to production
+    needs: [changes, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs[matrix.app] == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        app: [frontend, backend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/promote-image
+        with:
+          image: hacktues12-${{ matrix.app }}
+          from-tag: stage-${{ needs.changes.outputs.timestamp }}
+          to-tag: prod-${{ needs.changes.outputs.timestamp }}
+          registry-username: ${{ github.actor }}
+          registry-token: ${{ secrets.GITHUB_TOKEN }}

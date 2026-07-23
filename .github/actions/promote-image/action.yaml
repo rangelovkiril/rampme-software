@@ -1,0 +1,28 @@
+name: Promote Image
+description: Retag an already-built image by digest for production, without rebuilding
+
+inputs:
+  image:
+    required: true
+  from-tag:
+    required: true
+  to-tag:
+    required: true
+  registry-username:
+    required: true
+  registry-token:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ inputs.registry-username }}
+        password: ${{ inputs.registry-token }}
+
+    - shell: bash
+      run: |
+        IMAGE="ghcr.io/${{ github.repository_owner }}/${{ inputs.image }}"
+        docker buildx imagetools create -t "${IMAGE}:${{ inputs.to-tag }}" "${IMAGE}:${{ inputs.from-tag }}"

@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # Build stage
 FROM oven/bun:1 AS build
 
@@ -6,14 +8,18 @@ ENV BACKEND_URL=$BACKEND_URL
 
 WORKDIR /app
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile
 COPY . .
 
-RUN bun run build
+RUN --mount=type=cache,target=/app/.next/cache \
+    bun run build
 
 # Production image with slim image for tools
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/* \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
     && groupadd -r app && useradd -r -g app -d /app -s /sbin/nologin app
 WORKDIR /app
 

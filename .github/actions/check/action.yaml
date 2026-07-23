@@ -12,6 +12,13 @@ runs:
   steps:
     - uses: oven-sh/setup-bun@v2
 
+    - uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: bun-${{ runner.os }}-${{ inputs.app }}-${{ hashFiles(format('{0}/bun.lock', inputs.app)) }}
+        restore-keys: |
+          bun-${{ runner.os }}-${{ inputs.app }}-
+
     - shell: bash
       run: cd ${{ inputs.app }} && bun install --frozen-lockfile
 
