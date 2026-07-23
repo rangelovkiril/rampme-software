@@ -17,8 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
-      backend: ${{ steps.filter.outputs.backend }}
+      apps: ${{ steps.filter.outputs.changes }}
       timestamp: ${{ steps.timestamp.outputs.value }}
     steps:
       - uses: actions/checkout@v4
@@ -38,27 +37,23 @@ jobs:
   check:
     name: Check ${{ matrix.app }}
     needs: [changes]
-    if: needs.changes.outputs[matrix.app] == 'true'
+    if: needs.changes.outputs.apps != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
       matrix:
-        include:
-          - app: frontend
-            build: true
-          - app: backend
-            build: false
+        app: ${{ fromJSON(needs.changes.outputs.apps) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/check
         with:
           app: ${{ matrix.app }}
-          build: ${{ matrix.build }}
+          build: ${{ matrix.app == 'frontend' }}
 
   build:
     name: Build ${{ matrix.app }}
     needs: [changes, check]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs[matrix.app] == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs.apps != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging
@@ -67,7 +62,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        app: [frontend, backend]
+        app: ${{ fromJSON(needs.changes.outputs.apps) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-image
@@ -81,7 +76,7 @@ jobs:
   promote-production:
     name: Promote ${{ matrix.app }} to production
     needs: [changes, build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs[matrix.app] == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs.apps != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: production
@@ -90,7 +85,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        app: [frontend, backend]
+        app: ${{ fromJSON(needs.changes.outputs.apps) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/promote-image
