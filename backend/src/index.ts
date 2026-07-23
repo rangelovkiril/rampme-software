@@ -46,8 +46,10 @@ if (!config.mqtt.url) {
     clientId: config.mqtt.clientId,
     keepalive: 30,
     clean: true,
-  }).then(() => {
-    subscribeToHardwareStates()
-    resyncAllReservations()
-  }).catch((e) => console.error('MQTT init failed:', e))
+  })
+    .then(() => {
+      subscribeToHardwareStates()
+      resyncAllReservations()
+    })
+    .catch((e) => console.error('MQTT init failed:', e))
 }
