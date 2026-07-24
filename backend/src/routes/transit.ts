@@ -31,11 +31,8 @@ export const transitRoutes = new Elysia()
         const route = data.routes.get(id)
         if (!route) return jsonError('Route not found', 404)
 
-        const routeTrips = [...data.trips.values()].filter((t) => t.route_id === id)
-        const tripIds = new Set(routeTrips.map((t) => t.trip_id))
-        const stopIds = new Set(
-          data.stopTimes.filter((st) => tripIds.has(st.trip_id)).map((st) => st.stop_id),
-        )
+        const routeTrips = data.tripsByRoute.get(id) ?? []
+        const stopIds = data.stopIdsByRoute.get(id) ?? new Set<string>()
         const stops = [...stopIds].map((sid) => data.stops.get(sid)).filter(Boolean)
 
         return { ...route, trips: routeTrips.length, stops }

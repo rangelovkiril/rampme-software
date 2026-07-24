@@ -29,16 +29,21 @@ async function refreshFeeds() {
     fetchFeed('trip-updates'),
     fetchFeed('vehicle-positions'),
   ])
-  if (trips.status === 'fulfilled') tripUpdatesData = trips.value
-  if (vehicles.status === 'fulfilled') vehicleData = vehicles.value
+  let updated = false
+  if (trips.status === 'fulfilled') {
+    tripUpdatesData = trips.value
+    updated = true
+  }
+  if (vehicles.status === 'fulfilled') {
+    vehicleData = vehicles.value
+    updated = true
+  }
+  if (updated) realtimeEvents.emit('refresh')
 }
 
-// Fetch data in background independently of SSE push rate
+// Fetch data in background independently of SSE push rate; emits 'refresh' on success
 refreshFeeds()
 setInterval(() => refreshFeeds().catch(() => {}), REFRESH_INTERVAL_MS)
-
-// Push to SSE clients every 5s regardless of fetch timing
-setInterval(() => realtimeEvents.emit('refresh'), REFRESH_INTERVAL_MS)
 
 export function fetchTripUpdates() {
   if (!tripUpdatesData) return fetchFeed('trip-updates')
