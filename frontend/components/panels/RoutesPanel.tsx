@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Route } from "@/lib/types";
 import { ROUTE_TYPE_CONFIG, ROUTE_TYPE_ORDER } from "@/lib/transit";
 import FilterChip from "./FilterChip";
+import { apiPath } from "@/lib/config";
 
 interface RoutesPanelProps {
   onSelectRoute?: (routeId: string, routeType: number) => void;
@@ -28,7 +29,7 @@ export default function RoutesPanel({
     let active = true;
     async function load() {
       try {
-        const res = await fetch("/api/routes");
+        const res = await fetch(apiPath("/routes"));
         if (!res.ok || !active) return;
         const data = await res.json();
         if (active && Array.isArray(data)) setRoutes(data);

@@ -24,7 +24,17 @@ startProximityChecker()
 
 const app = new Elysia()
   .use(swaggerPlugin)
-  .use(cors())
+  .use(
+    cors({
+      origin: [
+        'https://rampme.site',
+        /^https:\/\/[\w-]+\.rampme\.pages\.dev$/, // Pages preview deployments
+        /^http:\/\/localhost:\d+$/, // local dev without the rewrite proxy
+      ],
+      methods: ['GET', 'POST', 'DELETE'],
+      allowedHeaders: ['Content-Type', 'X-Session-Id'],
+    }),
+  )
   .use(stopsRoutes)
   .use(transitRoutes)
   .use(realtimeRoutes)

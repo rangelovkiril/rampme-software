@@ -13,7 +13,6 @@ app/
   layout.tsx            Root layout — dark mode script, Leaflet CSS import
   page.tsx              Single page, dynamically imports Map (SSR disabled for Leaflet)
   globals.css           CSS variables for theming (light/dark), component sizes
-  api/health/route.ts   Health check
 
 components/
   Map.tsx               Orchestrator — holds all app state, composes everything below
@@ -44,6 +43,7 @@ lib/
   types.ts              All shared TypeScript interfaces (Stop, Vehicle, StopArrival, TripData, etc.)
   transit.ts            Route type config (colors, labels), getRouteColor(), formatEta()
   geo.ts                distanceMeters() — haversine formula
+  config.ts              loadRuntimeConfig() + apiPath() — runtime (not build-time) backend base URL
 
 hooks/
   usePollingFetch.ts    Generic fetch + setInterval + cleanup hook
@@ -55,7 +55,7 @@ hooks/
 - **Viewport culling** — StopsLayer and VehiclesLayer only render markers within `map.getBounds()`. They listen to `zoomend`/`moveend` via a `revision` counter.
 - **Sibling stops** — when selecting a stop, the backend returns arrivals for all physical siblings (bus + tram + trolley variants at the same location).
 - **Theming** — CSS variables in `globals.css`, toggled via `dark` class on `<html>`. No Tailwind dark: prefix — we use CSS vars directly in `style` props for dynamic values.
-- **Backend proxy** — `next.config.ts` rewrites `/api/*` to the backend URL. Components fetch from `/api/...`.
+- **Static export** — `next.config.ts` sets `output: 'export'`; the app is fully client-side, no server. The build is identical across every environment — no backend URL is baked in. `app/page.tsx` calls `loadRuntimeConfig()` (fetches `/config.json`) before mounting `Map`; `apiPath()` in `lib/config.ts` then resolves paths against whatever `apiBase` that config contained. Same build artifact gets deployed to staging and production; only the `config.json` written into `out/` right before each deploy differs (see CI). Dev builds have no `config.json`, so `apiPath()` falls back to `/api`, resolved by the `rewrites()` proxy (`/api/*` → `BACKEND_URL`) in `next.config.ts`.
 
 ## Rules
 
@@ -74,13 +74,13 @@ hooks/
 User taps vehicle marker
   → VehiclesLayer calls onVehicleSelect(vehicle)
   → Map.tsx sets selectedVehicle + selectedRoute
-  → VehicleTripSheet opens, fetches /api/realtime/vehicles/:id/trip
-  → RouteLinesLayer fetches /api/routes/shapes?ids=...
+  → VehicleTripSheet opens, fetches apiPath('/realtime/vehicles/:id/trip')
+  → RouteLinesLayer fetches apiPath('/routes/shapes?ids=...')
 
 User taps stop marker
   → StopsLayer calls onStopSelect(stop)
   → Map.tsx sets selectedStop
-  → StopArrivalsSheet opens, fetches /api/stops/:id/vehicles
+  → StopArrivalsSheet opens, fetches apiPath('/stops/:id/vehicles')
   → Polls every 15s for updated ETAs
 ```
 
@@ -96,4 +96,6 @@ bun run check        # biome + tsc
 
 | Variable | Default | Description |
 |---|---|---|
-| `BACKEND_URL` | `http://localhost:3000` | Backend API URL (used in next.config.ts rewrite) |
+| `BACKEND_URL` | `http://localhost:3000` | Dev-only backend URL, used by the `next.config.ts` rewrite proxy |
+
+Production backend base URL is **not** an env var — it's runtime config. See `lib/config.ts` and `public/config.json` written by CI (not checked in).

@@ -50,48 +50,107 @@ jobs:
           app: ${{ matrix.app }}
           build: ${{ matrix.app == 'frontend' }}
 
-  build:
-    name: Build ${{ matrix.app }}
+  # ── backend: build once, promote the same image by digest ────────────────
+
+  build-backend-image:
+    name: Build backend image
     needs: [changes, check]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs.apps != '[]'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && contains(fromJSON(needs.changes.outputs.apps), 'backend')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging
     permissions:
       contents: read
       packages: write
-    strategy:
-      matrix:
-        app: ${{ fromJSON(needs.changes.outputs.apps) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-image
         with:
-          context: ./${{ matrix.app }}
-          image: hacktues12-${{ matrix.app }}
+          context: ./backend
+          image: hacktues12-backend
           tag: stage-${{ needs.changes.outputs.timestamp }}
           registry-username: ${{ github.actor }}
           registry-token: ${{ secrets.GITHUB_TOKEN }}
 
-  promote-production:
-    name: Promote ${{ matrix.app }} to production
-    needs: [changes, build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs.apps != '[]'
+  promote-backend-image:
+    name: Promote backend image to production
+    needs: [changes, build-backend-image]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: production
     permissions:
       contents: read
       packages: write
-    strategy:
-      matrix:
-        app: ${{ fromJSON(needs.changes.outputs.apps) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/promote-image
         with:
-          image: hacktues12-${{ matrix.app }}
+          image: hacktues12-backend
           from-tag: stage-${{ needs.changes.outputs.timestamp }}
           to-tag: prod-${{ needs.changes.outputs.timestamp }}
           registry-username: ${{ github.actor }}
           registry-token: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── frontend: build once, deploy the same artifact to staging then production ─
+
+  deploy-frontend-staging:
+    name: Deploy frontend (staging)
+    needs: [changes, check]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && contains(fromJSON(needs.changes.outputs.apps), 'frontend')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-frontend-${{ hashFiles('frontend/bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-frontend-
+      - shell: bash
+        run: cd frontend && bun install --frozen-lockfile
+      # No env vars baked in here — the build is identical across every
+      # environment. lib/config.ts fetches /config.json at runtime instead,
+      # so this same artifact gets promoted from staging to production
+      # unmodified; only the config.json written below differs.
+      - shell: bash
+        run: cd frontend && bun run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-out-${{ needs.changes.outputs.timestamp }}
+          path: frontend/out
+          retention-days: 7
+      - shell: bash
+        run: echo '{"apiBase":"${{ vars.API_BASE_URL }}"}' > frontend/out/config.json
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/out --project-name rampme --branch staging
+
+  deploy-frontend-production:
+    name: Deploy frontend (production)
+    needs: [changes, deploy-frontend-staging]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-out-${{ needs.changes.outputs.timestamp }}
+          path: frontend/out
+      - shell: bash
+        run: echo '{"apiBase":"${{ vars.API_BASE_URL }}"}' > frontend/out/config.json
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/out --project-name rampme --branch main

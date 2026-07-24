@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { apiPath } from '@/lib/config'
 
 // ── types ────────────────────────────────────────────────────────────────
 
@@ -62,7 +63,7 @@ async function apiReserve(
   sid: string, vehicleId: string, stopId: string, type: 'board' | 'alight',
 ): Promise<RampReservation | null> {
   try {
-    const r = await fetch('/api/ramp/reserve', {
+    const r = await fetch(apiPath('/ramp/reserve'), {
       method: 'POST', headers: hdrs(sid),
       body: JSON.stringify({ vehicle_id: vehicleId, stop_id: stopId, type }),
     })
@@ -72,7 +73,7 @@ async function apiReserve(
 
 async function apiCancel(sid: string, id: number): Promise<boolean> {
   try {
-    const r = await fetch(`/api/ramp/reserve/${id}`, {
+    const r = await fetch(apiPath(`/ramp/reserve/${id}`), {
       method: 'DELETE', headers: { 'X-Session-Id': sid },
     })
     return r.ok
@@ -81,7 +82,7 @@ async function apiCancel(sid: string, id: number): Promise<boolean> {
 
 async function apiFetch(sid: string): Promise<RampReservation[]> {
   try {
-    const r = await fetch('/api/ramp/session', { headers: { 'X-Session-Id': sid } })
+    const r = await fetch(apiPath('/ramp/session'), { headers: { 'X-Session-Id': sid } })
     return r.ok ? await r.json() : []
   } catch { return [] }
 }

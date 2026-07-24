@@ -12,6 +12,7 @@ import type { Stop, StopArrival } from "@/lib/types";
 import { getRouteColor, formatEta } from "@/lib/transit";
 import { useRamp } from "@/contexts/RampContext";
 import { useSSE } from "@/hooks/useSSE";
+import { apiPath } from "@/lib/config";
 
 const RAMP_PROXIMITY_METERS = 10;
 // Gap between top of sheet and bottom of floating nav
@@ -63,7 +64,7 @@ export default function StopArrivalsSheet({
 
   const sseArrivals = useSSE<StopArrival[]>(
     stop
-      ? `/api/stops/${encodeURIComponent(stop.stop_id)}/vehicles/stream?limit=20`
+      ? `/stops/${encodeURIComponent(stop.stop_id)}/vehicles/stream?limit=20`
       : null,
   );
 
@@ -130,7 +131,7 @@ export default function StopArrivalsSheet({
     const loadArrivals = async () => {
       try {
         const res = await fetch(
-          `/api/stops/${encodeURIComponent(stop.stop_id)}/vehicles?limit=20`,
+          apiPath(`/stops/${encodeURIComponent(stop.stop_id)}/vehicles?limit=20`),
           { signal: controller.signal },
         );
         if (controller.signal.aborted || !active) return;

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Stop } from '@/lib/types'
+import { apiPath } from '@/lib/config'
 
 interface StopsPanelProps {
   onSelectStop?: (stop: Stop) => void
@@ -17,7 +18,7 @@ export default function StopsPanel({ onSelectStop, onClose }: StopsPanelProps) {
     let active = true
     async function load() {
       try {
-        const res = await fetch('/api/stops')
+        const res = await fetch(apiPath('/stops'))
         if (!res.ok || !active) return
         const data = await res.json()
         if (active && Array.isArray(data)) setStops(data)
