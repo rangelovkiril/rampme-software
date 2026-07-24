@@ -32,21 +32,18 @@ async function refreshFeeds() {
     fetchFeed('trip-updates'),
     fetchFeed('vehicle-positions'),
   ])
-  let updated = false
-  if (trips.status === 'fulfilled') {
-    tripUpdatesData = trips.value
-    updated = true
-  }
-  if (vehicles.status === 'fulfilled') {
-    vehicleData = vehicles.value
-    updated = true
-  }
-  if (updated) realtimeEvents.emit('refresh')
+  if (trips.status === 'fulfilled') tripUpdatesData = trips.value
+  if (vehicles.status === 'fulfilled') vehicleData = vehicles.value
 }
 
-// Fetch data in background independently of SSE push rate; emits 'refresh' on success
+// Fetch data in background independently of SSE push rate.
 refreshFeeds()
 setInterval(() => refreshFeeds().catch(() => {}), REFRESH_INTERVAL_MS)
+
+// Push to SSE clients on a fixed cadence, regardless of upstream fetch timing
+// or success — an upstream GTFS-RT stall must never freeze the UI. Clients
+// get the latest cached (possibly slightly stale) data instead of nothing.
+setInterval(() => realtimeEvents.emit('refresh'), REFRESH_INTERVAL_MS)
 
 export function fetchTripUpdates() {
   if (!tripUpdatesData) return fetchFeed('trip-updates')
