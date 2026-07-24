@@ -9,8 +9,10 @@
  * for too long, or whose creation time is older than EXPIRY_SECONDS.
  */
 
+import { consola } from 'consola'
 import { getAllActiveReservations, setReservationStatus } from '../../db/ramp'
 import { fetchVehiclePositions } from '../../gtfs/realtime'
+import type { GtfsRtFeedEntity } from '../../gtfs/types'
 import { getGtfs } from '../state'
 import {
   clearDeployTrigger,
@@ -19,6 +21,8 @@ import {
   publishDeploy,
   wasDeployTriggered,
 } from './bridge'
+
+const log = consola.withTag('proximity')
 
 const RADIUS_M = 50
 const EXPIRY_SECONDS = 2 * 60 * 60
@@ -44,7 +48,7 @@ async function tick(): Promise<void> {
   const reservations = getAllActiveReservations()
   if (reservations.length === 0) return
 
-  let feedEntities: any[]
+  let feedEntities: GtfsRtFeedEntity[]
   try {
     const feed = await fetchVehiclePositions()
     feedEntities = feed.entity ?? []
@@ -74,9 +78,7 @@ async function tick(): Promise<void> {
     if (!veh) {
       const lastSeen = vehicleLastSeen.get(r.vehicle_id) ?? r.created_at
       if (now - lastSeen > VEHICLE_GONE_SECONDS) {
-        console.log(
-          `[proximity] vehicle ${r.vehicle_id} absent ${VEHICLE_GONE_SECONDS}s — expiring #${r.id}`,
-        )
+        log.warn(`vehicle ${r.vehicle_id} absent ${VEHICLE_GONE_SECONDS}s — expiring #${r.id}`)
         setReservationStatus(r.id, 'expired')
       }
       continue
@@ -89,8 +91,8 @@ async function tick(): Promise<void> {
     const atStop = d <= RADIUS_M
 
     if (atStop && r.status === 'pending' && !isDeployInFlight(r.vehicle_id)) {
-      console.log(
-        `[proximity] vehicle ${r.vehicle_id} at stop ${r.stop_id} (${d.toFixed(0)}m) — triggering deploy for #${r.id}`,
+      log.info(
+        `vehicle ${r.vehicle_id} at stop ${r.stop_id} (${d.toFixed(0)}m) — triggering deploy for #${r.id}`,
       )
       markDeployTriggered(r.vehicle_id, r.stop_id)
       publishDeploy(r.vehicle_id)
@@ -108,6 +110,6 @@ let interval: ReturnType<typeof setInterval> | null = null
 
 export function startProximityChecker(): void {
   if (interval) return
-  interval = setInterval(() => tick().catch(console.error), CHECK_INTERVAL_MS)
-  console.log(`[proximity] started (${CHECK_INTERVAL_MS}ms interval, radius=${RADIUS_M}m)`)
+  interval = setInterval(() => tick().catch((e) => log.error(e)), CHECK_INTERVAL_MS)
+  log.info(`started (${CHECK_INTERVAL_MS}ms interval, radius=${RADIUS_M}m)`)
 }

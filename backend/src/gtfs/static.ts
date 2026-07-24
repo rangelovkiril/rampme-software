@@ -1,3 +1,4 @@
+import { consola } from 'consola'
 import JSZip from 'jszip'
 import { config } from '../config'
 import type { CalendarDate, GtfsData, Route, ShapePoint, Stop, StopTime, Trip } from './types'
@@ -44,7 +45,7 @@ function normalizeRouteType(raw: number): number {
  * Fetches a GTFS ZIP from the configured static URL, parses required CSV files, and constructs in-memory GTFS collections.
  */
 export async function fetchStaticGtfs(): Promise<GtfsData> {
-  console.log('⏳ Fetching static GTFS data...')
+  consola.start('Fetching static GTFS data...')
   const res = await fetch(config.gtfs.staticUrl)
 
   if (!res.ok) throw new Error(`GTFS static fetch failed: ${res.status}`)
@@ -183,8 +184,8 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     shapesByRoute.get(trip.route_id)!.push(polyline)
   }
 
-  console.log(
-    `✅ GTFS loaded: ${stops.size} stops, ${routes.size} routes, ${trips.size} trips, ${stopTimes.length} stop_times, ${calendarDates.length} calendar_dates, ${shapes.size} shapes`,
+  consola.success(
+    `GTFS loaded: ${stops.size} stops, ${routes.size} routes, ${trips.size} trips, ${stopTimes.length} stop_times, ${calendarDates.length} calendar_dates, ${shapes.size} shapes`,
   )
 
   return {

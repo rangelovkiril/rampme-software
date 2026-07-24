@@ -55,9 +55,7 @@ export async function getTripEtas(
   vehicleId: string,
 ): Promise<TripEtaUpdate[] | null> {
   const feed = await fetchVehiclePositions()
-  const entity = (feed.entity ?? []).find(
-    (e: any) => (e.vehicle?.vehicle?.id ?? e.id) === vehicleId,
-  )
+  const entity = (feed.entity ?? []).find((e) => (e.vehicle?.vehicle?.id ?? e.id) === vehicleId)
   if (!entity?.vehicle) return null
 
   const tripId = entity.vehicle.trip?.tripId ?? ''
@@ -92,9 +90,7 @@ export async function getVehicleTripDetails(
   vehicleId: string,
 ): Promise<TripDetailResult | null> {
   const feed = await fetchVehiclePositions()
-  const entity = (feed.entity ?? []).find(
-    (e: any) => (e.vehicle?.vehicle?.id ?? e.id) === vehicleId,
-  )
+  const entity = (feed.entity ?? []).find((e) => (e.vehicle?.vehicle?.id ?? e.id) === vehicleId)
   if (!entity?.vehicle) return null
 
   const v = entity.vehicle
@@ -133,7 +129,7 @@ async function fetchTripPredictions(tripId: string, nowSec: number): Promise<Tri
   const byStopSequence = new Map<number, TripPrediction>()
   let nextUpcomingSequence: number | null = null
 
-  for (const e of (tuFeed as any).entity ?? []) {
+  for (const e of tuFeed.entity ?? []) {
     const tu = e.tripUpdate
     if (tu?.trip?.tripId !== tripId) continue
     for (const stu of tu.stopTimeUpdate ?? []) {

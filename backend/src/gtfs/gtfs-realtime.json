@@ -123,6 +123,10 @@
           "type": "Position",
           "id": 2
         },
+        "currentStopSequence": {
+          "type": "uint32",
+          "id": 3
+        },
         "timestamp": {
           "type": "uint64",
           "id": 5

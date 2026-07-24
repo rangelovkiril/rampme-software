@@ -42,6 +42,7 @@ message VehiclePosition {
   optional TripDescriptor trip = 1;
   optional VehicleDescriptor vehicle = 8;
   optional Position position = 2;
+  optional uint32 current_stop_sequence = 3;
   optional uint64 timestamp = 5;
 }
 

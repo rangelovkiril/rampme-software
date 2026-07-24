@@ -22,6 +22,7 @@
 
 import { type Static, Type } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
+import { consola } from 'consola'
 import {
   getAllActiveReservations,
   getVehicleReservations,
@@ -30,6 +31,8 @@ import {
 } from '../../db/ramp'
 import { realtimeEvents } from '../../gtfs/realtime'
 import { getMqtt, jsonParse } from '../mqtt'
+
+const log = consola.withTag('ramp-mqtt')
 
 const DEPLOY_TIMEOUT_MS = parseInt(process.env.DEPLOY_TIMEOUT_MS ?? '20000', 10)
 
@@ -93,7 +96,7 @@ function clearDeployTimeout(vehicleId: string): void {
  */
 export function publishDeploy(vehicleId: string): void {
   getMqtt().publish(cmdTopic(vehicleId), { action: 'deploy' })
-  console.log(`[ramp-mqtt] → ${vehicleId} deploy`)
+  log.info(`→ ${vehicleId} deploy`)
 
   // Hardware already confirmed it's in a deploy cycle — don't restart the timeout.
   if (deployAcknowledged.has(vehicleId)) return
@@ -114,9 +117,7 @@ export function publishDeploy(vehicleId: string): void {
       )
       for (const r of pending) setReservationStatus(r.id, 'expired')
       if (pending.length > 0) {
-        console.log(
-          `[ramp-mqtt] deploy timeout for ${vehicleId} — expired ${pending.length} reservation(s)`,
-        )
+        log.warn(`deploy timeout for ${vehicleId} — expired ${pending.length} reservation(s)`)
       }
       clearDeployTrigger(vehicleId)
     }, DEPLOY_TIMEOUT_MS),
@@ -142,9 +143,7 @@ type HardwareState = Static<typeof HardwareStateSchema>
  * and all active reservations for this vehicle should be marked completed.
  */
 function handleHardwareState(vehicleId: string, payload: HardwareState): void {
-  console.log(
-    `[ramp-mqtt] ← ${vehicleId} state=${payload.state}${payload.reason ? ` (${payload.reason})` : ''}`,
-  )
+  log.info(`← ${vehicleId} state=${payload.state}${payload.reason ? ` (${payload.reason})` : ''}`)
 
   // Only affect reservations for the stop that triggered this deploy cycle.
   const stopId = deployedFor.get(vehicleId)
@@ -192,7 +191,7 @@ export function subscribeToHardwareStates(): void {
     const vehicleId = topic.split('/')[1]
     if (!vehicleId) return
     if (!Value.Check(HardwareStateSchema, payload)) {
-      console.error(`[ramp-mqtt] invalid state payload from ${vehicleId}:`, payload)
+      log.error(`invalid state payload from ${vehicleId}:`, payload)
       return
     }
     handleHardwareState(vehicleId, payload)
@@ -206,6 +205,6 @@ export function resyncAllReservations(): void {
     publishNewReservation(r)
   }
   if (active.length > 0) {
-    console.log(`[ramp-mqtt] resynced ${active.length} active reservation(s)`)
+    log.info(`resynced ${active.length} active reservation(s)`)
   }
 }

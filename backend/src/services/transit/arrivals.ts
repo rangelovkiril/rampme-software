@@ -162,12 +162,13 @@ async function collectPredictions(
   const siblingSet = new Set(siblingIds)
   const predictions = new Map<string, number>()
 
-  for (const e of (tuFeed as any).entity ?? []) {
+  for (const e of tuFeed.entity ?? []) {
     const tu = e.tripUpdate
     if (!tu?.stopTimeUpdate) continue
     const tripId = tu.trip?.tripId ?? ''
     const rtRouteId: string | undefined = tu.trip?.routeId || undefined
     for (const stu of tu.stopTimeUpdate) {
+      if (!stu.stopId) continue
       if (siblingSet.has(stu.stopId)) {
         const arrTime = Number(stu.arrival?.time ?? stu.departure?.time ?? 0)
         if (arrTime > nowSec) {

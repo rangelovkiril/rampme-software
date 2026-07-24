@@ -1,4 +1,5 @@
 import cors from '@elysiajs/cors'
+import { consola } from 'consola'
 import { Elysia } from 'elysia'
 import { config } from './config'
 import { swaggerPlugin } from './config/swagger'
@@ -16,7 +17,7 @@ async function initGtfs() {
   try {
     setGtfs(await fetchStaticGtfs())
   } catch (e) {
-    console.error('Failed to load GTFS static data:', e)
+    consola.error('Failed to load GTFS static data:', e)
   }
 }
 
@@ -42,13 +43,13 @@ const app = new Elysia()
   .get('/health', () => 'Ok')
 
 app.listen(config.port)
-console.log(`GTFS server running at http://localhost:${app.server?.port}`)
+consola.ready(`GTFS server running at http://localhost:${app.server?.port}`)
 
 await initGtfs()
 setInterval(initGtfs, config.gtfs.refreshInterval)
 
 if (!config.mqtt.url) {
-  console.error('MQTT_URL not set — skipping MQTT')
+  consola.warn('MQTT_URL not set — skipping MQTT')
 } else {
   initMqtt(config.mqtt.url, {
     username: config.mqtt.username,
@@ -61,5 +62,5 @@ if (!config.mqtt.url) {
       subscribeToHardwareStates()
       resyncAllReservations()
     })
-    .catch((e) => console.error('MQTT init failed:', e))
+    .catch((e) => consola.error('MQTT init failed:', e))
 }
