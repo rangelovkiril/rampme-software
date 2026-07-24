@@ -61,3 +61,48 @@ export function unixToHHMM(unix: number): string {
   const { hours, minutes } = localParts(new Date(unix * 1000))
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
+
+const PAST_GRACE_MINUTES = 5
+const WRAP_THRESHOLD_MINUTES = 12 * 60
+const MAX_REASONABLE_FALLBACK_ETA_MINUTES = 6 * 60
+
+/**
+ * ETA in minutes for a scheduled (non-realtime) GTFS stop time, handling the
+ * midnight wrap: a same-day diff far in the past (e.g. 23:58 now, 00:07
+ * scheduled) is reinterpreted as a next-day arrival. Returns null when the
+ * stop should be considered already passed rather than shown with an eta.
+ */
+export function computeScheduledEtaMinutes(
+  totalGtfsMinutes: number,
+  nowSec: number,
+): number | null {
+  const currentMinutes = nowTotalMinutes(new Date(nowSec * 1000))
+  const day = 24 * 60
+  const rawDiff = totalGtfsMinutes - currentMinutes
+
+  // Normal same-day future stop.
+  if (rawDiff >= 0 && rawDiff <= MAX_REASONABLE_FALLBACK_ETA_MINUTES) {
+    return rawDiff
+  }
+
+  // Slightly past stop should be considered departed, not wrapped to +24h.
+  if (rawDiff < 0 && rawDiff >= -PAST_GRACE_MINUTES) {
+    return null
+  }
+
+  // Large negative diff likely means near-midnight wrap (e.g. 23:58 -> 00:07).
+  if (rawDiff < -WRAP_THRESHOLD_MINUTES) {
+    const wrapped = rawDiff + day
+    if (wrapped >= 0 && wrapped <= MAX_REASONABLE_FALLBACK_ETA_MINUTES) {
+      return wrapped
+    }
+    return null
+  }
+
+  // Large positive diff is usually a previous-day stop seen after midnight.
+  if (rawDiff > WRAP_THRESHOLD_MINUTES) {
+    return null
+  }
+
+  return rawDiff >= 0 ? rawDiff : null
+}

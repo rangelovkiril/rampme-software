@@ -70,6 +70,7 @@ export function isDeployInFlight(vehicleId: string): boolean {
 
 export function clearDeployTrigger(vehicleId: string): void {
   deployedFor.delete(vehicleId)
+  deployAcknowledged.delete(vehicleId)
 }
 
 const deployTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
@@ -169,7 +170,6 @@ function handleHardwareState(vehicleId: string, payload: HardwareState): void {
     for (const r of active.filter(forStop)) {
       setReservationStatus(r.id, 'done')
     }
-    deployAcknowledged.delete(vehicleId)
     clearDeployTrigger(vehicleId)
   }
 
@@ -178,7 +178,6 @@ function handleHardwareState(vehicleId: string, payload: HardwareState): void {
     for (const r of active.filter(forStop)) {
       setReservationStatus(r.id, 'expired')
     }
-    deployAcknowledged.delete(vehicleId)
     clearDeployTrigger(vehicleId)
   }
 
