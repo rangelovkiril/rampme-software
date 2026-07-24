@@ -1,0 +1,89 @@
+# Frontend: check + build on every PR; on main, deploy the same build
+# artifact to Cloudflare Pages staging (preview), then production.
+#
+# The build bakes NEXT_PUBLIC_API_URL in — there is a single backend
+# (api.rampme.site), so one artifact serves both environments.
+
+name: Frontend
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yaml'
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXT_PUBLIC_API_URL: https://api.rampme.site
+
+jobs:
+  build:
+    name: Check & build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-frontend-${{ hashFiles('frontend/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-frontend-
+      - run: bun install --frozen-lockfile
+      - run: bunx biome check .
+      - run: bunx tsc --noEmit
+      - run: bun run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-out
+          path: frontend/out
+          retention-days: 7
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: staging
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-out
+          path: out
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy out --project-name rampme --branch staging
+
+  deploy-production:
+    name: Deploy to production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-out
+          path: out
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy out --project-name rampme --branch main

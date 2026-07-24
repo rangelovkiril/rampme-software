@@ -151,17 +151,14 @@ cors({
 
 Adjust the preview-domain regex to the actual Pages project name chosen in 2.4. (EventSource sends no custom headers, so SSE needs only the origin allowance.)
 
-### 2.3 CI (`.github/workflows/pipeline.yaml` + `.github/actions/`)
+### 2.3 CI — DONE, do not rework
 
-Today the pipeline is: `changes` (paths-filter) → `check` → `build` (image `stage-<ts>`, environment `staging`) → `promote-production` (retag `prod-<ts>`, environment `production`). Flux image automation picks up `prod-*` tags. Keep this flow **for the backend only**; the frontend stops producing images.
+CI is already split into two standalone workflows; treat them as the settled design:
 
-Rework the frontend lane to preserve the build-once/promote-artifact pattern:
-
-- `check` job: unchanged (already runs `bun run check` and a build for frontend).
-- New `deploy-frontend-staging` job (environment `staging`, needs `check`, main-push only): build (`bun run build` with `NEXT_PUBLIC_API_URL=https://api.rampme.site`), upload `out/` as an artifact, then `wrangler pages deploy out --project-name <project> --branch staging` → produces a preview URL.
-- New `deploy-frontend-production` job (environment `production`, needs staging job): download the same artifact and `wrangler pages deploy out --project-name <project> --branch main` → production. Deploying the artifact (not rebuilding) preserves build-once semantics.
-- Use `cloudflare/wrangler-action@v3` with secrets `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`. **[CF — user]** creates the token (Pages:Edit scope) and adds both as GitHub secrets.
-- Remove the frontend entries from the image `build`/`promote-production` matrix (simplest: those jobs run only for `backend`; guard with an `if` on the matrix value or filter the matrix input).
+- `.github/workflows/frontend.yaml`: check + build (bakes `NEXT_PUBLIC_API_URL=https://api.rampme.site`) + artifact upload on every PR/push; on main-push the same artifact deploys to Pages `--branch staging` then `--branch main` (environments `staging`/`production`, `cloudflare/wrangler-action@v3` with `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` secrets).
+- `.github/workflows/backend.yaml`: check on PR; on main-push builds/pushes `sha-<commit>` + `stage-<ts>`, then promotes `sha-<commit>` → `prod-<ts>` via `imagetools create`. Flux ImagePolicy requires the numeric-sortable `prod-<timestamp>` format — keep it.
+- Native `on.*.paths` filtering replaced `dorny/paths-filter` + matrix; the composite actions under `.github/actions/` were inlined and deleted. Do not reintroduce either.
+- The frontend uses build-time `NEXT_PUBLIC_API_URL` (see `lib/config.ts` / `apiPath`); the earlier runtime `/config.json` mechanism was removed on purpose — there is one backend, so one artifact serves both environments.
 
 ### 2.4 Cloudflare Pages project
 
