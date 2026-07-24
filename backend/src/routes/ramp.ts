@@ -5,13 +5,18 @@ import {
   getSessionReservations,
   getVehicleReservations,
 } from '../db/ramp'
+import { realtimeEvents } from '../gtfs/realtime'
 import { publishCancelReservation, publishNewReservation } from '../services/ramp/bridge'
+import { makeSseStream } from '../services/sse'
 import { jsonError } from '../services/state'
+
+function isValidSessionId(s: string | undefined): s is string {
+  return s != null && s.length >= 8 && s.length <= 64 && /^[\w-]+$/.test(s)
+}
 
 function sessionId(headers: Record<string, string | undefined>): string | null {
   const s = headers['x-session-id']
-  if (!s || s.length < 8 || s.length > 64 || !/^[\w-]+$/.test(s)) return null
-  return s
+  return isValidSessionId(s) ? s : null
 }
 
 export const rampRoutes = new Elysia({ prefix: '/ramp' })
@@ -23,6 +28,7 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
       const r = createReservation(sid, body.vehicle_id, body.stop_id, body.type)
       if ('error' in r) return jsonError(r.error, 429)
       publishNewReservation(r)
+      realtimeEvents.emit('refresh')
       return r
     },
     {
@@ -44,6 +50,7 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
       const cancelled = cancelReservation(id, sid)
       if (!cancelled) return jsonError('Not found or resolved', 404)
       publishCancelReservation(cancelled)
+      realtimeEvents.emit('refresh')
       return { ok: true }
     },
     { detail: { tags: ['Ramp'], summary: 'Cancel reservation' } },
@@ -56,6 +63,21 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
       return getSessionReservations(sid)
     },
     { detail: { tags: ['Ramp'], summary: 'Session reservations' } },
+  )
+  .get(
+    '/session/stream',
+    ({ request, query }) => {
+      // EventSource can't set custom headers, so the session id travels as a
+      // query param here instead of X-Session-Id.
+      if (!isValidSessionId(query.session_id))
+        return jsonError('Missing or invalid session_id', 400)
+      const sid = query.session_id
+      return makeSseStream(request, async () => getSessionReservations(sid))
+    },
+    {
+      query: t.Object({ session_id: t.String() }),
+      detail: { tags: ['Ramp'], summary: 'SSE stream of session reservations' },
+    },
   )
   .get('/vehicle/:id', ({ params }) => getVehicleReservations(params.id), {
     detail: { tags: ['Ramp'], summary: 'Vehicle reservations' },

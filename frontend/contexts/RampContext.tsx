@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useSSE } from '@/hooks/useSSE'
 import { apiPath } from '@/lib/config'
 
 // ── types ────────────────────────────────────────────────────────────────
@@ -95,13 +96,14 @@ export function RampProvider({ children }: { children: ReactNode }) {
   const [lockedVehicleId, setLockedVehicleId] = useState<string | null>(null)
   const [lockedRouteShortName, setLockedRouteShortName] = useState<string | null>(null)
   const [missedBusAlert, setMissedBusAlert] = useState<{ message: string; nonce: number } | null>(null)
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null)
   const prevReservations = useRef<RampReservation[]>([])
 
-  const refresh = useCallback(async () => {
-    const data = await apiFetch(sid)
-
-    // Log status transitions: pending → active (bus arrived) or active → done (bus left)
+  // Applies a fresh reservation list from the server (SSE push or manual
+  // refetch), diffing against the previous list to detect status
+  // transitions driven by the hardware/proximity side (pending → active,
+  // active → done, → expired) — those never go through reserveBoard/
+  // reserveAlight/cancel, so they only ever show up here.
+  const applyReservations = useCallback((data: RampReservation[]) => {
     for (const prev of prevReservations.current) {
       const curr = data.find((r) => r.id === prev.id)
       if (curr && curr.status !== prev.status) {
@@ -129,13 +131,23 @@ export function RampProvider({ children }: { children: ReactNode }) {
       (r) => r.type === 'alight' && (r.status === 'pending' || r.status === 'active'),
     )
     if (!board && !hasActiveAlight) setLockedRouteShortName(null)
-  }, [sid])
+  }, [])
+
+  // Session reservations are pushed over SSE — the backend emits a refresh
+  // right after reserve/cancel and on every hardware/proximity state change,
+  // so this reflects server-side status transitions within milliseconds
+  // instead of waiting on a poll interval.
+  const sseReservations = useSSE<RampReservation[]>(
+    `/ramp/session/stream?session_id=${encodeURIComponent(sid)}`,
+  )
 
   useEffect(() => {
-    refresh()
-    timer.current = setInterval(refresh, 5_000)
-    return () => { if (timer.current) clearInterval(timer.current) }
-  }, [refresh])
+    if (sseReservations) applyReservations(sseReservations)
+  }, [sseReservations, applyReservations])
+
+  const refresh = useCallback(async () => {
+    applyReservations(await apiFetch(sid))
+  }, [sid, applyReservations])
 
   const reserveBoard = useCallback(async (vid: string, stopId: string, routeShortName?: string | null) => {
     const r = await apiReserve(sid, vid, stopId, 'board')
@@ -144,26 +156,26 @@ export function RampProvider({ children }: { children: ReactNode }) {
       if (routeShortName != null) setLockedRouteShortName(routeShortName)
       setLockedVehicleId(vid)
       setReservations(prev => [...prev.filter(p => p.id !== r.id), r])
-      await refresh()
     }
     return r
-  }, [sid, refresh])
+  }, [sid])
 
   const reserveAlight = useCallback(async (vid: string, stopId: string) => {
     const r = await apiReserve(sid, vid, stopId, 'alight')
     if (r) {
       console.log(`[ramp] alight reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
       setReservations(prev => [...prev.filter(p => p.id !== r.id), r])
-      await refresh()
     }
     return r
-  }, [sid, refresh])
+  }, [sid])
 
   const cancel = useCallback(async (id: number) => {
     const ok = await apiCancel(sid, id)
-    if (ok) await refresh()
+    if (ok) {
+      setReservations(prev => prev.map(r => (r.id === id ? { ...r, status: 'cancelled' as const } : r)))
+    }
     return ok
-  }, [sid, refresh])
+  }, [sid])
 
   const isReserved = useCallback(
     (vid: string, stopId: string) =>
