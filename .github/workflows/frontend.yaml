@@ -59,31 +59,41 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    environment: staging
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: frontend-out
           path: out
-      - uses: cloudflare/wrangler-action@v3
+      - id: deploy
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy out --project-name rampme --branch staging
+      - run: |
+          echo "### Preview: (${{ steps.deploy.outputs.deployment-url }})" >> "$GITHUB_STEP_SUMMARY"
 
   deploy-production:
     name: Deploy to production
     needs: deploy-staging
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    environment: production
+    environment:
+      name: production
+      url: https://rampme.site
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: frontend-out
           path: out
-      - uses: cloudflare/wrangler-action@v3
+      - id: deploy
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy out --project-name rampme --branch main
+      - run: |
+          echo "### Live: (${{ steps.deploy.outputs.deployment-url }})" >> "$GITHUB_STEP_SUMMARY"
