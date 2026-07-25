@@ -9,11 +9,13 @@ on:
   pull_request:
     paths:
       - 'backend/**'
+      - '!backend/**/*.md'
       - '.github/workflows/backend.yaml'
   push:
     branches: [main]
     paths:
       - 'backend/**'
+      - '!backend/**/*.md'
       - '.github/workflows/backend.yaml'
 
 concurrency:
