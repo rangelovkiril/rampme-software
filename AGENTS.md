@@ -42,10 +42,21 @@ When you need context beyond the code, read the wikis before guessing.
 
 ## Tooling (MCP)
 
-This repo ships an `.mcp.json` with two MCP servers, launched via `bunx` (no global install):
+Two MCP servers are expected when working in this repo, both launched via `bunx` so nothing has to be installed globally:
 
 - **Context7** provides up-to-date library documentation. Consult it before relying on memory for Next.js 16, Elysia, react-leaflet, or Bun APIs; these move faster than model training data. Reach for it whenever an API detail is uncertain rather than guessing.
-- **Playwright** drives a real browser. Use it to verify frontend changes end to end (map interactions, the ramp reservation flow, mobile viewports) and to capture accessibility-tree snapshots when working on a11y. It is a dev-time tool independent of the app runtime and complements `bun test`; it does not replace unit tests for backend logic. The first run needs a browser binary: `bunx playwright install chromium`.
+- **Playwright** drives a real browser. Use it to verify frontend changes end to end (map interactions, the ramp reservation flow, mobile viewports) and to capture accessibility-tree snapshots when working on a11y. It is a dev-time tool independent of the app runtime and complements `bun test`; it does not replace unit tests for backend logic.
+
+`.mcp.json` in the repo root declares both, but only some hosts read that file, so what is actually available differs per editor.
+
+**Agents: check availability, then prompt.** MCP servers are started by the editor or host, never by you, so you cannot launch one yourself. Before work that depends on them (any frontend verification, accessibility work, or an uncertain library API), check whether the Playwright or Context7 tools are present in your session. If they are missing, do not quietly fall back to guessing an API or to asking the developer to click through the app by hand. Say which server is missing, why the task needs it, and how to enable it for their editor:
+
+- **Claude Code** reads `.mcp.json` in the repo root; approve the project servers when prompted.
+- **Cursor** reads `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global), using the same JSON shape as `.mcp.json`.
+- **Codex** uses `~/.codex/config.toml`; quickest path is `codex mcp add playwright -- bunx @playwright/mcp@latest` and `codex mcp add context7 -- bunx @upstash/context7-mcp@latest`.
+- **Zed** uses `context_servers` in its own `settings.json`, or Settings, then AI, then MCP Servers, then Add Server.
+
+Playwright additionally needs its browser binary once per machine: `bunx playwright install chromium`.
 
 Cloudflare tooling lives in the `fleet` repo's own MCP config, since infrastructure work happens there.
 
