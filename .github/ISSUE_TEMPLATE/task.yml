@@ -1,0 +1,35 @@
+name: Task
+description: Technical work, tech debt, testing, or documentation with a clear definition of done.
+title: "task: "
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Backend (API)
+        - Frontend (map / UI)
+        - Infrastructure
+        - Hardware integration
+        - Testing
+        - Documentation
+        - Security
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What needs doing and why. Link the relevant code, wiki page, or prior issue.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: A checklist that defines when this is done.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
