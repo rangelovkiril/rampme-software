@@ -45,7 +45,10 @@ When you need context beyond the code, read the wikis before guessing.
 Two MCP servers are expected when working in this repo, both launched via `bunx` so nothing has to be installed globally:
 
 - **Context7** provides up-to-date library documentation. Consult it before relying on memory for Next.js 16, Elysia, react-leaflet, or Bun APIs; these move faster than model training data. Reach for it whenever an API detail is uncertain rather than guessing.
-- **Playwright** drives a real browser. Use it to verify frontend changes end to end (map interactions, the ramp reservation flow, mobile viewports) and to capture accessibility-tree snapshots when working on a11y. It is a dev-time tool independent of the app runtime and complements `bun test`; it does not replace unit tests for backend logic.
+- **Playwright** drives a real browser. Use it to verify frontend changes end to end (map interactions, the ramp reservation flow, mobile viewports) and to capture accessibility-tree snapshots when working on a11y. It is a dev-time tool independent of the app runtime.
+
+> [!IMPORTANT]
+> Neither app has an automated test suite yet. `bun run check` (biome plus tsc) is the only gate CI enforces, and it catches formatting and type errors, not wrong behavior. Nothing verifies GTFS decoding or the ramp reservation lifecycle. Treat that as a known gap rather than a reason to trust a change because it compiles: verify behavior by exercising it, and prefer adding a test to leaving one absent.
 
 `.mcp.json` in the repo root declares both, but only some hosts read that file, so what is actually available differs per editor.
 
