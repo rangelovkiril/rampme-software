@@ -40,6 +40,15 @@ When you need context beyond the code, read the wikis before guessing.
 - **Do not hand-edit generated or managed files.** Regenerate `backend/src/gtfs/gtfs-realtime.json` with `bun run proto`; never hand-edit the Flux image tags (the `# {"$imagepolicy": ...}` markers, which live in the `fleet` repo).
 - **Do not add JSDoc or comments that restate the obvious.** Document only non-obvious behavior: edge cases, GTFS quirks, hardware protocol subtleties.
 
+## Tooling (MCP)
+
+This repo ships an `.mcp.json` with two MCP servers, launched via `bunx` (no global install):
+
+- **Context7** provides up-to-date library documentation. Consult it before relying on memory for Next.js 16, Elysia, react-leaflet, or Bun APIs; these move faster than model training data. Reach for it whenever an API detail is uncertain rather than guessing.
+- **Playwright** drives a real browser. Use it to verify frontend changes end to end (map interactions, the ramp reservation flow, mobile viewports) and to capture accessibility-tree snapshots when working on a11y. It is a dev-time tool independent of the app runtime and complements `bun test`; it does not replace unit tests for backend logic. The first run needs a browser binary: `bunx playwright install chromium`.
+
+Cloudflare tooling lives in the `fleet` repo's own MCP config, since infrastructure work happens there.
+
 ## Infrastructure (summary)
 
 The backend runs as a single container in a k3s cluster managed by the `fleet` GitOps repo, reached through a Cloudflare Tunnel and Envoy Gateway. The frontend is a static export served from Cloudflare Pages. TLS terminates at the Cloudflare edge, so the cluster ingress is plain HTTP and there is no cert-manager. The authoritative runbook is the [fleet wiki](https://github.com/rangelovkiril/fleet/wiki); anything that changes deployment or the request path must be reflected there in the same change.
