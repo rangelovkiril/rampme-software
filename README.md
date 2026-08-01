@@ -103,6 +103,17 @@ bun run dev
 
 The frontend proxies API requests to the backend automatically via Next.js rewrites.
 
+### End-to-end tests
+
+The Playwright suite starts the frontend automatically and uses deterministic API fixtures, so a
+backend process is not required.
+
+```bash
+cd frontend
+bun run test:e2e:install # one-time Chromium install
+bun run test:e2e
+```
+
 ### Environment Variables
 
 Copy `.env.local.example` and adjust if needed:
