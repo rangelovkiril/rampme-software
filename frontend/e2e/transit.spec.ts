@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { mockTransitApi, stop, vehicle } from './fixtures/transit'
+import { mockTransitApi, sessionId, stop, vehicle } from './fixtures/transit'
 
 test('loads the map and renders live vehicles', async ({ page }) => {
   const api = await mockTransitApi(page)
@@ -8,6 +8,7 @@ test('loads the map and renders live vehicles', async ({ page }) => {
 
   await expect(page.locator('.leaflet-container')).toBeVisible()
   await expect(page.locator('.leaflet-marker-pane .leaflet-marker-icon')).toHaveCount(1)
+  await expect(page.locator('.leaflet-marker-pane .leaflet-marker-icon > div')).toBeVisible()
   expect(api.unhandledRequests).toEqual([])
 })
 
@@ -24,7 +25,7 @@ test('round-trips a ramp reservation through the session UI', async ({ page }) =
 
   await expect.poll(() => api.reserveRequests).toHaveLength(1)
   expect(api.reserveRequests[0]).toEqual({
-    sessionId: 'e2e-session-id',
+    sessionId,
     vehicle_id: vehicle.id,
     stop_id: stop.stop_id,
     type: 'board',
@@ -43,5 +44,7 @@ test('round-trips a ramp reservation through the session UI', async ({ page }) =
 
   await expect.poll(() => api.cancelledIds).toEqual([1])
   await expect(page.getByText('Резервирайте рампа от картата')).toBeVisible()
+  expect(api.rampSessionIds.length).toBeGreaterThan(0)
+  expect(api.rampSessionIds.every((id) => id === sessionId)).toBe(true)
   expect(api.unhandledRequests).toEqual([])
 })

@@ -1,6 +1,6 @@
 import type { Page, Route } from '@playwright/test'
 
-const sessionId = 'e2e-session-id'
+export const sessionId = 'e2e-session-id'
 
 export const stop = {
   stop_id: 'STOP-E2E',
@@ -95,6 +95,7 @@ export interface ApiMockState {
     type: 'board' | 'alight'
   }>
   cancelledIds: number[]
+  rampSessionIds: Array<string | undefined>
   unhandledRequests: string[]
 }
 
@@ -120,6 +121,7 @@ export async function mockTransitApi(page: Page): Promise<ApiMockState> {
     reservations: [],
     reserveRequests: [],
     cancelledIds: [],
+    rampSessionIds: [],
     unhandledRequests: [],
   }
 
@@ -134,6 +136,14 @@ export async function mockTransitApi(page: Page): Promise<ApiMockState> {
     const url = new URL(request.url())
     const { pathname } = url
     const method = request.method()
+
+    if (pathname.startsWith('/api/ramp/')) {
+      const requestSessionId = request.headers()['x-session-id']
+      state.rampSessionIds.push(requestSessionId)
+      if (requestSessionId !== sessionId) {
+        return fulfillJson(route, { error: 'Invalid E2E session' }, 400)
+      }
+    }
 
     if (method === 'GET' && pathname === '/api/stops') {
       return fulfillJson(route, [stop])
