@@ -15,6 +15,8 @@ This repository holds both apps:
 
 The k3s cluster that runs the backend is managed separately in the [`fleet`](https://github.com/rangelovkiril/fleet) GitOps repository, and the ramp firmware (the Raspberry Pi controller on each vehicle) lives in [`rampme-hardware`](https://github.com/rangelovkiril/rampme-hardware). The firmware talks to the backend only through the [Ramp MQTT Protocol](https://github.com/rangelovkiril/rampme-software/wiki/Ramp-MQTT-Protocol).
 
+<!-- TODO: architecture diagram -->
+
 ## Quick start
 
 The only prerequisite is [Bun](https://bun.sh) (v1.0 or newer). Run the two apps as separate processes; the frontend proxies `/api/*` to the backend in development.
@@ -53,4 +55,6 @@ Code layout and per-module rules are documented in [`CLAUDE.md`](CLAUDE.md). Inf
 
 ## History
 
-RampMe was built in 48 hours at HackTUES 12, where it placed 4th, and went on to take 3rd place at TUES Fest. Photos may land here later, no promises. See the [presentation deck](https://www.canva.com/design/DAHFDWV7DkA/-L-Wb9y9991tjE6tHmhyzA/edit) for the original pitch.
+RampMe was built in 48 hours at HackTUES 12, where it placed 4th, and went on to take 3rd place at TUES Fest. Photos may land here later, no promises.
+
+<!-- TODO: link the presentation deck with a view-only Canva link -->

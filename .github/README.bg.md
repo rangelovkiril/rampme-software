@@ -15,6 +15,8 @@ RampMe е жива карта на градския транспорт в Соф
 
 k3s клъстърът, който върти backend-а, се управлява отделно в GitOps хранилището [`fleet`](https://github.com/rangelovkiril/fleet), а firmware-ът на рампата (Raspberry Pi контролерът на всяко возило) се намира в [`rampme-hardware`](https://github.com/rangelovkiril/rampme-hardware). Firmware-ът говори с backend-а единствено през [MQTT протокола за рампата](https://github.com/rangelovkiril/rampme-software/wiki/Ramp-MQTT-Protocol-BG).
 
+<!-- TODO: architecture diagram -->
+
 ## Бърз старт
 
 Единствената предпоставка е [Bun](https://bun.sh) (v1.0 или по-нов). Двете приложения се пускат като отделни процеса; frontend-ът проксира `/api/*` към backend-а в разработка.
@@ -53,4 +55,6 @@ bun run check   # biome + tsc, във всяко приложение
 
 ## История
 
-RampMe е направено за 48 часа на HackTUES 12, където зае 4-то място, и после взе 3-то място на TUES Fest. Може по-късно тук да се появят снимки, без обещания. Виж [презентацията](https://www.canva.com/design/DAHFDWV7DkA/-L-Wb9y9991tjE6tHmhyzA/edit) за оригиналния pitch.
+RampMe е направено за 48 часа на HackTUES 12, където зае 4-то място, и после взе 3-то място на TUES Fest. Може по-късно тук да се появят снимки, без обещания.
+
+<!-- TODO: link the presentation deck with a view-only Canva link -->
