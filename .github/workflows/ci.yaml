@@ -31,6 +31,26 @@ jobs:
           app: ${{ matrix.app }}
           build: ${{ matrix.build }}
 
+  e2e:
+    name: Frontend end-to-end tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install frontend dependencies
+        run: cd frontend && bun install --frozen-lockfile
+      - name: Install Chromium
+        run: cd frontend && bunx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        run: cd frontend && bun run test:e2e
+      - uses: actions/upload-artifact@v5
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14
+
   build:
     name: Build ${{ matrix.app }}
     needs: [check]
