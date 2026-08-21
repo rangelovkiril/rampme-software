@@ -107,15 +107,6 @@ function fulfillJson(route: Route, body: unknown, status = 200) {
   })
 }
 
-function fulfillSse(route: Route, body: unknown) {
-  return route.fulfill({
-    status: 200,
-    contentType: 'text/event-stream',
-    headers: { 'Cache-Control': 'no-cache' },
-    body: `data: ${JSON.stringify(body)}\n\n`,
-  })
-}
-
 export async function mockTransitApi(page: Page): Promise<ApiMockState> {
   const state: ApiMockState = {
     reservations: [],
@@ -123,6 +114,27 @@ export async function mockTransitApi(page: Page): Promise<ApiMockState> {
     cancelledIds: [],
     rampSessionIds: [],
     unhandledRequests: [],
+  }
+  let nextReservationId = 1
+  // Real SSE endpoints stay open. `route.fulfill` always closes the
+  // response, so a naive mock ends the stream after one message and the
+  // browser's EventSource keeps reconnecting for the rest of the test. Send
+  // the initial payload once per stream path, then leave later reconnect
+  // attempts pending so they don't add noise.
+  const streamedOnce = new Set<string>()
+
+  function fulfillSse(route: Route, body: unknown) {
+    const { pathname } = new URL(route.request().url())
+    if (streamedOnce.has(pathname)) {
+      return new Promise<void>(() => {})
+    }
+    streamedOnce.add(pathname)
+    return route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      headers: { 'Cache-Control': 'no-cache' },
+      body: `data: ${JSON.stringify(body)}\n\n`,
+    })
   }
 
   await page.addInitScript((id) => localStorage.setItem('rampme_session', id), sessionId)
@@ -183,19 +195,21 @@ export async function mockTransitApi(page: Page): Promise<ApiMockState> {
         ...body,
       })
       const reservation: Reservation = {
-        id: 1,
+        id: nextReservationId++,
         session_id: sessionId,
         ...body,
         status: 'pending',
         created_at: 1_722_000_000,
         resolved_at: null,
       }
-      state.reservations = [reservation]
+      state.reservations = [...state.reservations, reservation]
       return fulfillJson(route, reservation)
     }
-    if (method === 'DELETE' && pathname === '/api/ramp/reserve/1') {
-      state.cancelledIds.push(1)
-      state.reservations = []
+    const cancelMatch = pathname.match(/^\/api\/ramp\/reserve\/(\d+)$/)
+    if (method === 'DELETE' && cancelMatch) {
+      const id = Number(cancelMatch[1])
+      state.cancelledIds.push(id)
+      state.reservations = state.reservations.filter((reservation) => reservation.id !== id)
       return fulfillJson(route, { ok: true })
     }
 
