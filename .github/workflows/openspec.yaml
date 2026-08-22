@@ -1,6 +1,5 @@
 # OpenSpec: validate change/spec structure on every PR and push to main
-# that touches openspec/. Pinned to the version used locally; bump
-# deliberately and re-verify, since the CLI is still labeled experimental.
+# that touches openspec/.
 
 name: OpenSpec
 
@@ -29,5 +28,4 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - run: bunx --bun @fission-ai/openspec@1.10.0 validate --all --strict
+      - run: npx --yes @fission-ai/openspec@1.10.0 validate --all --strict
