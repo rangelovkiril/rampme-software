@@ -25,13 +25,17 @@ context: |
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  specs:
+    - >
+      Capability paths are domain-first, not app-first: <domain>/<capability>
+      (e.g. ramp/reservations, gtfs/realtime-feed, transit/arrivals), mirroring
+      backend/src's domain folders (gtfs, ramp, transit, stops). Add an app
+      prefix (backend/, frontend/) only for a capability with no shared domain
+      vocabulary across apps (e.g. frontend/static-export). Do not split one
+      cross-app behavior contract (e.g. ramp reservation flow) into separate
+      backend/ and frontend/ specs.
+    - Preserve an existing capability's path exactly; never rename or move it.
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.
