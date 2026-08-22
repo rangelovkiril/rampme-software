@@ -1,0 +1,46 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+context: |
+  RampMe: live public transport map for Sofia with wheelchair ramp reservation.
+  Riders near a stop reserve a ramp; an embedded hardware module on the vehicle
+  deploys it via MQTT when the vehicle arrives.
+
+  Repo layout:
+  - backend/: Bun + Elysia REST + SSE API. Decodes GTFS static/GTFS-Realtime feeds,
+    owns the ramp reservation lifecycle and the ramp MQTT protocol.
+  - frontend/: Next.js (React + Leaflet), statically exported to Cloudflare Pages.
+  Apps deploy independently and talk cross-origin (frontend -> api.rampme.site,
+  plus SSE for live streams).
+
+  Conventions:
+  - No `any`. Untrusted input (MQTT payloads, request bodies) gets a TypeBox
+    schema + runtime check; internally decoded data uses plain TS interfaces.
+  - Conventional Commits (feat(scope): ..., fix(scope): ...).
+  - Branch + PR, never commit to main.
+  - `bun run check` (biome + tsc) before calling work done.
+  - Architecture, threat model, CI/CD, and the ramp MQTT protocol live in the
+    GitHub wiki, not in-repo docs.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
