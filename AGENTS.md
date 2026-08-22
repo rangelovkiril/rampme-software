@@ -28,6 +28,15 @@ Code layout and rules live in these `AGENTS.md` files. Everything above the code
 
 When you need context beyond the code, read the wikis before guessing.
 
+## Behavior specs live in OpenSpec
+
+Capability-level specs of what the system does (not how it's built) live in `openspec/`, managed through the OpenSpec workflow (`/opsx:propose`, `/opsx:apply`, `/opsx:sync`, `/opsx:archive`):
+
+- **`openspec/specs/<capability>/spec.md`** is the ground truth once a capability has been proposed, implemented, and archived. Check there before assuming behavior.
+- **`openspec/changes/<name>/`** holds in-flight change proposals (a draft spec delta, a design, and tasks) before they're implemented and archived into the main specs.
+
+Propose a change there before implementing behavior that isn't already specced, rather than editing code first and documenting later.
+
 ## Working rules (apply everywhere)
 
 - **Keep docs in sync with reality, immediately.** If a change alters infrastructure, deployment, configuration, CORS origins, environment variables, or a documented contract (the ramp MQTT protocol, the API), update the relevant wiki page, `AGENTS.md`, or README in the same change. Infra changes in particular must be reflected at once. Stale docs are the exact problem these files exist to prevent; do not reintroduce it.
