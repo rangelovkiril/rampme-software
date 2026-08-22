@@ -33,5 +33,5 @@
 ## 7. Full verification
 
 - [x] 7.1 Run `bun run check` in `backend/` and confirm it passes.
-- [ ] 7.2 Run the existing Playwright e2e suite, including the SSE reconnect fixture fixed in `a568452`, and confirm no regression in reconnect behavior.
+- [x] 7.2 Run the existing Playwright e2e suite, including the SSE reconnect fixture fixed in `a568452`, and confirm no regression in reconnect behavior.
 - [x] 7.3 Manually verify each of the four SSE routes against a running dev server: initial send on connect, heartbeat during a quiet period, and clean disconnect with no dangling listeners or timers.
