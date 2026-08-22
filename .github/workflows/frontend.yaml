@@ -26,9 +26,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  NEXT_PUBLIC_API_URL: https://api.rampme.site
-
 jobs:
   build:
     name: Check & build
@@ -37,6 +34,8 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    env:
+      NEXT_PUBLIC_API_URL: https://api.rampme.site
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
