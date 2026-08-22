@@ -73,6 +73,8 @@ jobs:
         with:
           context: backend
           push: true
+          provenance: false
+          sbom: false
           tags: |
             ${{ env.IMAGE }}:sha-${{ github.sha }}
             ${{ env.IMAGE }}:${{ steps.tag.outputs.stage }}

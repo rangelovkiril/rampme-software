@@ -41,6 +41,15 @@ Before pushing, run the same check CI runs:
 bun run check   # biome + tsc, in each app
 ```
 
+Frontend changes can be verified end to end with Playwright. The suite starts the frontend
+automatically and uses deterministic API fixtures, so a backend process is not required.
+
+```bash
+cd frontend
+bun run test:e2e:install # one-time Chromium install
+bun run test:e2e
+```
+
 ## Documentation
 
 Full documentation lives in the [wiki](https://github.com/rangelovkiril/rampme-software/wiki):
