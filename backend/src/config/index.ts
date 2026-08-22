@@ -5,6 +5,7 @@ export const config = {
     staticUrl: process.env.GTFS_STATIC_URL ?? 'https://gtfs.sofiatraffic.bg/api/v1/static',
     realtimeBaseUrl: process.env.GTFS_RT_BASE_URL ?? 'https://gtfs.sofiatraffic.bg/api/v1',
     refreshInterval: Number(process.env.GTFS_REFRESH_INTERVAL ?? 24 * 60 * 60 * 1000),
+    staleThresholdMs: Number(process.env.GTFS_RT_STALE_THRESHOLD_MS ?? 15_000),
   },
 
   protoPath: process.env.PROTO_PATH ?? 'proto/gtfs-realtime.proto',

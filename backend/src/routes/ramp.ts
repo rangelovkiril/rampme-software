@@ -5,8 +5,8 @@ import {
   getSessionReservations,
   getVehicleReservations,
 } from '../db/ramp'
-import { realtimeEvents } from '../gtfs/realtime'
 import { publishCancelReservation, publishNewReservation } from '../services/ramp/bridge'
+import { rampBroadcaster } from '../services/ramp/broadcaster'
 import { makeSseStream } from '../services/sse'
 import { jsonError } from '../services/state'
 
@@ -28,7 +28,7 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
       const r = createReservation(sid, body.vehicle_id, body.stop_id, body.type)
       if ('error' in r) return jsonError(r.error, 429)
       publishNewReservation(r)
-      realtimeEvents.emit('refresh')
+      rampBroadcaster.publish(Date.now())
       return r
     },
     {
@@ -50,7 +50,7 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
       const cancelled = cancelReservation(id, sid)
       if (!cancelled) return jsonError('Not found or resolved', 404)
       publishCancelReservation(cancelled)
-      realtimeEvents.emit('refresh')
+      rampBroadcaster.publish(Date.now())
       return { ok: true }
     },
     { detail: { tags: ['Ramp'], summary: 'Cancel reservation' } },
@@ -66,13 +66,15 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
   )
   .get(
     '/session/stream',
-    ({ request, query }) => {
+    ({ query }) => {
       // EventSource can't set custom headers, so the session id travels as a
       // query param here instead of X-Session-Id.
       if (!isValidSessionId(query.session_id))
         return jsonError('Missing or invalid session_id', 400)
       const sid = query.session_id
-      return makeSseStream(request, async () => getSessionReservations(sid))
+      return makeSseStream(rampBroadcaster, async () => ({
+        data: getSessionReservations(sid),
+      }))
     },
     {
       query: t.Object({ session_id: t.String() }),

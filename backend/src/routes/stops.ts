@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+import { getFeedHealth, gtfsRealtimeBroadcaster } from '../gtfs/realtime'
 import { activeServiceIds } from '../gtfs/services'
 import { todayDateStr } from '../gtfs/time'
 import type { GtfsData, Stop } from '../gtfs/types'
@@ -84,15 +85,20 @@ export const stopsRoutes = new Elysia()
 
   .get(
     '/stops/:id/vehicles/stream',
-    ({ request, params: { id }, query }) => {
+    ({ params: { id }, query }) => {
       const rawLimit = Number(query.limit ?? '20')
       const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 50) : 20
-      return makeSseStream(request, async () => {
+      return makeSseStream(gtfsRealtimeBroadcaster, async () => {
         const data = getGtfs()
         if (!data) return null
         const stop = data.stops.get(id)
         if (!stop) return null
-        return getUpcomingArrivals(data, id, limit)
+        const arrivals = await getUpcomingArrivals(data, id, limit)
+        const health = getFeedHealth()
+        return {
+          data: arrivals,
+          healthy: !health.tripUpdates.stale && !health.vehiclePositions.stale,
+        }
       })
     },
     {

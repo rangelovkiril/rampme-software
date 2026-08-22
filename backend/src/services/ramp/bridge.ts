@@ -29,8 +29,8 @@ import {
   type RampReservation,
   setReservationStatus,
 } from '../../db/ramp'
-import { realtimeEvents } from '../../gtfs/realtime'
 import { getMqtt, jsonParse } from '../mqtt'
+import { rampBroadcaster } from './broadcaster'
 
 const log = consola.withTag('ramp-mqtt')
 
@@ -161,7 +161,7 @@ function handleHardwareState(vehicleId: string, payload: HardwareState): void {
       if (r.status === 'pending' && forStop(r)) setReservationStatus(r.id, 'active')
     }
     // Immediate SSE push so clients see boarding/alighting UI without waiting for next refresh.
-    realtimeEvents.emit('refresh')
+    rampBroadcaster.publish(Date.now())
   }
 
   if (payload.state === 'done') {

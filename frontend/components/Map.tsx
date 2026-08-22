@@ -87,7 +87,7 @@ export default function Map() {
     try {
       const res = await fetch(apiPath("/realtime/vehicles"));
       if (!res.ok) return;
-      const vehicles: Vehicle[] = await res.json();
+      const { vehicles }: { vehicles: Vehicle[] } = await res.json();
       const v = vehicles.find((v) => v.id === vehicleId);
       if (v && Number.isFinite(v.lat) && Number.isFinite(v.lng)) {
         mapRef.current?.flyTo(
