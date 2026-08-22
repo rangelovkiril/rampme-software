@@ -1,6 +1,11 @@
 import { Elysia, t } from 'elysia'
 import { type EnrichedVehicle, enrichVehicles } from '../gtfs/enrich'
-import { fetchTripUpdates, fetchVehiclePositions, realtimeEvents } from '../gtfs/realtime'
+import {
+  fetchTripUpdates,
+  fetchVehiclePositions,
+  getFeedHealth,
+  gtfsRealtimeBroadcaster,
+} from '../gtfs/realtime'
 import { getReservationsByVehicle } from '../services/ramp/status'
 import { makeSseStream } from '../services/sse'
 import { getGtfs, jsonError } from '../services/state'
@@ -8,12 +13,37 @@ import { getTripEtas, getVehicleTripDetails } from '../services/transit/trip-det
 
 const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
 
-// Bumped on every realtime refresh so the unfiltered enrichment below is
+const EnrichedVehicleSchema = t.Object({
+  id: t.String(),
+  tripId: t.String(),
+  lat: t.Number(),
+  lng: t.Number(),
+  bearing: t.Nullable(t.Number()),
+  speed: t.Nullable(t.Number()),
+  route_id: t.Nullable(t.String()),
+  route_short_name: t.Nullable(t.String()),
+  route_type: t.Nullable(t.Number()),
+  headsign: t.Nullable(t.String()),
+  label: t.Nullable(t.String()),
+  ramp_status: t.Union([t.Literal('unknown'), t.Literal('working'), t.Literal('in_use')]),
+  ramp_reservations: t.Array(
+    t.Object({
+      id: t.Number(),
+      stop_id: t.String(),
+      type: t.Union([t.Literal('board'), t.Literal('alight')]),
+      status: t.Union([t.Literal('pending'), t.Literal('active')]),
+    }),
+  ),
+})
+
+// Bumped on every realtime tick so the unfiltered enrichment below is
 // computed at most once per tick, regardless of how many clients ask for it.
 let currentTick = 0
-realtimeEvents.on('refresh', () => {
-  currentTick++
-})
+;(async () => {
+  for await (const update of gtfsRealtimeBroadcaster.subscribe()) {
+    currentTick = update.tick
+  }
+})()
 
 let cache: { tick: number; vehicles: EnrichedVehicle[] } | null = null
 
@@ -58,14 +88,18 @@ export const realtimeRoutes = new Elysia()
 
   .get(
     '/realtime/vehicles',
-    async ({ query }) => {
-      if (!getGtfs()) return GTFS_NOT_READY()
+    // Uses the `status()` context helper instead of the shared jsonError()
+    // for its error paths — unlike every other route here, this one declares
+    // a per-status `response` schema, and Elysia can only type-check a
+    // status-tagged return against it, not a raw Response.
+    async ({ query, status }) => {
+      if (!getGtfs()) return status(503, { error: 'GTFS data not yet loaded' })
       try {
         const vehicles = await buildEnrichedVehicles(query)
-        if (!vehicles) return GTFS_NOT_READY()
-        return vehicles
+        if (!vehicles) return status(503, { error: 'GTFS data not yet loaded' })
+        return { vehicles, meta: { stale: getFeedHealth().vehiclePositions.stale } }
       } catch (e) {
-        return jsonError(`Vehicle positions unavailable: ${e}`, 502)
+        return status(502, { error: `Vehicle positions unavailable: ${e}` })
       }
     },
     {
@@ -74,14 +108,26 @@ export const realtimeRoutes = new Elysia()
         route_type: t.Optional(t.String()),
         has_ramp: t.Optional(t.String()),
       }),
+      response: {
+        200: t.Object({
+          vehicles: t.Array(EnrichedVehicleSchema),
+          meta: t.Object({ stale: t.Boolean() }),
+        }),
+        502: t.Object({ error: t.String() }),
+        503: t.Object({ error: t.String() }),
+      },
       detail: { tags: ['Realtime'], summary: 'Vehicle positions with enrichment and filters' },
     },
   )
 
   .get(
     '/realtime/vehicles/stream',
-    ({ request, query }) =>
-      makeSseStream(request, () => buildEnrichedVehicles(query).then((v) => v ?? null)),
+    ({ query }) =>
+      makeSseStream(gtfsRealtimeBroadcaster, async () => {
+        const vehicles = await buildEnrichedVehicles(query)
+        if (!vehicles) return null
+        return { data: vehicles, healthy: !getFeedHealth().vehiclePositions.stale }
+      }),
     {
       query: t.Object({
         route_id: t.Optional(t.String()),
@@ -110,11 +156,14 @@ export const realtimeRoutes = new Elysia()
 
   .get(
     '/realtime/vehicles/:id/trip/etas',
-    ({ request, params: { id } }) =>
-      makeSseStream(request, async () => {
+    ({ params: { id } }) =>
+      makeSseStream(gtfsRealtimeBroadcaster, async () => {
         const data = getGtfs()
         if (!data) return null
-        return getTripEtas(data, id)
+        const etas = await getTripEtas(data, id)
+        if (!etas) return null
+        const health = getFeedHealth()
+        return { data: etas, healthy: !health.tripUpdates.stale && !health.vehiclePositions.stale }
       }),
     { detail: { tags: ['Realtime'], summary: 'SSE stream of ETA updates for a vehicle trip' } },
   )

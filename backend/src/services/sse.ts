@@ -1,55 +1,100 @@
-import { realtimeEvents } from '../gtfs/realtime'
+import { sse } from 'elysia'
 
 const HEARTBEAT_INTERVAL_MS = 20_000
+const RETRY_MS = 3_000
 
-export function makeSseStream(_request: Request, getData: () => Promise<unknown>) {
-  const encoder = new TextEncoder()
-  let send: (() => Promise<void>) | null = null
-  let heartbeat: ReturnType<typeof setInterval> | null = null
+/**
+ * The transport helper only ever reads from a broadcaster (never publishes),
+ * so it depends on this minimal, read-only shape rather than `Broadcaster<T>`
+ * itself — `Broadcaster<T>.subscribe()` satisfies it for any `T`, since
+ * async iterables are covariant in their yielded type.
+ */
+export interface Subscribable {
+  subscribe(): AsyncIterable<unknown>
+}
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      controller.enqueue(encoder.encode('retry: 3000\n\n'))
+// A bare SSE comment (not a `data:` field) — invisible to EventSource's
+// default 'message' handler and to any named-event listener. Exists purely
+// to keep intermediary proxies (Cloudflare edge, the tunnel) from reaping an
+// idle connection during a quiet period.
+const HEARTBEAT = { toSSE: () => ': hb\n\n' }
 
-      send = async () => {
-        let data: unknown
-        try {
-          data = await getData()
-        } catch {
-          return
-        }
-        if (data == null) return
-        try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
-        } catch {
-          // stream closed — cancel will clean up
-        }
+export interface SseUpdate<T> {
+  data: T
+  /** Freshness of the underlying data, for streams that depend on one or
+   *  more upstream feeds. Emits a `health` event on transition; omit
+   *  entirely for streams with no freshness concept (e.g. ramp session). */
+  healthy?: boolean
+}
+
+/**
+ * Generic SSE transport. Sends the current data on connect, re-sends it on
+ * every `broadcaster` publish, emits a `health` event on freshness
+ * transitions (never on the initial connect, since there is no prior state
+ * to transition from), and heartbeats during quiet periods. Knows nothing
+ * about what `T` is or what "healthy" means — both are supplied by the
+ * domain-specific caller via `getData`.
+ */
+export async function* makeSseStream<T>(
+  broadcaster: Subscribable,
+  getData: () => Promise<SseUpdate<T> | null>,
+  heartbeatIntervalMs = HEARTBEAT_INTERVAL_MS,
+) {
+  let lastHealthy: boolean | undefined
+  let healthInitialized = false
+
+  async function* emit() {
+    let update: SseUpdate<T> | null
+    try {
+      update = await getData()
+    } catch {
+      return
+    }
+    if (update == null) return
+
+    if (update.healthy !== undefined) {
+      if (healthInitialized && update.healthy !== lastHealthy) {
+        yield sse({ event: 'health', data: { healthy: update.healthy } })
+      }
+      lastHealthy = update.healthy
+      healthInitialized = true
+    }
+
+    yield sse({ data: update.data })
+  }
+
+  // Subscribe before computing the initial snapshot so a publish racing
+  // with that first getData() call is never missed.
+  const iterator = broadcaster.subscribe()[Symbol.asyncIterator]()
+  let pending = iterator.next()
+  let heartbeatTimer: ReturnType<typeof setTimeout> | null = null
+
+  try {
+    yield sse({ retry: RETRY_MS })
+    yield* emit()
+
+    while (true) {
+      const heartbeat = new Promise<'heartbeat'>((resolve) => {
+        heartbeatTimer = setTimeout(() => resolve('heartbeat'), heartbeatIntervalMs)
+      })
+      const outcome = await Promise.race([pending.then(() => 'data' as const), heartbeat])
+      if (heartbeatTimer) {
+        clearTimeout(heartbeatTimer)
+        heartbeatTimer = null
       }
 
-      await send()
-      realtimeEvents.on('refresh', send)
+      if (outcome === 'heartbeat') {
+        yield HEARTBEAT
+        continue
+      }
 
-      heartbeat = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(': hb\n\n'))
-        } catch {
-          // stream closed — cancel will clean up
-        }
-      }, HEARTBEAT_INTERVAL_MS)
-    },
-
-    cancel() {
-      if (send) realtimeEvents.off('refresh', send)
-      if (heartbeat) clearInterval(heartbeat)
-    },
-  })
-
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    },
-  })
+      const result = await pending
+      if (result.done) return
+      pending = iterator.next()
+      yield* emit()
+    }
+  } finally {
+    if (heartbeatTimer) clearTimeout(heartbeatTimer)
+    await iterator.return?.()
+  }
 }

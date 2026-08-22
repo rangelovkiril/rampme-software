@@ -18,20 +18,23 @@ src/
 
   services/
     state.ts                  Shared GTFS data holder (getGtfs/setGtfs) + jsonError helper
-    sse.ts                    makeSseStream() - SSE response w/ retry hint + 20s heartbeat
+    broadcaster.ts            Broadcaster<T> - domain-agnostic publish/subscribe over an async iterable
+    sse.ts                    makeSseStream() - generic SSE transport: takes a Broadcaster + getData, handles retry hint, heartbeat, health-transition events, cleanup
     mqtt.ts                   MQTTHub - pattern-based subscriptions with per-handler parsers, publish helper
     transit/
       arrivals.ts             Upcoming arrivals at a stop (schedule + RT merge, sibling stops, after-midnight services)
       trip-details.ts         Trip stop list with RT predictions for a vehicle (getVehicleTripDetails, getTripEtas)
     ramp/
-      bridge.ts                Reservations <-> hardware over MQTT (publish cmd, handle hw state, deploy timeout)
-      proximity.ts             GPS proximity checker - triggers deploy when a ramp-reserved vehicle nears its stop
-      status.ts                Ramp status/reservations shaping for enrichment (getReservationsByVehicle, getVehicleRampInfoFrom)
+      bridge.ts               Reservations <-> hardware over MQTT (publish cmd, handle hw state, deploy timeout)
+      broadcaster.ts          rampBroadcaster - ramp domain's own Broadcaster, published to on reservation state changes
+      proximity.ts            GPS proximity checker - triggers deploy when a ramp-reserved vehicle nears its stop
+      status.ts               Ramp status/reservations shaping for enrichment (getReservationsByVehicle, getVehicleRampInfoFrom)
 
   gtfs/                       GTFS data layer
     types.ts                  All GTFS + GTFS-RT data interfaces (Stop, Route, Trip, GtfsData, GtfsRt*)
     static.ts                 Fetches & parses the GTFS ZIP into in-memory Maps + precomputed indexes
-    realtime.ts               Fetches/decodes GTFS-RT protobuf feeds, single refresh tick, emits 'refresh' for SSE
+    realtime.ts               Fetches/decodes GTFS-RT protobuf feeds; tracks per-feed staleness; publishes ticks on its own Broadcaster
+    feed-health.ts            FeedTracker - tracks time since a feed's last successful fetch, reports staleness against a threshold
     services.ts               activeServiceIds() - active service_ids for a given calendar date
     time.ts                   GTFS time parsing/formatting + computeScheduledEtaMinutes (shared midnight-wrap logic)
     enrich.ts                 enrichVehicles() - merges RT vehicle positions with static data + ramp status
@@ -41,17 +44,19 @@ src/
 
 proto/
   gtfs-realtime.proto          Minimal GTFS-RT proto (FeedMessage, TripUpdate, VehiclePosition, ...)
+
+test/                          bun:test suite, mirrors src/ (test/gtfs/, test/services/)
 ```
 
 ## Key concepts
 
 - **GTFS static data** is fetched once on startup (and refreshed on `GTFS_REFRESH_INTERVAL`) as a ZIP, parsed into `GtfsData`: Maps for fast lookup by ID, plus precomputed `tripsByRoute` / `stopIdsByRoute` indexes.
-- **GTFS-RT** (vehicle-positions, trip-updates) is fetched on a single background tick (`REFRESH_INTERVAL_MS` in `gtfs/realtime.ts`); a `refresh` event fires once per successful fetch, driving SSE pushes and a per-tick enriched-vehicle cache in `routes/realtime.ts` (memoized so N clients do not each recompute enrichment).
+- **GTFS-RT** (vehicle-positions, trip-updates) is fetched on a single background tick (`REFRESH_INTERVAL_MS` in `gtfs/realtime.ts`), independently of a *separate* fixed-cadence push loop that publishes to `gtfsRealtimeBroadcaster` unconditionally, even if the fetch fails (an upstream stall must never freeze the UI). Each feed's staleness is tracked independently via `FeedTracker` (`gtfs/feed-health.ts`) against `GTFS_RT_STALE_THRESHOLD_MS`. The broadcaster tick also drives a per-tick enriched-vehicle cache in `routes/realtime.ts` (memoized so N clients do not each recompute enrichment).
 - **GTFS-RT typing**: decoded protobuf JSON is typed via `GtfsRt*` interfaces in `gtfs/types.ts` (camelCase, matching `proto/gtfs-realtime.proto`); a single type assertion at the `FeedMessage.decode().toJSON()` boundary is the only place the wire format is untyped.
 - **Sibling stops**: Sofia's GTFS has separate stop_ids for bus/tram/trolley at the same physical stop (e.g. `A2795`, `TB2795`), sharing a `stop_code`. Arrivals are queried across all siblings together.
 - **GTFS 24+ hour times**: GTFS allows times like `25:30:00` for post-midnight trips on the same service day, and separately, yesterday's active service can have stop_times >= 24:00 that land on today. `gtfs/time.ts` (`computeScheduledEtaMinutes`, `normalizeGtfsHour`) and `services/transit/arrivals.ts` (`collectScheduledArrivals`) both handle this.
 - **Ramp reservations** are SQLite rows (`db/ramp.ts`) with a `pending -> active -> done` (or `cancelled`/`expired`) lifecycle. `services/ramp/bridge.ts` mirrors state to/from hardware over MQTT topics `ramp/{vehicle_id}/cmd` and `ramp/{vehicle_id}/state`; `services/ramp/proximity.ts` triggers the deploy command via GPS distance to the reserved stop. The client-facing contract is the [ramp MQTT protocol](https://github.com/rangelovkiril/rampme-software/wiki/Ramp-MQTT-Protocol) in the wiki; keep it in sync when the topics or payloads change.
-- **SSE** (`services/sse.ts`) sends a `retry: 3000` hint and a `: hb` heartbeat every 20s so Cloudflare's edge and the tunnel do not reap idle streams (100s idle cutoff). Session ramp reservations are pushed over `/ramp/session/stream`.
+- **SSE** (`services/sse.ts`) is a generic transport: `makeSseStream(broadcaster, getData)` sends a `retry: 3000` hint and the current data on connect, re-sends on every `Broadcaster` publish, and heartbeats (`: hb`) every 20s during quiet periods so Cloudflare's edge and the tunnel do not reap idle streams (100s idle cutoff). It knows nothing about GTFS or ramp - each domain owns and publishes to its own `Broadcaster<T>` (`gtfsRealtimeBroadcaster` in `gtfs/realtime.ts`, `rampBroadcaster` in `services/ramp/broadcaster.ts`), so one domain's signal never has to be faked to push another's stream (e.g. `/ramp/session/stream`). GTFS-derived streams also get a distinct `health` SSE event on staleness transitions (healthy<->degraded), separate from the regular data event.
 - **MQTT payload validation** uses TypeBox (`@sinclair/typebox` + `Value.Check`) at the point untrusted hardware input enters the system (`HardwareStateSchema` in `bridge.ts`). This is the pattern for any new untrusted-input parsing. Internally decoded, structurally guaranteed data (GTFS-RT) uses plain TS interfaces instead; do not add TypeBox validation to hot per-tick paths.
 - **Logging** goes through `consola`, tagged per subsystem via `consola.withTag('mqtt' | 'ramp-mqtt' | 'proximity')`. No bare `console.*` calls.
 
@@ -71,6 +76,7 @@ cd backend
 bun install
 bun run dev          # watch mode
 bun run check        # biome + tsc
+bun run test         # bun:test, files under test/ mirroring src/
 bun run proto        # regenerate src/gtfs/gtfs-realtime.json after editing proto/gtfs-realtime.proto
 ```
 
@@ -84,6 +90,7 @@ Starts without a broker: with no `MQTT_URL` set, MQTT and the ramp hardware path
 | `GTFS_STATIC_URL` | Sofia Traffic API | GTFS static ZIP URL |
 | `GTFS_RT_BASE_URL` | Sofia Traffic API | GTFS-RT base URL |
 | `GTFS_REFRESH_INTERVAL` | 86400000 (24h) | Static data refresh interval (ms) |
+| `GTFS_RT_STALE_THRESHOLD_MS` | `15000` | How long since a GTFS-RT feed's last successful fetch before it's considered degraded |
 | `PROTO_PATH` | `proto/gtfs-realtime.proto` | Protobuf definition path |
 | `RAMP_DB_PATH` | `./data/ramp.db` | SQLite path for ramp reservations |
 | `MOCK_RAMP` | `false` | Mock ramp hardware responses (testing) |

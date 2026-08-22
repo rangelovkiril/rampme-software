@@ -57,7 +57,7 @@ Two MCP servers are expected when working in this repo, both launched via `bunx`
 - **Playwright** drives a real browser. Use it to verify frontend changes end to end (map interactions, the ramp reservation flow, mobile viewports) and to capture accessibility-tree snapshots when working on a11y. It is a dev-time tool independent of the app runtime.
 
 > [!IMPORTANT]
-> Neither app has an automated test suite yet. `bun run check` (biome plus tsc) is the only gate CI enforces, and it catches formatting and type errors, not wrong behavior. Nothing verifies GTFS decoding or the ramp reservation lifecycle. Treat that as a known gap rather than a reason to trust a change because it compiles: verify behavior by exercising it, and prefer adding a test to leaving one absent.
+> The frontend has no automated test suite yet. The backend has a `bun:test` suite (`backend/test/`, run via `bun run test`, gated in CI alongside `bun run check`) but it only covers the realtime SSE transport (`Broadcaster`, `makeSseStream`, per-feed staleness) — GTFS static/GTFS-RT decoding and the ramp reservation lifecycle remain untested. Treat both gaps as known rather than a reason to trust a change because it compiles: verify behavior by exercising it, and prefer adding a test to leaving one absent.
 
 `.mcp.json` in the repo root declares both, but only some hosts read that file, so what is actually available differs per editor.
 
