@@ -26,9 +26,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  NEXT_PUBLIC_API_URL: https://api.rampme.site
-
 jobs:
   build:
     name: Check & build
@@ -37,6 +34,8 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    env:
+      NEXT_PUBLIC_API_URL: https://api.rampme.site
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -54,6 +53,31 @@ jobs:
           name: frontend-out
           path: frontend/out
           retention-days: 7
+
+  e2e:
+    name: Frontend end-to-end tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-frontend-${{ hashFiles('frontend/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-frontend-
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14
 
   deploy-staging:
     name: Deploy to staging
