@@ -1,112 +1,48 @@
 # RampMe
 
-## Presentation Link
-
-https://www.canva.com/design/DAHFDWV7DkA/-L-Wb9y9991tjE6tHmhyzA/edit
+English · [Български](.github/README.bg.md)
 
 **Making public transport accessible for everyone.**
 
-RampMe is a real-time transit accessibility platform that helps people with mobility impairments board buses, trams, and trolleybuses in Sofia. The software works together with an embedded hardware ramp system — users can request a wheelchair ramp deployment at their stop directly from the app.
+RampMe is a live public transport map for Sofia, built around one accessibility feature: a rider near a stop reserves a wheelchair ramp, and an embedded hardware module on the vehicle deploys it over MQTT when the vehicle arrives. It shows every bus, tram, and trolleybus in real time, with live arrival predictions from Sofia Traffic's GTFS feeds.
 
-## How It Works
+What makes it unique is that the person who needs the ramp is the one who triggers it. No other system in the world puts the rider directly in the loop: everywhere else, ramp deployment depends on the driver noticing and acting. RampMe removes that dependency.
 
-1. **Browse the live map** — see all public transport vehicles moving in real time across Sofia
-2. **Tap a stop** — view upcoming arrivals with live ETAs and delay info
-3. **Tap a vehicle** — see its full trip timeline with all upcoming stops
-4. **Request a ramp** — when near a stop, press the Ramp button to signal the driver to deploy the wheelchair ramp
+This repository holds both apps:
 
-The ramp request is designed to integrate with an embedded hardware module installed on vehicles that receives the signal and activates the physical ramp mechanism.
+- **`backend/`** is a Bun + Elysia REST and SSE API. It decodes the GTFS static and GTFS-Realtime feeds and owns the ramp reservation lifecycle.
+- **`frontend/`** is a Next.js app (React + Leaflet), statically exported and served from Cloudflare Pages.
 
-## Features
+The k3s cluster that runs the backend is managed separately in the [`fleet`](https://github.com/rangelovkiril/fleet) GitOps repository, and the ramp firmware (the Raspberry Pi controller on each vehicle) lives in [`rampme-hardware`](https://github.com/rangelovkiril/rampme-hardware). The firmware talks to the backend only through the [Ramp MQTT Protocol](https://github.com/rangelovkiril/rampme-software/wiki/Ramp-MQTT-Protocol).
 
-- Real-time vehicle tracking with GTFS-Realtime data from Sofia Traffic
-- Live arrival predictions with delay detection
-- Interactive map with vehicle route polylines
-- Stop arrivals panel with ramp-equipped vehicle filtering
-- Vehicle trip timeline showing departed/upcoming stops
-- Wheelchair ramp request system (proximity-based)
-- Dark/light theme support
-- Mobile-responsive bottom sheet UI with drag gestures
-- GPS-based user location tracking
+<!-- TODO: architecture diagram -->
 
-## Tech Stack
+## Quick start
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Next.js 16, React 19, Leaflet + react-leaflet, Tailwind CSS 4 |
-| **Backend** | Bun, Elysia, Protobuf.js, JSZip, SQLite |
-| **Data** | GTFS Static (Sofia Traffic), GTFS-Realtime (vehicle positions + trip updates) |
-| **Infrastructure** | Docker, GitHub Actions CI |
-| **Communication** | MQTT (for embedded ramp hardware integration) |
-
-## Project Structure
-
-```
-rampme-software/
-├── backend/
-│   ├── src/
-│   │   ├── index.ts          # API server (Elysia)
-│   │   ├── config.ts         # Environment configuration
-│   │   ├── gtfs/
-│   │   │   ├── static.ts     # GTFS ZIP parsing & indexing
-│   │   │   ├── realtime.ts   # GTFS-RT protobuf feeds
-│   │   │   ├── types.ts      # Data type definitions
-│   │   │   └── cache.ts      # Data caching layer
-│   │   └── db/
-│   │       └── vehicles.ts   # SQLite vehicle metadata (low-floor info)
-│   └── proto/
-│       └── gtfs-realtime.proto
-├── frontend/
-│   ├── app/                  # Next.js app router
-│   ├── components/
-│   │   ├── Map.tsx           # Main map orchestrator
-│   │   ├── VehiclesLayer.tsx  # Real-time vehicle markers
-│   │   ├── StopsLayer.tsx     # Transit stop markers
-│   │   ├── RouteLinesLayer.tsx # Route polylines
-│   │   ├── LiveLocation.tsx   # GPS user location
-│   │   ├── MapControls.tsx    # Zoom, theme, location buttons
-│   │   ├── StopArrivalsSheet.tsx    # Stop detail bottom sheet
-│   │   └── VehicleTripSheet.tsx     # Vehicle trip timeline sheet
-│   └── public/
-└── .github/workflows/ci.yaml
-```
-
-## Getting Started
-
-### Prerequisites
-
-- [Bun](https://bun.sh) (v1.0+)
-
-### Setup
+The only prerequisite is [Bun](https://bun.sh) (v1.0 or newer). Run the two apps as separate processes; the frontend proxies `/api/*` to the backend in development.
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd rampme-software
-
-# Install dependencies
-cd backend && bun install
-cd ../frontend && bun install
-```
-
-### Run
-
-```bash
-# Terminal 1 — Backend (port 3000)
+# backend, on :3000
 cd backend
+bun install
 bun run dev
 
-# Terminal 2 — Frontend (port 3001)
+# frontend, in a second terminal (Next picks the next free port, usually :3001)
 cd frontend
+bun install
 bun run dev
 ```
 
-The frontend proxies API requests to the backend automatically via Next.js rewrites.
+The backend starts without a broker: with no `MQTT_URL` set it logs that MQTT is skipped and serves everything except the hardware path. To exercise the ramp lifecycle without hardware, start the backend with `MOCK_RAMP=true`.
 
-### End-to-end tests
+Before pushing, run the same check CI runs:
 
-The Playwright suite starts the frontend automatically and uses deterministic API fixtures, so a
-backend process is not required.
+```bash
+bun run check   # biome + tsc, in each app
+```
+
+Frontend changes can be verified end to end with Playwright. The suite starts the frontend
+automatically and uses deterministic API fixtures, so a backend process is not required.
 
 ```bash
 cd frontend
@@ -114,27 +50,20 @@ bun run test:e2e:install # one-time Chromium install
 bun run test:e2e
 ```
 
-### Environment Variables
+## Documentation
 
-Copy `.env.local.example` and adjust if needed:
+Full documentation lives in the [wiki](https://github.com/rangelovkiril/rampme-software/wiki):
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `BACKEND_URL` | `http://localhost:3000` | Backend API URL for frontend proxy |
-| `GTFS_STATIC_URL` | Sofia Traffic API | GTFS static data ZIP endpoint |
-| `GTFS_RT_BASE_URL` | Sofia Traffic API | GTFS-Realtime feed base URL |
-| `PORT` | `3000` | Backend server port |
+- [Architecture](https://github.com/rangelovkiril/rampme-software/wiki/Architecture): how the two apps fit together and how the app is served
+- [Threat Model](https://github.com/rangelovkiril/rampme-software/wiki/Threat-Model): why there is no login, and how abuse is contained
+- [CI/CD](https://github.com/rangelovkiril/rampme-software/wiki/CI-CD): pipelines, branch flow, and the promotion gate
+- [Ramp MQTT Protocol](https://github.com/rangelovkiril/rampme-software/wiki/Ramp-MQTT-Protocol): the contract for the hardware team
+- [Contributing](https://github.com/rangelovkiril/rampme-software/wiki/Contributing): local setup and conventions
 
-## API Endpoints
+Code layout and per-module rules are documented in [`CLAUDE.md`](CLAUDE.md). Infrastructure and cluster operations are in the [fleet wiki](https://github.com/rangelovkiril/fleet/wiki).
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/stops` | All transit stops |
-| GET | `/stops/:id/vehicles` | Upcoming vehicles at a stop |
-| GET | `/routes/shapes` | Route polyline geometries |
-| GET | `/realtime/vehicles` | All active vehicle positions |
-| GET | `/realtime/vehicles/:id/trip` | Trip timeline for a specific vehicle |
+## History
 
-## Team
+RampMe was built in 48 hours at HackTUES 12, where it placed 4th, and went on to take 3rd place at TUES Fest. Photos may land here later, no promises.
 
-Built at Hackathon 2026 with the mission of making public transport truly accessible.
+<!-- TODO: link the presentation deck with a view-only Canva link -->

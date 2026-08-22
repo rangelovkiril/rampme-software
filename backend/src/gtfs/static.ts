@@ -1,3 +1,4 @@
+import { consola } from 'consola'
 import JSZip from 'jszip'
 import { config } from '../config'
 import type { CalendarDate, GtfsData, Route, ShapePoint, Stop, StopTime, Trip } from './types'
@@ -44,7 +45,7 @@ function normalizeRouteType(raw: number): number {
  * Fetches a GTFS ZIP from the configured static URL, parses required CSV files, and constructs in-memory GTFS collections.
  */
 export async function fetchStaticGtfs(): Promise<GtfsData> {
-  console.log('⏳ Fetching static GTFS data...')
+  consola.start('Fetching static GTFS data...')
   const res = await fetch(config.gtfs.staticUrl)
 
   if (!res.ok) throw new Error(`GTFS static fetch failed: ${res.status}`)
@@ -86,6 +87,7 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
   }
 
   const trips = new Map<string, Trip>()
+  const tripsByRoute = new Map<string, Trip[]>()
   for (const t of parseCsv(await readFile('trips.txt'), (r) => ({
     trip_id: r.trip_id,
     route_id: r.route_id,
@@ -96,6 +98,9 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     wheelchair_accessible: Number(r.wheelchair_accessible || '0') as 0 | 1 | 2,
   }))) {
     trips.set(t.trip_id, t)
+    const arr = tripsByRoute.get(t.route_id)
+    if (arr) arr.push(t)
+    else tripsByRoute.set(t.route_id, [t])
   }
 
   const stopTimes = parseCsv(await readFile('stop_times.txt'), (r) => ({
@@ -123,6 +128,18 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
   }
   for (const arr of stopTimesByTrip.values()) {
     arr.sort((a, b) => a.stop_sequence - b.stop_sequence)
+  }
+
+  // Index stop_ids served by each route, via its trips' stop_times
+  const stopIdsByRoute = new Map<string, Set<string>>()
+  for (const [routeId, routeTrips] of tripsByRoute) {
+    const stopIds = new Set<string>()
+    for (const trip of routeTrips) {
+      const sts = stopTimesByTrip.get(trip.trip_id)
+      if (!sts) continue
+      for (const st of sts) stopIds.add(st.stop_id)
+    }
+    stopIdsByRoute.set(routeId, stopIds)
   }
 
   // Parse calendar_dates.txt
@@ -167,8 +184,8 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     shapesByRoute.get(trip.route_id)!.push(polyline)
   }
 
-  console.log(
-    `✅ GTFS loaded: ${stops.size} stops, ${routes.size} routes, ${trips.size} trips, ${stopTimes.length} stop_times, ${calendarDates.length} calendar_dates, ${shapes.size} shapes`,
+  consola.success(
+    `GTFS loaded: ${stops.size} stops, ${routes.size} routes, ${trips.size} trips, ${stopTimes.length} stop_times, ${calendarDates.length} calendar_dates, ${shapes.size} shapes`,
   )
 
   return {
@@ -176,9 +193,11 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     stopsByCode,
     routes,
     trips,
+    tripsByRoute,
     stopTimes,
     stopTimesByStop,
     stopTimesByTrip,
+    stopIdsByRoute,
     calendarDates,
     shapes,
     shapesByRoute,

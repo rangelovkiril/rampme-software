@@ -1,10 +1,38 @@
 import { Elysia, t } from 'elysia'
 import { activeServiceIds } from '../gtfs/services'
+import { todayDateStr } from '../gtfs/time'
+import type { GtfsData, Stop } from '../gtfs/types'
 import { makeSseStream } from '../services/sse'
 import { getGtfs, jsonError } from '../services/state'
 import { getUpcomingArrivals } from '../services/transit/arrivals'
 
 const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
+
+let stopsCache: { dateStr: string; data: GtfsData; result: Stop[] } | null = null
+
+function getActiveStops(data: GtfsData): Stop[] {
+  const dateStr = todayDateStr()
+  if (stopsCache && stopsCache.dateStr === dateStr && stopsCache.data === data) {
+    return stopsCache.result
+  }
+
+  const services = activeServiceIds(data.calendarDates)
+
+  const activeStopIds = new Set<string>()
+  for (const [stopId, times] of data.stopTimesByStop) {
+    for (const st of times) {
+      const trip = data.trips.get(st.trip_id)
+      if (trip && services.has(trip.service_id)) {
+        activeStopIds.add(stopId)
+        break
+      }
+    }
+  }
+
+  const result = [...data.stops.values()].filter((s) => activeStopIds.has(s.stop_id))
+  stopsCache = { dateStr, data, result }
+  return result
+}
 
 export const stopsRoutes = new Elysia()
   .get(
@@ -12,21 +40,7 @@ export const stopsRoutes = new Elysia()
     () => {
       const data = getGtfs()
       if (!data) return GTFS_NOT_READY()
-
-      const services = activeServiceIds(data.calendarDates)
-
-      const activeStopIds = new Set<string>()
-      for (const [stopId, times] of data.stopTimesByStop) {
-        for (const st of times) {
-          const trip = data.trips.get(st.trip_id)
-          if (trip && services.has(trip.service_id)) {
-            activeStopIds.add(stopId)
-            break
-          }
-        }
-      }
-
-      return [...data.stops.values()].filter((s) => activeStopIds.has(s.stop_id))
+      return getActiveStops(data)
     },
     { detail: { tags: ['Stops'], summary: 'All stops (active today)' } },
   )

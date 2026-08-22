@@ -4,8 +4,8 @@ import 'leaflet/dist/leaflet.css'
 
 export const metadata: Metadata = {
   title: 'RampMe',
-  description: 'Карта на градския транспорт в София с достъпност за рампа',
-  manifest: '/manifest.json',
+  description: 'Карта на градския транспорт в София с достъпност за рампа в реално време',
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     title: 'RampMe',
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'RampMe',
-    description: 'Карта на градския транспорт в София с достъпност за рампа',
+    description: 'Карта на градския транспорт в София с достъпност за рампа в реално време',
     locale: 'bg_BG',
     type: 'website',
   },

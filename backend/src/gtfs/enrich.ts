@@ -1,5 +1,6 @@
-import { getVehicleRampInfo, type RampStatus } from '../services/ramp/status'
-import type { GtfsData } from './types'
+import type { RampReservation } from '../db/ramp'
+import { getVehicleRampInfoFrom, type RampStatus } from '../services/ramp/status'
+import type { GtfsData, GtfsRtFeedEntity, GtfsRtPosition, GtfsRtVehiclePosition } from './types'
 
 export interface EnrichedVehicle {
   id: string
@@ -22,35 +23,45 @@ export interface EnrichedVehicle {
   }>
 }
 
-export function enrichVehicles(entities: any[], data: GtfsData): EnrichedVehicle[] {
-  return entities
-    .filter((e) => e.vehicle?.position)
-    .map((e) => {
-      const v = e.vehicle
-      const pos = v.position
-      const tripId = v.trip?.tripId ?? ''
-      const rawRouteId = v.trip?.routeId ?? ''
-      const trip = data.trips.get(tripId)
-      const routeId = trip?.route_id ?? rawRouteId
-      const route = routeId ? data.routes.get(routeId) : undefined
-      const vehicleId = v.vehicle?.id ?? e.id
-      const hasRamp = trip?.wheelchair_accessible === 1
-      const ramp = getVehicleRampInfo(vehicleId, hasRamp)
+type EntityWithPosition = GtfsRtFeedEntity & {
+  vehicle: GtfsRtVehiclePosition & { position: GtfsRtPosition }
+}
 
-      return {
-        id: vehicleId,
-        tripId,
-        lat: pos.latitude,
-        lng: pos.longitude,
-        bearing: pos.bearing ?? null,
-        speed: pos.speed ?? null,
-        route_id: routeId || null,
-        route_short_name: route?.route_short_name ?? null,
-        route_type: route?.route_type ?? null,
-        headsign: trip?.trip_headsign ?? null,
-        label: v.vehicle?.label ?? null,
-        ramp_status: ramp.ramp_status,
-        ramp_reservations: ramp.reservations,
-      }
-    })
+function hasPosition(e: GtfsRtFeedEntity): e is EntityWithPosition {
+  return e.vehicle?.position != null
+}
+
+export function enrichVehicles(
+  entities: GtfsRtFeedEntity[],
+  data: GtfsData,
+  reservationsByVehicle: Map<string, RampReservation[]>,
+): EnrichedVehicle[] {
+  return entities.filter(hasPosition).map((e) => {
+    const v = e.vehicle
+    const pos = v.position
+    const tripId = v.trip?.tripId ?? ''
+    const rawRouteId = v.trip?.routeId ?? ''
+    const trip = data.trips.get(tripId)
+    const routeId = trip?.route_id ?? rawRouteId
+    const route = routeId ? data.routes.get(routeId) : undefined
+    const vehicleId = v.vehicle?.id ?? e.id
+    const hasRamp = trip?.wheelchair_accessible === 1
+    const ramp = getVehicleRampInfoFrom(reservationsByVehicle.get(vehicleId) ?? [], hasRamp)
+
+    return {
+      id: vehicleId,
+      tripId,
+      lat: pos.latitude,
+      lng: pos.longitude,
+      bearing: pos.bearing ?? null,
+      speed: pos.speed ?? null,
+      route_id: routeId || null,
+      route_short_name: route?.route_short_name ?? null,
+      route_type: route?.route_type ?? null,
+      headsign: trip?.trip_headsign ?? null,
+      label: v.vehicle?.label ?? null,
+      ramp_status: ramp.ramp_status,
+      ramp_reservations: ramp.reservations,
+    }
+  })
 }

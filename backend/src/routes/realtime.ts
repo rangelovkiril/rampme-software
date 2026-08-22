@@ -1,26 +1,46 @@
 import { Elysia, t } from 'elysia'
-import { enrichVehicles } from '../gtfs/enrich'
-import { fetchTripUpdates, fetchVehiclePositions } from '../gtfs/realtime'
+import { type EnrichedVehicle, enrichVehicles } from '../gtfs/enrich'
+import { fetchTripUpdates, fetchVehiclePositions, realtimeEvents } from '../gtfs/realtime'
+import { getReservationsByVehicle } from '../services/ramp/status'
 import { makeSseStream } from '../services/sse'
 import { getGtfs, jsonError } from '../services/state'
 import { getTripEtas, getVehicleTripDetails } from '../services/transit/trip-details'
 
 const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
 
+// Bumped on every realtime refresh so the unfiltered enrichment below is
+// computed at most once per tick, regardless of how many clients ask for it.
+let currentTick = 0
+realtimeEvents.on('refresh', () => {
+  currentTick++
+})
+
+let cache: { tick: number; vehicles: EnrichedVehicle[] } | null = null
+
+async function getUnfilteredVehicles(): Promise<EnrichedVehicle[] | null> {
+  const data = getGtfs()
+  if (!data) return null
+  if (cache && cache.tick === currentTick) return cache.vehicles
+  const feed = await fetchVehiclePositions()
+  const reservationsByVehicle = getReservationsByVehicle()
+  const vehicles = enrichVehicles(feed.entity ?? [], data, reservationsByVehicle)
+  cache = { tick: currentTick, vehicles }
+  return vehicles
+}
+
 async function buildEnrichedVehicles(filters: {
   route_id?: string
   route_type?: string
   has_ramp?: string
 }) {
-  const data = getGtfs()
-  if (!data) return null
-  const feed = await fetchVehiclePositions()
-  let vehicles = enrichVehicles(feed.entity ?? [], data)
-  if (filters.route_id) vehicles = vehicles.filter((v) => v.route_id === filters.route_id)
+  const vehicles = await getUnfilteredVehicles()
+  if (!vehicles) return null
+  let filtered = vehicles
+  if (filters.route_id) filtered = filtered.filter((v) => v.route_id === filters.route_id)
   if (filters.route_type !== undefined)
-    vehicles = vehicles.filter((v) => v.route_type === Number(filters.route_type))
-  if (filters.has_ramp === 'true') vehicles = vehicles.filter((v) => v.ramp_status !== 'unknown')
-  return vehicles
+    filtered = filtered.filter((v) => v.route_type === Number(filters.route_type))
+  if (filters.has_ramp === 'true') filtered = filtered.filter((v) => v.ramp_status !== 'unknown')
+  return filtered
 }
 
 export const realtimeRoutes = new Elysia()

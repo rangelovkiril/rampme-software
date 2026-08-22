@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation (software wiki)
+    url: https://github.com/rangelovkiril/rampme-software/wiki
+    about: Architecture, threat model, CI/CD, and the ramp MQTT protocol. Read before filing.
+  - name: Infrastructure runbook (fleet wiki)
+    url: https://github.com/rangelovkiril/fleet/wiki
+    about: Cluster, Flux, secrets, Cloudflare, and recovery. File infra issues in the fleet repo.
+  - name: Hardware / firmware
+    url: https://github.com/rangelovkiril/rampme-hardware
+    about: Ramp firmware issues belong in the hardware repository, not here.

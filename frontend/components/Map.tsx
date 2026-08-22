@@ -14,6 +14,7 @@ import FloatingNav from "./ui/FloatingNav";
 import SidePanel from "./SidePanel";
 import { useRamp } from "@/contexts/RampContext";
 import type { Stop, Vehicle } from "@/lib/types";
+import { apiPath } from "@/lib/config";
 
 const TILES = {
   dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -84,7 +85,7 @@ export default function Map() {
     setNavCloseSignal((s) => s + 1);
 
     try {
-      const res = await fetch("/api/realtime/vehicles");
+      const res = await fetch(apiPath("/realtime/vehicles"));
       if (!res.ok) return;
       const vehicles: Vehicle[] = await res.json();
       const v = vehicles.find((v) => v.id === vehicleId);

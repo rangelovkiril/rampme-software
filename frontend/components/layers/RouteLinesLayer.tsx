@@ -4,6 +4,7 @@ import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 import { getRouteColor } from '@/lib/transit'
+import { apiPath } from '@/lib/config'
 
 interface RouteShape {
   route_type: number
@@ -34,7 +35,7 @@ export default function RouteLinesLayer({ routeId, routeType, autoFit = true }: 
     let cancelled = false
     async function fetchShape() {
       try {
-        const res = await fetch(`/api/routes/shapes?ids=${routeId}`)
+        const res = await fetch(apiPath(`/routes/shapes?ids=${routeId}`))
         if (!res.ok || cancelled) return
         const data: Record<string, RouteShape> = await res.json()
         const s = data[routeId!]

@@ -1,6 +1,7 @@
 import { fetchTripUpdates, fetchVehiclePositions } from '../../gtfs/realtime'
 import { activeServiceIds } from '../../gtfs/services'
 import {
+  computeScheduledEtaMinutes,
   normalizeGtfsHour,
   nowHHMMSS,
   nowTotalMinutes,
@@ -28,6 +29,7 @@ interface ScheduledArrival {
   arrival_time: string
   stop_id: string
   rt_route_id?: string // route_id from RT feed when trip not in static GTFS
+  fromYesterdayService?: boolean // arrival_time is ≥24:00 on a service active on the previous calendar date
 }
 
 export async function getUpcomingArrivals(
@@ -42,49 +44,56 @@ export async function getUpcomingArrivals(
 
   const now = new Date()
   const services = activeServiceIds(data.calendarDates, now)
-  const currentTime = nowHHMMSS(now)
   const nowSec = Math.floor(now.getTime() / 1000)
+  const currentMinutes = nowTotalMinutes(now)
 
-  const scheduled = collectScheduledArrivals(data, siblingIds, services, currentTime)
+  const scheduled = collectScheduledArrivals(data, siblingIds, services, now)
   const [predictions, vehicleByTrip] = await Promise.all([
     collectPredictions(siblingIds, nowSec, scheduled),
     buildVehicleByTripMap(),
   ])
-  const currentMinutes = nowTotalMinutes(now)
 
-  const results = scheduled.map((sa) => {
-    const trip = data.trips.get(sa.trip_id)
-    const routeId = trip?.route_id ?? sa.rt_route_id
-    const route = routeId ? data.routes.get(routeId) : undefined
-    const vehicleId = vehicleByTrip.get(sa.trip_id) ?? null
+  const results = scheduled
+    .map((sa): ArrivalResult | null => {
+      const trip = data.trips.get(sa.trip_id)
+      const routeId = trip?.route_id ?? sa.rt_route_id
+      const route = routeId ? data.routes.get(routeId) : undefined
+      const vehicleId = vehicleByTrip.get(sa.trip_id) ?? null
 
-    const prediction = predictions.get(sa.trip_id)
-    let eta_minutes: number
-    let expected_time: string | null = null
+      const prediction = predictions.get(sa.trip_id)
+      let eta_minutes: number
+      let expected_time: string | null = null
 
-    if (prediction) {
-      eta_minutes = Math.max(0, Math.round((prediction - nowSec) / 60))
-      expected_time = unixToHHMM(prediction)
-    } else {
-      const { totalMinutes } = parseGtfsTime(sa.arrival_time)
-      eta_minutes = Math.max(0, totalMinutes - currentMinutes)
-      expected_time = sa.arrival_time ? normalizeGtfsHour(sa.arrival_time) : null
-    }
+      if (prediction) {
+        eta_minutes = Math.max(0, Math.round((prediction - nowSec) / 60))
+        expected_time = unixToHHMM(prediction)
+      } else {
+        const { totalMinutes } = parseGtfsTime(sa.arrival_time)
+        // Already filtered to totalMinutes >= currentMinutes + 1440 in collectScheduledArrivals,
+        // so no midnight-wrap ambiguity here — straight subtraction gives the true eta.
+        const diff = sa.fromYesterdayService
+          ? totalMinutes - currentMinutes - 1440
+          : computeScheduledEtaMinutes(totalMinutes, nowSec)
+        if (diff === null) return null
+        eta_minutes = diff
+        expected_time = sa.arrival_time ? normalizeGtfsHour(sa.arrival_time) : null
+      }
 
-    return {
-      id: sa.trip_id,
-      vehicle_id: vehicleId,
-      route_short_name: route?.route_short_name ?? null,
-      route_type: route?.route_type ?? null,
-      headsign: trip?.trip_headsign ?? null,
-      route_id: routeId ?? null,
-      scheduled_time: sa.arrival_time ? normalizeGtfsHour(sa.arrival_time) : null,
-      expected_time,
-      eta_minutes,
-      realtime: Boolean(prediction),
-      has_ramp: trip?.wheelchair_accessible === 1,
-    }
-  })
+      return {
+        id: sa.trip_id,
+        vehicle_id: vehicleId,
+        route_short_name: route?.route_short_name ?? null,
+        route_type: route?.route_type ?? null,
+        headsign: trip?.trip_headsign ?? null,
+        route_id: routeId ?? null,
+        scheduled_time: sa.arrival_time ? normalizeGtfsHour(sa.arrival_time) : null,
+        expected_time,
+        eta_minutes,
+        realtime: Boolean(prediction),
+        has_ramp: trip?.wheelchair_accessible === 1,
+      }
+    })
+    .filter((r): r is ArrivalResult => r !== null)
 
   return deduplicateAndSort(results, limit)
 }
@@ -107,17 +116,37 @@ function collectScheduledArrivals(
   data: GtfsData,
   siblingIds: string[],
   services: Set<string>,
-  currentTime: string,
+  now: Date,
 ): ScheduledArrival[] {
+  const currentTime = nowHHMMSS(now)
+  const currentMinutes = nowTotalMinutes(now)
+  // GTFS times ≥24:00 on yesterday's service belong to today (after midnight).
+  const yesterdayServices = activeServiceIds(
+    data.calendarDates,
+    new Date(now.getTime() - 86_400_000),
+  )
+
   const arrivals: ScheduledArrival[] = []
   for (const sid of siblingIds) {
     const times = data.stopTimesByStop.get(sid)
     if (!times) continue
     for (const st of times) {
       const trip = data.trips.get(st.trip_id)
-      if (!trip || !services.has(trip.service_id)) continue
-      if (st.arrival_time >= currentTime) {
-        arrivals.push({ trip_id: st.trip_id, arrival_time: st.arrival_time, stop_id: st.stop_id })
+      if (!trip) continue
+      if (services.has(trip.service_id)) {
+        if (st.arrival_time >= currentTime) {
+          arrivals.push({ trip_id: st.trip_id, arrival_time: st.arrival_time, stop_id: st.stop_id })
+        }
+      } else if (yesterdayServices.has(trip.service_id)) {
+        const { totalMinutes } = parseGtfsTime(st.arrival_time)
+        if (totalMinutes >= currentMinutes + 1440) {
+          arrivals.push({
+            trip_id: st.trip_id,
+            arrival_time: st.arrival_time,
+            stop_id: st.stop_id,
+            fromYesterdayService: true,
+          })
+        }
       }
     }
   }
@@ -133,12 +162,13 @@ async function collectPredictions(
   const siblingSet = new Set(siblingIds)
   const predictions = new Map<string, number>()
 
-  for (const e of (tuFeed as any).entity ?? []) {
+  for (const e of tuFeed.entity ?? []) {
     const tu = e.tripUpdate
     if (!tu?.stopTimeUpdate) continue
     const tripId = tu.trip?.tripId ?? ''
     const rtRouteId: string | undefined = tu.trip?.routeId || undefined
     for (const stu of tu.stopTimeUpdate) {
+      if (!stu.stopId) continue
       if (siblingSet.has(stu.stopId)) {
         const arrTime = Number(stu.arrival?.time ?? stu.departure?.time ?? 0)
         if (arrTime > nowSec) {

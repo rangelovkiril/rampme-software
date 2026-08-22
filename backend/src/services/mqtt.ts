@@ -5,15 +5,18 @@
  * subscriptions with per-handler parsers, and a publish helper.
  */
 
+import { consola } from 'consola'
 import mqtt from 'mqtt'
+
+const log = consola.withTag('mqtt')
 
 export type Parser<T> = (raw: Buffer) => T
 type Handler<T> = (topic: string, payload: T) => void
 
 interface Sub {
   regex: RegExp
-  parse: Parser<any>
-  handler: Handler<any>
+  parse: Parser<unknown>
+  handler: Handler<unknown>
 }
 
 export const jsonParse: Parser<unknown> = (buf) => JSON.parse(buf.toString())
@@ -37,14 +40,14 @@ export class MQTTHub {
         try {
           sub.handler(topic, sub.parse(buf))
         } catch (e) {
-          console.error(`[mqtt] handler error on ${topic}:`, e)
+          log.error(`handler error on ${topic}:`, e)
         }
       }
     })
 
-    client.on('connect', () => console.log('[mqtt] connected'))
-    client.on('reconnect', () => console.log('[mqtt] reconnecting'))
-    client.on('error', (e) => console.error('[mqtt] error:', e.message))
+    client.on('connect', () => log.success('connected'))
+    client.on('reconnect', () => log.warn('reconnecting'))
+    client.on('error', (e) => log.error('error:', e.message))
   }
 
   on<T = Buffer>(pattern: string, handler: Handler<T>): () => void
@@ -60,8 +63,8 @@ export class MQTTHub {
     const sub: Sub = { regex: toRegex(pattern), parse, handler }
     this.subs.push(sub)
     this.client.subscribe(pattern, (err) => {
-      if (err) console.error(`[mqtt] subscribe ${pattern} failed:`, err.message)
-      else console.log(`[mqtt] subscribed to ${pattern}`)
+      if (err) log.error(`subscribe ${pattern} failed:`, err.message)
+      else log.info(`subscribed to ${pattern}`)
     })
 
     return () => {

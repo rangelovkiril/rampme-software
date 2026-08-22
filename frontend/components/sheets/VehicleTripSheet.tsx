@@ -11,6 +11,7 @@ import type { Vehicle, TripData, TripEtaUpdate } from "@/lib/types";
 import { getRouteColor, getRouteLabel } from "@/lib/transit";
 import { useRamp } from "@/contexts/RampContext";
 import { useSSE } from "@/hooks/useSSE";
+import { apiPath } from "@/lib/config";
 
 function StopStatusLabel({ stop }: { stop: TripData["stops"][number] }) {
   if (stop.status === "departed")
@@ -161,7 +162,7 @@ export default function VehicleTripSheet({
       setLoading(true);
       try {
         const r = await fetch(
-          `/api/realtime/vehicles/${encodeURIComponent(vehicleId)}/trip`,
+          apiPath(`/realtime/vehicles/${encodeURIComponent(vehicleId)}/trip`),
           { signal },
         );
         if (signal.aborted) return;

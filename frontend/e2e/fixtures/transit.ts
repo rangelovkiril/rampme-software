@@ -149,7 +149,7 @@ export async function mockTransitApi(page: Page): Promise<ApiMockState> {
     const { pathname } = url
     const method = request.method()
 
-    if (pathname.startsWith('/api/ramp/')) {
+    if (pathname.startsWith('/api/ramp/') && pathname !== '/api/ramp/session/stream') {
       const requestSessionId = request.headers()['x-session-id']
       state.rampSessionIds.push(requestSessionId)
       if (requestSessionId !== sessionId) {
@@ -183,6 +183,16 @@ export async function mockTransitApi(page: Page): Promise<ApiMockState> {
     }
     if (method === 'GET' && pathname === '/api/ramp/session') {
       return fulfillJson(route, state.reservations)
+    }
+    if (method === 'GET' && pathname === '/api/ramp/session/stream') {
+      // EventSource can't set custom headers, so the real backend takes the
+      // session id as a query param here instead of X-Session-Id.
+      const requestSessionId = url.searchParams.get('session_id') ?? undefined
+      state.rampSessionIds.push(requestSessionId)
+      if (requestSessionId !== sessionId) {
+        return fulfillJson(route, { error: 'Invalid E2E session' }, 400)
+      }
+      return fulfillSse(route, state.reservations)
     }
     if (method === 'POST' && pathname === '/api/ramp/reserve') {
       const body = request.postDataJSON() as {

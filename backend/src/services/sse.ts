@@ -1,34 +1,46 @@
 import { realtimeEvents } from '../gtfs/realtime'
 
-/**
- * Creates an SSE Response that sends data immediately on connect, then again
- * after every realtime feed refresh (~5s). Cleans up listeners on disconnect.
- */
-export function makeSseStream(request: Request, getData: () => Promise<unknown>) {
+const HEARTBEAT_INTERVAL_MS = 20_000
+
+export function makeSseStream(_request: Request, getData: () => Promise<unknown>) {
   const encoder = new TextEncoder()
-  let closed = false
+  let send: (() => Promise<void>) | null = null
+  let heartbeat: ReturnType<typeof setInterval> | null = null
 
   const stream = new ReadableStream({
     async start(controller) {
-      const send = async () => {
-        if (closed) return
+      controller.enqueue(encoder.encode('retry: 3000\n\n'))
+
+      send = async () => {
+        let data: unknown
         try {
-          const data = await getData()
-          if (data == null || closed) return
+          data = await getData()
+        } catch {
+          return
+        }
+        if (data == null) return
+        try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
-        } catch {}
+        } catch {
+          // stream closed — cancel will clean up
+        }
       }
 
       await send()
       realtimeEvents.on('refresh', send)
 
-      request.signal.addEventListener('abort', () => {
-        closed = true
-        realtimeEvents.off('refresh', send)
+      heartbeat = setInterval(() => {
         try {
-          controller.close()
-        } catch {}
-      })
+          controller.enqueue(encoder.encode(': hb\n\n'))
+        } catch {
+          // stream closed — cancel will clean up
+        }
+      }, HEARTBEAT_INTERVAL_MS)
+    },
+
+    cancel() {
+      if (send) realtimeEvents.off('refresh', send)
+      if (heartbeat) clearInterval(heartbeat)
     },
   })
 

@@ -1,5 +1,10 @@
 import { fetchTripUpdates, fetchVehiclePositions } from '../../gtfs/realtime'
-import { normalizeGtfsHour, nowTotalMinutes, parseGtfsTime, unixToHHMM } from '../../gtfs/time'
+import {
+  computeScheduledEtaMinutes,
+  normalizeGtfsHour,
+  parseGtfsTime,
+  unixToHHMM,
+} from '../../gtfs/time'
 import type { GtfsData } from '../../gtfs/types'
 
 interface TripPrediction {
@@ -12,10 +17,6 @@ interface TripPredictions {
   byStopSequence: Map<number, TripPrediction>
   nextUpcomingSequence: number | null
 }
-
-const PAST_GRACE_MINUTES = 5
-const WRAP_THRESHOLD_MINUTES = 12 * 60
-const MAX_REASONABLE_FALLBACK_ETA_MINUTES = 6 * 60
 
 export interface TripStopResult {
   stop_id: string
@@ -54,9 +55,7 @@ export async function getTripEtas(
   vehicleId: string,
 ): Promise<TripEtaUpdate[] | null> {
   const feed = await fetchVehiclePositions()
-  const entity = (feed.entity ?? []).find(
-    (e: any) => (e.vehicle?.vehicle?.id ?? e.id) === vehicleId,
-  )
+  const entity = (feed.entity ?? []).find((e) => (e.vehicle?.vehicle?.id ?? e.id) === vehicleId)
   if (!entity?.vehicle) return null
 
   const tripId = entity.vehicle.trip?.tripId ?? ''
@@ -91,9 +90,7 @@ export async function getVehicleTripDetails(
   vehicleId: string,
 ): Promise<TripDetailResult | null> {
   const feed = await fetchVehiclePositions()
-  const entity = (feed.entity ?? []).find(
-    (e: any) => (e.vehicle?.vehicle?.id ?? e.id) === vehicleId,
-  )
+  const entity = (feed.entity ?? []).find((e) => (e.vehicle?.vehicle?.id ?? e.id) === vehicleId)
   if (!entity?.vehicle) return null
 
   const v = entity.vehicle
@@ -132,7 +129,7 @@ async function fetchTripPredictions(tripId: string, nowSec: number): Promise<Tri
   const byStopSequence = new Map<number, TripPrediction>()
   let nextUpcomingSequence: number | null = null
 
-  for (const e of (tuFeed as any).entity ?? []) {
+  for (const e of tuFeed.entity ?? []) {
     const tu = e.tripUpdate
     if (tu?.trip?.tripId !== tripId) continue
     for (const stu of tu.stopTimeUpdate ?? []) {
@@ -241,38 +238,6 @@ function buildTripStop(
     delay_minutes,
     realtime,
   }
-}
-
-function computeScheduledEtaMinutes(totalGtfsMinutes: number, nowSec: number): number | null {
-  const currentMinutes = nowTotalMinutes(new Date(nowSec * 1000))
-  const day = 24 * 60
-  const rawDiff = totalGtfsMinutes - currentMinutes
-
-  // Normal same-day future stop.
-  if (rawDiff >= 0 && rawDiff <= MAX_REASONABLE_FALLBACK_ETA_MINUTES) {
-    return rawDiff
-  }
-
-  // Slightly past stop should be considered departed, not wrapped to +24h.
-  if (rawDiff < 0 && rawDiff >= -PAST_GRACE_MINUTES) {
-    return null
-  }
-
-  // Large negative diff likely means near-midnight wrap (e.g. 23:58 -> 00:07).
-  if (rawDiff < -WRAP_THRESHOLD_MINUTES) {
-    const wrapped = rawDiff + day
-    if (wrapped >= 0 && wrapped <= MAX_REASONABLE_FALLBACK_ETA_MINUTES) {
-      return wrapped
-    }
-    return null
-  }
-
-  // Large positive diff is usually a previous-day stop seen after midnight.
-  if (rawDiff > WRAP_THRESHOLD_MINUTES) {
-    return null
-  }
-
-  return rawDiff >= 0 ? rawDiff : null
 }
 
 function parseStopSequence(raw: unknown): number | null {

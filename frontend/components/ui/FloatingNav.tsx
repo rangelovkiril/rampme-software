@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRamp } from "@/contexts/RampContext";
 import { useSSE } from "@/hooks/useSSE";
 import type { TripEtaUpdate } from "@/lib/types";
+import { apiPath } from "@/lib/config";
 import { NavBtn } from "./NavBtn";
 import { ResBanner } from "./ResBanner";
 import { ResDetailCard } from "./ResDetailCard";
@@ -101,7 +102,7 @@ export default function FloatingNav({
       setPrimaryTripInfo(null);
       return;
     }
-    fetch(`/api/realtime/vehicles/${encodeURIComponent(primaryVehicleId)}/trip`)
+    fetch(apiPath(`/realtime/vehicles/${encodeURIComponent(primaryVehicleId)}/trip`))
       .then((r) => (r.ok ? r.json() : null))
       .then((trip) => {
         if (!trip) return;
@@ -143,7 +144,7 @@ export default function FloatingNav({
       return;
     }
     fetch(
-      `/api/realtime/vehicles/${encodeURIComponent(secondaryVehicleId)}/trip`,
+      apiPath(`/realtime/vehicles/${encodeURIComponent(secondaryVehicleId)}/trip`),
     )
       .then((r) => (r.ok ? r.json() : null))
       .then((trip) => {

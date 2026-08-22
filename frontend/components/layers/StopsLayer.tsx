@@ -4,6 +4,7 @@ import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 import type { Stop } from '@/lib/types'
+import { apiPath } from '@/lib/config'
 
 const MIN_ZOOM_FOR_STOPS = 15
 
@@ -50,7 +51,7 @@ export default function StopsLayer({ selectedStopId = null, onStopSelect }: Stop
   const selectedIconRef = useRef<L.DivIcon | null>(null)
 
   useEffect(() => {
-    fetch('/api/stops')
+    fetch(apiPath('/stops'))
       .then((r) => (r.ok ? r.json() : []))
       .then((data: Stop[]) => setStops((Array.isArray(data) ? data : []).filter(hasValidCoords)))
       .catch(() => {})

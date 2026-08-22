@@ -1,4 +1,5 @@
 import cors from '@elysiajs/cors'
+import { consola } from 'consola'
 import { Elysia } from 'elysia'
 import { config } from './config'
 import { swaggerPlugin } from './config/swagger'
@@ -16,29 +17,25 @@ async function initGtfs() {
   try {
     setGtfs(await fetchStaticGtfs())
   } catch (e) {
-    console.error('Failed to load GTFS static data:', e)
+    consola.error('Failed to load GTFS static data:', e)
   }
 }
-
-if (!config.mqtt.url) {
-  console.error('FATAL: MQTT_URL env var is required')
-  process.exit(1)
-}
-await initMqtt(config.mqtt.url, {
-  username: config.mqtt.username,
-  password: config.mqtt.password,
-  clientId: config.mqtt.clientId,
-  keepalive: 30,
-  clean: true,
-})
-subscribeToHardwareStates()
-resyncAllReservations()
 
 startProximityChecker()
 
 const app = new Elysia()
   .use(swaggerPlugin)
-  .use(cors())
+  .use(
+    cors({
+      origin: [
+        'https://rampme.site',
+        /^https:\/\/[\w-]+\.rampme\.pages\.dev$/, // Pages preview deployments
+        /^http:\/\/localhost:\d+$/, // local dev without the rewrite proxy
+      ],
+      methods: ['GET', 'POST', 'DELETE'],
+      allowedHeaders: ['Content-Type', 'X-Session-Id'],
+    }),
+  )
   .use(stopsRoutes)
   .use(transitRoutes)
   .use(realtimeRoutes)
@@ -46,8 +43,24 @@ const app = new Elysia()
   .get('/health', () => 'Ok')
 
 app.listen(config.port)
+consola.ready(`GTFS server running at http://localhost:${app.server?.port}`)
 
 await initGtfs()
 setInterval(initGtfs, config.gtfs.refreshInterval)
 
-console.log(`GTFS server running at http://localhost:${app.server?.port}`)
+if (!config.mqtt.url) {
+  consola.warn('MQTT_URL not set — skipping MQTT')
+} else {
+  initMqtt(config.mqtt.url, {
+    username: config.mqtt.username,
+    password: config.mqtt.password,
+    clientId: config.mqtt.clientId,
+    keepalive: 30,
+    clean: true,
+  })
+    .then(() => {
+      subscribeToHardwareStates()
+      resyncAllReservations()
+    })
+    .catch((e) => consola.error('MQTT init failed:', e))
+}

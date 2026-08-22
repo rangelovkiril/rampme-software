@@ -1,0 +1,31 @@
+# OpenSpec: validate change/spec structure on every PR and push to main
+# that touches openspec/.
+
+name: OpenSpec
+
+on:
+  pull_request:
+    paths:
+      - 'openspec/**'
+      - '.github/workflows/openspec.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'openspec/**'
+      - '.github/workflows/openspec.yaml'
+
+concurrency:
+  group: openspec-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx --yes @fission-ai/openspec@1.10.0 validate --all --strict
