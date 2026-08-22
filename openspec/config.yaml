@@ -36,15 +36,44 @@ rules:
       cross-app behavior contract (e.g. ramp reservation flow) into separate
       backend/ and frontend/ specs.
     - Preserve an existing capability's path exactly; never rename or move it.
+  proposal:
+    - Impact must reference concrete file or route paths, not vague area names.
+    - >
+      If the change touches the ramp MQTT protocol, infrastructure, deployment,
+      CORS origins, or environment variables, name the wiki page or AGENTS.md
+      section that documents it, so the same-change sync is tracked from here
+      through tasks.
+  design:
+    - >
+      Migration Plan states explicitly whether rollback is a plain revert or
+      needs more care; do not omit it even for changes with no feature flag.
+    - If the design adds or changes a config/index.ts value, list the affected environment variables by name.
+    - >
+      If the design changes the ramp MQTT protocol or topic shape, the
+      Decisions section states backward compatibility with already-deployed
+      hardware firmware explicitly (rampme-hardware is a separate repo and
+      cannot be deployed atomically with the backend).
+  tasks:
+    - >
+      When a task syncs AGENTS.md or an env var table, phrase it as
+      performing the edit directly (e.g. "update backend/AGENTS.md's
+      environment variable table with X"), not as a reminder to consider it
+      later - during apply, make the edit as part of completing that task.
+    - >
+      When a task syncs a GitHub wiki page, keep it as its own explicit task
+      rather than folding it into a code task. The wiki is a separate
+      repository that publishes immediately with no PR review, so it stays a
+      deliberate, visible step even though other in-repo doc syncs happen
+      inline.
+    - When a change spans both apps, group tasks by app (not by domain), matching the independent backend/frontend deploy boundary.
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.
 # This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  apply:
+    guidance:
+      - >
+        When completing a task that syncs an in-repo doc (AGENTS.md, an
+        environment variable table), make the edit directly as part of that
+        task instead of leaving a follow-up note or TODO.

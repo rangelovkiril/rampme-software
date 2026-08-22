@@ -27,7 +27,7 @@ See `proposal.md` - Why. Today all four SSE routes go through `services/sse.ts`,
 
 **Heartbeat is the generic transport helper's own responsibility.** Internally, `services/sse.ts` merges "next value from the broadcaster" with "next heartbeat tick" into one stream the generator consumes. Domain broadcasters publish only real changes; they have no heartbeat concept.
 
-**Per-feed staleness is tracked in `gtfs/realtime.ts`**, next to the existing fetch logic that already owns success/failure knowledge for `trip-updates` and `vehicle-positions` independently (`Promise.allSettled`). The staleness threshold is a new `config/index.ts` value, following the existing config convention (no hardcoded env-driven flags in handler files).
+**Per-feed staleness is tracked in `gtfs/realtime.ts`**, next to the existing fetch logic that already owns success/failure knowledge for `trip-updates` and `vehicle-positions` independently (`Promise.allSettled`). The staleness threshold is a new `GTFS_RT_STALE_THRESHOLD_MS` value in `config/index.ts` (default `15000`, 3x `REFRESH_INTERVAL_MS`), following the existing config convention (no hardcoded env-driven flags in handler files).
 
 **Combining staleness across multiple feeds is each consumer's responsibility, not the publisher's.** `gtfs/realtime.ts` reports per-feed truth only. Routes that depend on more than one feed (trip ETAs, stop arrivals both use `trip-updates` and `vehicle-positions` together, per `arrivals.ts` / `trip-details.ts`) combine the flags relevant to them. This mirrors the feed-dependency pattern already present in those files.
 

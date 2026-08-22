@@ -10,7 +10,7 @@
 
 ## 3. GTFS realtime staleness and own broadcaster
 
-- [ ] 3.1 Add a staleness threshold to `config/index.ts` (env-driven, documented default) and list the new environment variable in `backend/AGENTS.md`'s environment variable table.
+- [ ] 3.1 Add `GTFS_RT_STALE_THRESHOLD_MS` (default `15000`) to `config/index.ts` and list it in `backend/AGENTS.md`'s environment variable table.
 - [ ] 3.2 Track `lastSuccessAt` per feed (`trip-updates`, `vehicle-positions`) in `gtfs/realtime.ts` and compute a per-feed `stale` boolean against the configured threshold; verify with a unit test covering both feeds succeeding/failing independently.
 - [ ] 3.3 Replace `gtfs/realtime.ts`'s `EventEmitter` with its own `Broadcaster`, publishing `{ tick, feeds: { tripUpdates, vehiclePositions } }` on the existing push cadence; verify the push still fires unconditionally on upstream fetch failure (regression check for the `b1023fc` guarantee).
 
