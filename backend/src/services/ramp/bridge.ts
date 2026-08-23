@@ -170,6 +170,8 @@ function handleHardwareState(vehicleId: string, payload: HardwareState): void {
       setReservationStatus(r.id, 'done')
     }
     clearDeployTrigger(vehicleId)
+    // Immediate SSE push so clients see the completed ramp cycle without waiting for next refresh.
+    rampBroadcaster.publish(Date.now())
   }
 
   if (payload.state === 'error') {
@@ -178,6 +180,8 @@ function handleHardwareState(vehicleId: string, payload: HardwareState): void {
       setReservationStatus(r.id, 'expired')
     }
     clearDeployTrigger(vehicleId)
+    // Immediate SSE push so clients don't sit staring at a reservation that already failed.
+    rampBroadcaster.publish(Date.now())
   }
 
   if (payload.state === 'idle') {
