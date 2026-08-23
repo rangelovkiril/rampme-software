@@ -49,6 +49,9 @@ lib/
   types.ts                    Shared TypeScript interfaces (Stop, Vehicle, StopArrival, TripData, etc.)
   transit.ts                  Route type config (colors, labels), getRouteColor(), formatEta()
   config.ts                   apiPath() - resolves the backend base URL (explicit override, dev proxy, or runtime hostname)
+
+test/                          bun:test suite, mirrors lib/ (test/lib/)
+e2e/                            Playwright suite, organized by user flow, own testDir
 ```
 
 ## Key concepts
@@ -80,7 +83,7 @@ cd frontend
 bun install
 bun run dev          # Next.js dev server (proxies /api/* to BACKEND_URL)
 bun run check        # biome + tsc
-bun run test         # bun:test, files under lib/ (currently just config.ts)
+bun run test         # bun:test, files under test/ mirroring lib/
 bun run test:e2e     # Playwright, files under e2e/
 bun run build        # static export -> out/
 ```

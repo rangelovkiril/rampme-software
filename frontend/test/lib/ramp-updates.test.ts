@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { computeRampUpdate } from './ramp-updates'
-import type { RampReservation } from './types'
+import { computeRampUpdate } from '../../lib/ramp-updates'
+import type { RampReservation } from '../../lib/types'
 
 function reservation(overrides: Partial<RampReservation> = {}): RampReservation {
   return {
