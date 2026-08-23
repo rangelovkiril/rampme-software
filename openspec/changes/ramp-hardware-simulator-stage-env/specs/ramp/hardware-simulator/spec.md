@@ -16,7 +16,7 @@ The simulator SHALL accept `new_reservation` and `cancel_reservation` commands f
 - **THEN** the simulator no longer considers that reservation outstanding
 
 ### Requirement: Simulator publishes a deploy state sequence
-On a `deploy` command, the simulator SHALL publish hardware state transitions on the vehicle's `state` topic in the order a working ramp module would: `deploying`, then `deployed`, then `done`. Each publish SHALL use QoS 1 and SHALL set the `retain` flag, matching the ramp MQTT protocol's `state` topic contract (`ramp/{vehicle_id}/state`, hw -> backend, retained, QoS 1), so a backend that (re)subscribes after a state change recovers the vehicle's last known state without waiting for the next transition.
+On a `deploy` command, the simulator SHALL publish hardware state transitions on the vehicle's `state` topic in the order a working ramp module would: `deploying`, then `deployed`, then `done`. Each publish SHALL use QoS 1 and SHALL set the `retain` flag, matching the ramp MQTT protocol's `state` topic contract (`ramp/{vehicle_id}/state`, hw -> backend, retained, QoS 1), so a backend that (re)subscribes after a state change recovers the vehicle's last known state without waiting for the next transition. The JSON payload SHALL be `{ "state": "deploying" | "deployed" | "done" | "error" }`, with an additional `"reason"` string field present only on `error` (e.g. `"simulated hardware error"` for the `error` profile).
 
 #### Scenario: Happy-path deploy
 - **WHEN** a `deploy` command arrives for a vehicle whose active profile is the default (happy-path) profile
@@ -53,7 +53,7 @@ The control interface SHALL be `POST /vehicles/{vehicleId}/profile`, accepting a
 
 #### Scenario: Unsupported profile is rejected
 - **WHEN** a `POST /vehicles/{vehicleId}/profile` request names a profile outside the supported set
-- **THEN** the simulator rejects the request without changing the vehicle's active profile
+- **THEN** the response has status 422 and the vehicle's active profile does not change
 
 ### Requirement: Simulator requires no broker credentials
 The simulator's MQTT interface SHALL accept connections without a username or password, so a non-production backend deployment can point at it without provisioning or storing hardware broker credentials.

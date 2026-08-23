@@ -7,8 +7,16 @@ function positiveInt(name: string, envValue: string | undefined, fallback: numbe
   return n
 }
 
+function port(name: string, envValue: string | undefined, fallback: number): number {
+  const n = positiveInt(name, envValue, fallback)
+  if (n > 65535) {
+    throw new Error(`${name} must be a valid TCP port (1-65535), got ${JSON.stringify(envValue)}`)
+  }
+  return n
+}
+
 export const config = {
-  mqttPort: positiveInt('MQTT_PORT', process.env.MQTT_PORT, 1883),
-  httpPort: positiveInt('PORT', process.env.PORT, 4000),
+  mqttPort: port('MQTT_PORT', process.env.MQTT_PORT, 1883),
+  httpPort: port('PORT', process.env.PORT, 4000),
   deployStepDelayMs: positiveInt('DEPLOY_STEP_DELAY_MS', process.env.DEPLOY_STEP_DELAY_MS, 300),
 } as const

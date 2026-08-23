@@ -107,9 +107,19 @@ test('state messages are retained, so a late subscriber recovers the last state'
   const port = typeof address === 'object' && address ? address.port : 0
   const lateClient = await mqtt.connectAsync(`mqtt://127.0.0.1:${port}`)
   try {
-    const retained = await new Promise<{ state: string }>((resolve) => {
-      lateClient.on('message', (_topic, payload) => resolve(JSON.parse(payload.toString())))
-      lateClient.subscribe(stateTopic(vehicleId))
+    const retained = await new Promise<{ state: string }>((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error('timed out waiting for retained state')),
+        2000,
+      )
+      lateClient.on('error', reject)
+      lateClient.on('message', (_topic, payload) => {
+        clearTimeout(timer)
+        resolve(JSON.parse(payload.toString()))
+      })
+      lateClient.subscribe(stateTopic(vehicleId), (err) => {
+        if (err) reject(err)
+      })
     })
     expect(retained.state).toBe('done')
   } finally {
