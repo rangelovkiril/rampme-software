@@ -80,6 +80,8 @@ cd frontend
 bun install
 bun run dev          # Next.js dev server (proxies /api/* to BACKEND_URL)
 bun run check        # biome + tsc
+bun run test         # bun:test, files under lib/ (currently just config.ts)
+bun run test:e2e     # Playwright, files under e2e/
 bun run build        # static export -> out/
 ```
 

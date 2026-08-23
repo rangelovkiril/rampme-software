@@ -34,7 +34,7 @@ export async function startBroker(port: number): Promise<Broker> {
         topic: stateTopic(vehicleId),
         payload,
         qos: 1,
-        retain: false,
+        retain: true,
         dup: false,
       },
       (err) => {

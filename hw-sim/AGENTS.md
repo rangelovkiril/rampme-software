@@ -7,7 +7,7 @@ project overview and the cross-cutting working rules (docs sync, tooling, `bun r
 **Stack:** Bun + `aedes` (in-process MQTT broker) + Elysia (HTTP control API) +
 `@sinclair/typebox` (schema validation) + `consola` (logging).
 
-```
+```text
 src/
   index.ts        Entry point - starts the broker and the HTTP control API
   config.ts        Env-based configuration

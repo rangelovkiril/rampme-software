@@ -17,7 +17,7 @@
 
 ## 3. hw-sim: CI
 
-- [x] 3.1 Add `.github/workflows/hw-sim.yaml` mirroring `.github/workflows/backend.yaml`'s `check` and `build-image` jobs (tagging `stage-<timestamp>` in GHCR), with no `promote` job since this image never ships to production; verify a PR touching `hw-sim/**` triggers `check`, and a push to `main` also builds and pushes an image
+- [x] 3.1 Add `.github/workflows/hw-sim.yaml` mirroring `.github/workflows/backend.yaml`'s `check` and `build-image` jobs (tagging `stage-<numeric-timestamp>` in GHCR, e.g. `date -u +%Y%m%d%H%M%S` — the fleet-side `ImagePolicy` in group 7 requires a purely numeric timestamp to extract and order on), with no `promote` job since this image never ships to production; verify a PR touching `hw-sim/**` triggers `check`, and a push to `main` also builds and pushes an image
 
 ## 4. backend: remove the dead mock flag
 
@@ -27,25 +27,27 @@
 
 ## 5. frontend: hostname-based API resolution
 
-- [x] 5.1 Add the hostname-to-API lookup to `frontend/src/lib/config.ts`'s `apiPath()` resolution: explicit build-time `NEXT_PUBLIC_API_URL` wins; else `rampme.site` -> production API; else `staging.rampme.pages.dev` -> stage API; else -> stage API; verify with a unit-style test or `bun run check` plus a manual check of each branch
+- [x] 5.1 Add the hostname-to-API lookup to `frontend/lib/config.ts`'s `apiPath()` resolution: explicit build-time `NEXT_PUBLIC_API_URL` wins; else `NODE_ENV === 'development'` -> `/api` (unchanged local-dev rewrite proxy); else `rampme.site` -> production API; else `staging.rampme.pages.dev` -> stage API; else -> stage API; verify with a unit-style test or `bun run check` plus a manual check of each branch
 - [x] 5.2 Add a code comment in `lib/config.ts` cross-referencing the CORS origin allowlist in `backend/src/index.ts`; verify the comment names the exact allowlist location
 - [x] 5.3 Update `frontend/AGENTS.md`'s `NEXT_PUBLIC_API_URL` row to describe the new precedence (explicit override, then hostname lookup, then stage fallback) instead of "build-time backend base URL"
 - [x] 5.4 Confirm `frontend/e2e` tests still pass unaffected (they run against a local/dev backend via the existing rewrite proxy, not the new hostname branch); verify `bun run test:e2e` passes
+- [x] 5.5 Remove the baked `NEXT_PUBLIC_API_URL: https://api.rampme.site` from `.github/workflows/frontend.yaml`'s `deploy-staging` job, so the one build artifact produced by the `build` job (already built with `NEXT_PUBLIC_API_URL` unset) is deployed unchanged to both staging and production; verify no step in the workflow sets `NEXT_PUBLIC_API_URL`
+- [x] 5.6 Add a `bun:test` unit suite (`frontend/lib/config.test.ts`, `bun run test`) covering every `apiPath()` branch: explicit `NEXT_PUBLIC_API_URL` override, `NODE_ENV=development` -> `/api`, production hostname, stage hostname, and unrecognized hostname -> stage; wire `bun run test` into `.github/workflows/frontend.yaml`'s `build` job; verify `bun run test` and `bun run check` both pass
 
 ## 6. fleet: hw-sim deployment (separate repository, separate PR)
 
-- [ ] 6.1 Add `apps/rampme/hw-sim/{deployment,service,imagerepository,imagepolicy,kustomization}.yaml`, following `apps/rampme/backend/`'s shape but with no `pvc.yaml`, `secret.yaml`, or `httproute.yaml`; verify `kustomize build apps/rampme` includes the new resources without errors
-- [ ] 6.2 Add `hw-sim` as a resource in `apps/rampme/kustomization.yaml`; verify the same `kustomize build` output includes it
+- [x] 6.1 Add `apps/rampme/hw-sim/{deployment,service,imagerepository,imagepolicy,kustomization}.yaml`, following `apps/rampme/backend/`'s shape but with no `pvc.yaml`, `secret.yaml`, or `httproute.yaml`. The `Service` exposes both `hw-sim` ports (`1883` MQTT, `4000` HTTP control API — see `hw-sim/AGENTS.md`'s environment variable table for `MQTT_PORT`/`PORT`), since task 10.2 needs the control API reachable in-cluster; verify `kustomize build apps/rampme` includes the new resources without errors
+- [x] 6.2 Add `hw-sim` as a resource in `apps/rampme/kustomization.yaml`; verify the same `kustomize build` output includes it
 
 ## 7. fleet: backend-stage deployment (separate repository, separate PR)
 
-- [ ] 7.1 Add `apps/rampme/backend-stage/{deployment,service,pvc,imagerepository,imagepolicy,kustomization}.yaml`, copying `apps/rampme/backend/`'s shape with: `MQTT_URL` set to hw-sim's in-cluster address, no `secret.yaml`, its own `PersistentVolumeClaim` (1Gi), and an `ImagePolicy` filtering `^stage-(?P<ts>[0-9]+)$`; verify `kustomize build apps/rampme` includes the new resources without errors
-- [ ] 7.2 Add `backend-stage` as a resource in `apps/rampme/kustomization.yaml`; verify Flux reconciles the new `Deployment` to `Running` after merge (`flux get kustomizations` / `kubectl get pods -n rampme`)
+- [x] 7.1 Restructure `apps/rampme/backend/` into a Kustomize `base/` (shared `Deployment`/`Service` shape) plus `overlays/production/` and `overlays/stage/` (each with its own `pvc.yaml`, `imagerepository.yaml`, `imagepolicy.yaml`, name/image/env patches); `overlays/stage` sets `MQTT_URL` to hw-sim's in-cluster address, has no `secret.yaml`, its own `PersistentVolumeClaim` (1Gi), and an `ImagePolicy` filtering `^stage-(?P<ts>[0-9]+)$`. Diverges from this task's original "copy the files" wording — see design.md's updated decision for why (`kubectl kustomize` verified `overlays/production` renders byte-identical to the pre-restructure live manifests, and `overlays/stage` renders as a fully independent, correctly-selectored peer)
+- [ ] 7.2 Reference `backend/overlays/production` and `backend/overlays/stage` as resources in `apps/rampme/kustomization.yaml` (done, kustomize-build-verified); still needs: commit, push, merge, then verify Flux reconciles the new `Deployment` to `Running` (`flux get kustomizations` / `kubectl get pods -n rampme`)
 
 ## 8. fleet: public exposure for backend-stage (separate repository, separate PR, manual apply)
 
-- [ ] 8.1 Add a second listener (e.g. `rampme-api-stage`, hostname `api-stage.rampme.site`) to `infrastructure/configs/envoy-gateway/gateway.yaml`; verify `kubectl get gateway eg -n envoy-gateway-system` shows both listeners as `Programmed`
-- [ ] 8.2 Add `apps/rampme/backend-stage/httproute.yaml` referencing the new `sectionName`; verify `curl https://api-stage.rampme.site/health` returns `Ok` once DNS/tunnel routing (8.3-8.4) is in place
+- [ ] 8.1 Add a second listener (e.g. `rampme-api-stage`, hostname `api-stage.rampme.site`) to `infrastructure/configs/envoy-gateway/gateway.yaml` (done); still needs merge + reconcile, then verify `kubectl get gateway eg -n envoy-gateway-system` shows both listeners as `Programmed`
+- [ ] 8.2 Add `apps/rampme/backend/overlays/stage/httproute.yaml` referencing the new `sectionName` (done); still needs merge + reconcile, then verify `curl https://api-stage.rampme.site/health` returns `Ok`
 - [x] 8.3 Add a new ingress rule for `api-stage.rampme.site` to the existing `cloudflare_zero_trust_tunnel_cloudflared_config` resource in `tofu/tunnel.tf`; verify `tofu plan` shows an in-place update (not a replacement) of that resource before running `tofu apply`
 - [x] 8.4 Add a `cloudflare_dns_record` for `api-stage.rampme.site` in `tofu/dns.tf`, matching `api.rampme.site`'s existing proxied CNAME shape; verify `tofu apply` succeeds and the hostname resolves
 

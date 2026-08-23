@@ -24,8 +24,9 @@ COPY --from=build --chown=app:app /app/hw-sim ./hw-sim
 
 USER app
 EXPOSE 1883 4000
+ENV PORT=4000
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
-    CMD curl -f http://localhost:4000/health || exit 1
+    CMD curl -f http://localhost:${PORT}/health || exit 1
 
 CMD ["./hw-sim"]

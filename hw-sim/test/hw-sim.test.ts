@@ -98,6 +98,25 @@ describe('deploy profiles', () => {
   })
 })
 
+test('state messages are retained, so a late subscriber recovers the last state', async () => {
+  const vehicleId = 'veh-retained'
+  await client.publishAsync(cmdTopic(vehicleId), JSON.stringify({ action: 'deploy' }))
+  await waitForCount(vehicleId, 3)
+
+  const address = broker.server.address()
+  const port = typeof address === 'object' && address ? address.port : 0
+  const lateClient = await mqtt.connectAsync(`mqtt://127.0.0.1:${port}`)
+  try {
+    const retained = await new Promise<{ state: string }>((resolve) => {
+      lateClient.on('message', (_topic, payload) => resolve(JSON.parse(payload.toString())))
+      lateClient.subscribe(stateTopic(vehicleId))
+    })
+    expect(retained.state).toBe('done')
+  } finally {
+    await lateClient.endAsync()
+  }
+})
+
 test('a profile change is scoped to one vehicle', async () => {
   const vehicleA = 'veh-scope-a'
   const vehicleB = 'veh-scope-b'
