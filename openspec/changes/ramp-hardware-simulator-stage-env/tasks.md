@@ -21,9 +21,9 @@
 
 ## 4. backend: remove the dead mock flag
 
-- [ ] 4.1 Remove `mockRamp` from `backend/src/config/index.ts`; verify `bun run check` passes with no remaining references
-- [ ] 4.2 Remove the `MOCK_RAMP` row and prose from `backend/AGENTS.md`'s environment variable table and the "Starts without a broker" paragraph
-- [ ] 4.3 Remove the `MOCK_RAMP` mention from `README.md` and `.github/README.bg.md`
+- [x] 4.1 Remove `mockRamp` from `backend/src/config/index.ts`; verify `bun run check` passes with no remaining references
+- [x] 4.2 Remove the `MOCK_RAMP` row and prose from `backend/AGENTS.md`'s environment variable table and the "Starts without a broker" paragraph
+- [x] 4.3 Remove the `MOCK_RAMP` mention from `README.md` and `.github/README.bg.md`
 
 ## 5. frontend: hostname-based API resolution
 

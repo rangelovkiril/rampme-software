@@ -34,7 +34,7 @@ bun install
 bun run dev
 ```
 
-The backend starts without a broker: with no `MQTT_URL` set it logs that MQTT is skipped and serves everything except the hardware path. To exercise the ramp lifecycle without hardware, start the backend with `MOCK_RAMP=true`.
+The backend starts without a broker: with no `MQTT_URL` set it logs that MQTT is skipped and serves everything except the hardware path. To exercise the ramp lifecycle without physical hardware, run [`hw-sim`](hw-sim/AGENTS.md) and point the backend's `MQTT_URL` at it.
 
 Before pushing, run the same check CI runs:
 

@@ -10,8 +10,6 @@ export const config = {
 
   protoPath: process.env.PROTO_PATH ?? 'proto/gtfs-realtime.proto',
 
-  mockRamp: process.env.MOCK_RAMP === 'true',
-
   rampDbPath: process.env.RAMP_DB_PATH ?? './data/ramp.db',
 
   mqtt: {
