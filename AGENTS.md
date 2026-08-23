@@ -6,6 +6,7 @@ Each app has its own `AGENTS.md` (also symlinked as `CLAUDE.md`) with stack-spec
 
 - [`backend/AGENTS.md`](backend/AGENTS.md)
 - [`frontend/AGENTS.md`](frontend/AGENTS.md)
+- [`hw-sim/AGENTS.md`](hw-sim/AGENTS.md)
 
 ## What is this
 
@@ -13,7 +14,9 @@ Live public transport map for Sofia. Shows vehicles, stops, routes, and real-tim
 
 The system spans three repositories:
 
-- **`rampme-software`** (this repo) holds both apps: `backend/` and `frontend/`.
+- **`rampme-software`** (this repo) holds three apps: `backend/`, `frontend/`, and `hw-sim/` (a
+  standalone ramp hardware simulator, used for non-production environments and testing - see
+  [`hw-sim/AGENTS.md`](hw-sim/AGENTS.md)).
 - **`fleet`** (https://github.com/rangelovkiril/fleet) is the Flux GitOps repo for the k3s cluster that runs the backend.
 - **`rampme-hardware`** (https://github.com/rangelovkiril/rampme-hardware) is the ramp firmware: the Raspberry Pi controller on each vehicle. It talks to the backend only through the ramp MQTT protocol.
 
@@ -57,7 +60,7 @@ Two MCP servers are expected when working in this repo, both launched via `bunx`
 - **Playwright** drives a real browser. Use it to verify frontend changes end to end (map interactions, the ramp reservation flow, mobile viewports) and to capture accessibility-tree snapshots when working on a11y. It is a dev-time tool independent of the app runtime.
 
 > [!IMPORTANT]
-> The frontend has no automated test suite yet. The backend has a `bun:test` suite (`backend/test/`, run via `bun run test`, gated in CI alongside `bun run check`) but it only covers the realtime SSE transport (`Broadcaster`, `makeSseStream`, per-feed staleness) — GTFS static/GTFS-RT decoding and the ramp reservation lifecycle remain untested. Treat both gaps as known rather than a reason to trust a change because it compiles: verify behavior by exercising it, and prefer adding a test to leaving one absent.
+> Both apps have automated tests, but coverage is thin and full of gaps. The backend has a `bun:test` suite (`backend/test/`, run via `bun run test`, gated in CI alongside `bun run check`) that only covers the realtime SSE transport (`Broadcaster`, `makeSseStream`, per-feed staleness) — GTFS static/GTFS-RT decoding and the ramp reservation lifecycle remain untested. The frontend has an end-to-end Playwright suite (`frontend/e2e/`, run via `bun run test:e2e`, CI-gated) covering the map and ramp-reservation flows, plus a small `bun:test` unit suite (`frontend/lib/*.test.ts`, run via `bun run test`) that so far only covers `lib/config.ts`'s API-base resolution. Treat all these gaps as known rather than a reason to trust a change because it compiles: verify behavior by exercising it, and prefer adding a test to leaving one absent.
 
 `.mcp.json` in the repo root declares both, but only some hosts read that file, so what is actually available differs per editor.
 

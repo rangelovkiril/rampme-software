@@ -8,10 +8,11 @@ RampMe is a live public transport map for Sofia, built around one accessibility 
 
 What makes it unique is that the person who needs the ramp is the one who triggers it. No other system in the world puts the rider directly in the loop: everywhere else, ramp deployment depends on the driver noticing and acting. RampMe removes that dependency.
 
-This repository holds both apps:
+This repository holds three apps:
 
 - **`backend/`** is a Bun + Elysia REST and SSE API. It decodes the GTFS static and GTFS-Realtime feeds and owns the ramp reservation lifecycle.
 - **`frontend/`** is a Next.js app (React + Leaflet), statically exported and served from Cloudflare Pages.
+- **`hw-sim/`** is a standalone ramp hardware simulator: an in-process MQTT broker plus a scriptable per-vehicle state machine, used to exercise the ramp reservation-to-deploy lifecycle without physical hardware.
 
 The k3s cluster that runs the backend is managed separately in the [`fleet`](https://github.com/rangelovkiril/fleet) GitOps repository, and the ramp firmware (the Raspberry Pi controller on each vehicle) lives in [`rampme-hardware`](https://github.com/rangelovkiril/rampme-hardware). The firmware talks to the backend only through the [Ramp MQTT Protocol](https://github.com/rangelovkiril/rampme-software/wiki/Ramp-MQTT-Protocol).
 
@@ -33,7 +34,7 @@ bun install
 bun run dev
 ```
 
-The backend starts without a broker: with no `MQTT_URL` set it logs that MQTT is skipped and serves everything except the hardware path. To exercise the ramp lifecycle without hardware, start the backend with `MOCK_RAMP=true`.
+The backend starts without a broker: with no `MQTT_URL` set it logs that MQTT is skipped and serves everything except the hardware path. To exercise the ramp lifecycle without physical hardware, run [`hw-sim`](hw-sim/AGENTS.md) and point the backend's `MQTT_URL` at it.
 
 Before pushing, run the same check CI runs:
 
