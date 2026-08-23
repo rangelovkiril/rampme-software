@@ -9,7 +9,7 @@ import { realtimeRoutes } from './routes/realtime'
 import { stopsRoutes } from './routes/stops'
 import { transitRoutes } from './routes/transit'
 import { initMqtt } from './services/mqtt'
-import { resyncAllReservations, subscribeToHardwareStates } from './services/ramp/bridge'
+import { initRampBridge } from './services/ramp/bridge'
 import { startProximityChecker } from './services/ramp/proximity'
 import { setGtfs } from './services/state'
 
@@ -58,9 +58,10 @@ if (!config.mqtt.url) {
     keepalive: 30,
     clean: true,
   })
-    .then(() => {
-      subscribeToHardwareStates()
-      resyncAllReservations()
+    .then((mqtt) => {
+      const bridge = initRampBridge(mqtt)
+      bridge.subscribeToHardwareStates()
+      bridge.resyncAllReservations()
     })
     .catch((e) => consola.error('MQTT init failed:', e))
 }

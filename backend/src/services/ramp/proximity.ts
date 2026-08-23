@@ -14,13 +14,7 @@ import { getAllActiveReservations, setReservationStatus } from '../../db/ramp'
 import { fetchVehiclePositions } from '../../gtfs/realtime'
 import type { GtfsRtFeedEntity } from '../../gtfs/types'
 import { getGtfs } from '../state'
-import {
-  clearDeployTrigger,
-  isDeployInFlight,
-  markDeployTriggered,
-  publishDeploy,
-  wasDeployTriggered,
-} from './bridge'
+import { getRampBridge } from './bridge'
 
 const log = consola.withTag('proximity')
 
@@ -89,19 +83,20 @@ async function tick(): Promise<void> {
 
     const d = distM(veh.lat, veh.lng, stop.stop_lat, stop.stop_lon)
     const atStop = d <= RADIUS_M
+    const bridge = getRampBridge()
 
-    if (atStop && r.status === 'pending' && !isDeployInFlight(r.vehicle_id)) {
+    if (atStop && r.status === 'pending' && !bridge.isDeployInFlight(r.vehicle_id)) {
       log.info(
         `vehicle ${r.vehicle_id} at stop ${r.stop_id} (${d.toFixed(0)}m) — triggering deploy for #${r.id}`,
       )
-      markDeployTriggered(r.vehicle_id, r.stop_id)
-      publishDeploy(r.vehicle_id)
+      bridge.markDeployTriggered(r.vehicle_id, r.stop_id)
+      bridge.publishDeploy(r.vehicle_id)
     }
 
     // If vehicle moved away from a previously-deployed stop, clear the flag
     // so future reservations at other stops can trigger again.
-    if (!atStop && wasDeployTriggered(r.vehicle_id, r.stop_id) && d > RADIUS_M * 2) {
-      clearDeployTrigger(r.vehicle_id)
+    if (!atStop && bridge.wasDeployTriggered(r.vehicle_id, r.stop_id) && d > RADIUS_M * 2) {
+      bridge.clearDeployTrigger(r.vehicle_id)
     }
   }
 }

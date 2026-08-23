@@ -5,7 +5,7 @@ import {
   getSessionReservations,
   getVehicleReservations,
 } from '../db/ramp'
-import { publishCancelReservation, publishNewReservation } from '../services/ramp/bridge'
+import { getRampBridge } from '../services/ramp/bridge'
 import { rampBroadcaster } from '../services/ramp/broadcaster'
 import { makeSseStream } from '../services/sse'
 import { jsonError } from '../services/state'
@@ -27,7 +27,7 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
       if (!sid) return jsonError('Missing or invalid X-Session-Id', 400)
       const r = createReservation(sid, body.vehicle_id, body.stop_id, body.type)
       if ('error' in r) return jsonError(r.error, 429)
-      publishNewReservation(r)
+      getRampBridge().publishNewReservation(r)
       rampBroadcaster.publish(Date.now())
       return r
     },
@@ -49,7 +49,7 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
       if (!Number.isFinite(id)) return jsonError('Invalid ID', 400)
       const cancelled = cancelReservation(id, sid)
       if (!cancelled) return jsonError('Not found or resolved', 404)
-      publishCancelReservation(cancelled)
+      getRampBridge().publishCancelReservation(cancelled)
       rampBroadcaster.publish(Date.now())
       return { ok: true }
     },
