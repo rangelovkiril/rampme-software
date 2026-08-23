@@ -27,10 +27,10 @@
 
 ## 5. frontend: hostname-based API resolution
 
-- [ ] 5.1 Add the hostname-to-API lookup to `frontend/src/lib/config.ts`'s `apiPath()` resolution: explicit build-time `NEXT_PUBLIC_API_URL` wins; else `rampme.site` -> production API; else `staging.rampme.pages.dev` -> stage API; else -> stage API; verify with a unit-style test or `bun run check` plus a manual check of each branch
-- [ ] 5.2 Add a code comment in `lib/config.ts` cross-referencing the CORS origin allowlist in `backend/src/index.ts`; verify the comment names the exact allowlist location
-- [ ] 5.3 Update `frontend/AGENTS.md`'s `NEXT_PUBLIC_API_URL` row to describe the new precedence (explicit override, then hostname lookup, then stage fallback) instead of "build-time backend base URL"
-- [ ] 5.4 Confirm `frontend/e2e` tests still pass unaffected (they run against a local/dev backend via the existing rewrite proxy, not the new hostname branch); verify `bun run test:e2e` passes
+- [x] 5.1 Add the hostname-to-API lookup to `frontend/src/lib/config.ts`'s `apiPath()` resolution: explicit build-time `NEXT_PUBLIC_API_URL` wins; else `rampme.site` -> production API; else `staging.rampme.pages.dev` -> stage API; else -> stage API; verify with a unit-style test or `bun run check` plus a manual check of each branch
+- [x] 5.2 Add a code comment in `lib/config.ts` cross-referencing the CORS origin allowlist in `backend/src/index.ts`; verify the comment names the exact allowlist location
+- [x] 5.3 Update `frontend/AGENTS.md`'s `NEXT_PUBLIC_API_URL` row to describe the new precedence (explicit override, then hostname lookup, then stage fallback) instead of "build-time backend base URL"
+- [x] 5.4 Confirm `frontend/e2e` tests still pass unaffected (they run against a local/dev backend via the existing rewrite proxy, not the new hostname branch); verify `bun run test:e2e` passes
 
 ## 6. fleet: hw-sim deployment (separate repository, separate PR)
 

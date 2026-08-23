@@ -1,8 +1,9 @@
 # Frontend: check + build on every PR; on main, deploy the same build
 # artifact to Cloudflare Pages staging (preview), then production.
 #
-# The build bakes NEXT_PUBLIC_API_URL in — there is a single backend
-# (api.rampme.site), so one artifact serves both environments.
+# One build artifact serves every environment: frontend/lib/config.ts
+# resolves the backend API base from the runtime hostname, not a
+# build-time bake, so this workflow leaves NEXT_PUBLIC_API_URL unset.
 
 name: Frontend
 
@@ -34,8 +35,6 @@ jobs:
     defaults:
       run:
         working-directory: frontend
-    env:
-      NEXT_PUBLIC_API_URL: https://api.rampme.site
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2

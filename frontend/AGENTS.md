@@ -48,7 +48,7 @@ hooks/
 lib/
   types.ts                    Shared TypeScript interfaces (Stop, Vehicle, StopArrival, TripData, etc.)
   transit.ts                  Route type config (colors, labels), getRouteColor(), formatEta()
-  config.ts                   apiPath() - build-time backend base URL (NEXT_PUBLIC_API_URL)
+  config.ts                   apiPath() - resolves the backend base URL (explicit override, dev proxy, or runtime hostname)
 ```
 
 ## Key concepts
@@ -57,7 +57,7 @@ lib/
 - **Viewport culling**: StopsLayer and VehiclesLayer only render markers within `map.getBounds()`. They listen to `zoomend`/`moveend` via a `revision` counter.
 - **Sibling stops**: when selecting a stop, the backend returns arrivals for all physical siblings (bus + tram + trolley variants at the same location).
 - **Theming**: CSS variables in `globals.css`, toggled via `dark` class on `<html>`. No Tailwind `dark:` prefix; CSS vars directly in `style` props for dynamic values.
-- **Static export, build-time API base**: `next.config.ts` sets `output: 'export'`; the app is fully client-side, no server. `lib/config.ts`'s `apiPath()` resolves against `NEXT_PUBLIC_API_URL`, inlined at build time (CI bakes in `https://api.rampme.site`). Local dev leaves it unset, falling back to `/api` + the dev-only `rewrites()` proxy in `next.config.ts` (-> `BACKEND_URL`, default `http://localhost:3000`). One build artifact serves every environment; there is no runtime config fetch.
+- **Static export, hostname-resolved API base**: `next.config.ts` sets `output: 'export'`; the app is fully client-side, no server. `lib/config.ts`'s `apiPath()` resolves the backend base URL in order: an explicit build-time `NEXT_PUBLIC_API_URL` always wins; in dev (`next dev`) it falls back to `/api` + the dev-only `rewrites()` proxy in `next.config.ts` (-> `BACKEND_URL`, default `http://localhost:3000`); otherwise it reads `window.location.hostname` at runtime, mapping the production hostname to the production API and everything else (staging, PR previews, an unrecognized origin) to the stage API — a fail-safe default, since this backend can trigger a physical hardware action. One build artifact serves every environment; there is no runtime config *fetch*, just a local hostname check.
 - **Realtime data** comes from SSE (`useSSE`): vehicle positions, per-trip ETAs, and ramp reservations. `RampContext` streams session reservations over `/ramp/session/stream` (with an initial `/ramp/session` fetch), not polling.
 - **SSE reconnect**: browsers can treat a non-200 SSE response as fatal and stop retrying. `useSSE` wraps `EventSource` creation so that on a `CLOSED`-state error it manually reconnects with backoff (2s -> 30s, reset on message); native browser auto-retry (for a connection that drops after being established) still handles the common case on its own.
 
@@ -87,5 +87,5 @@ bun run build        # static export -> out/
 
 | Variable | Default | Description |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | _(unset -> `/api`)_ | Build-time backend base URL. CI sets this to `https://api.rampme.site`; local dev leaves it unset. |
+| `NEXT_PUBLIC_API_URL` | _(unset)_ | Explicit build-time backend base URL; wins over everything else when set. Left unset by both local dev (falls back to `/api`) and CI (falls back to the runtime hostname lookup in `lib/config.ts`). |
 | `BACKEND_URL` | `http://localhost:3000` | Dev-only backend URL, used by the `next.config.ts` rewrite proxy (only active when `NEXT_PUBLIC_API_URL` is unset). |
