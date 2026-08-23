@@ -1,4 +1,4 @@
-import { getAllActiveReservations, type RampReservation } from '../../db/ramp'
+import { getRampDb, type RampReservation } from '../../db/ramp'
 
 export type RampStatus = 'unknown' | 'working' | 'in_use'
 
@@ -35,7 +35,7 @@ export function getVehicleRampInfoFrom(
 
 export function getReservationsByVehicle(): Map<string, RampReservation[]> {
   const map = new Map<string, RampReservation[]>()
-  for (const r of getAllActiveReservations()) {
+  for (const r of getRampDb().getAllActiveReservations()) {
     const list = map.get(r.vehicle_id)
     if (list) list.push(r)
     else map.set(r.vehicle_id, [r])

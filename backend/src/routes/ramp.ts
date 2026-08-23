@@ -1,10 +1,5 @@
 import { Elysia, t } from 'elysia'
-import {
-  cancelReservation,
-  createReservation,
-  getSessionReservations,
-  getVehicleReservations,
-} from '../db/ramp'
+import { getRampDb } from '../db/ramp'
 import { getRampBridge } from '../services/ramp/bridge'
 import { rampBroadcaster } from '../services/ramp/broadcaster'
 import { makeSseStream } from '../services/sse'
@@ -25,7 +20,7 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
     ({ body, headers }) => {
       const sid = sessionId(headers)
       if (!sid) return jsonError('Missing or invalid X-Session-Id', 400)
-      const r = createReservation(sid, body.vehicle_id, body.stop_id, body.type)
+      const r = getRampDb().createReservation(sid, body.vehicle_id, body.stop_id, body.type)
       if ('error' in r) return jsonError(r.error, 429)
       getRampBridge().publishNewReservation(r)
       rampBroadcaster.publish(Date.now())
@@ -47,7 +42,7 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
       if (!sid) return jsonError('Missing or invalid X-Session-Id', 400)
       const id = Number(params.id)
       if (!Number.isFinite(id)) return jsonError('Invalid ID', 400)
-      const cancelled = cancelReservation(id, sid)
+      const cancelled = getRampDb().cancelReservation(id, sid)
       if (!cancelled) return jsonError('Not found or resolved', 404)
       getRampBridge().publishCancelReservation(cancelled)
       rampBroadcaster.publish(Date.now())
@@ -60,7 +55,7 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
     ({ headers }) => {
       const sid = sessionId(headers)
       if (!sid) return jsonError('Missing or invalid X-Session-Id', 400)
-      return getSessionReservations(sid)
+      return getRampDb().getSessionReservations(sid)
     },
     { detail: { tags: ['Ramp'], summary: 'Session reservations' } },
   )
@@ -73,7 +68,7 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
         return jsonError('Missing or invalid session_id', 400)
       const sid = query.session_id
       return makeSseStream(rampBroadcaster, async () => ({
-        data: getSessionReservations(sid),
+        data: getRampDb().getSessionReservations(sid),
       }))
     },
     {
@@ -81,6 +76,6 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
       detail: { tags: ['Ramp'], summary: 'SSE stream of session reservations' },
     },
   )
-  .get('/vehicle/:id', ({ params }) => getVehicleReservations(params.id), {
+  .get('/vehicle/:id', ({ params }) => getRampDb().getVehicleReservations(params.id), {
     detail: { tags: ['Ramp'], summary: 'Vehicle reservations' },
   })

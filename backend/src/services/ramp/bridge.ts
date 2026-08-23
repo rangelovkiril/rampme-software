@@ -28,12 +28,7 @@
 import { type Static, Type } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import { consola } from 'consola'
-import {
-  getAllActiveReservations,
-  getVehicleReservations,
-  type RampReservation,
-  setReservationStatus,
-} from '../../db/ramp'
+import { getRampDb, type RampReservation } from '../../db/ramp'
 import type { Parser } from '../mqtt'
 import { jsonParse } from '../mqtt'
 import { rampBroadcaster } from './broadcaster'
@@ -149,10 +144,10 @@ export function createRampBridge(mqtt: RampMqtt, timeoutMs = DEPLOY_TIMEOUT_MS):
         }
         const stopId = deployedFor.get(vehicleId)
         const forStop = (r: { stop_id: string }) => !stopId || r.stop_id === stopId
-        const pending = getVehicleReservations(vehicleId).filter(
-          (r) => r.status === 'pending' && forStop(r),
-        )
-        for (const r of pending) setReservationStatus(r.id, 'expired')
+        const pending = getRampDb()
+          .getVehicleReservations(vehicleId)
+          .filter((r) => r.status === 'pending' && forStop(r))
+        for (const r of pending) getRampDb().setReservationStatus(r.id, 'expired')
         if (pending.length > 0) {
           log.warn(`deploy timeout for ${vehicleId} — expired ${pending.length} reservation(s)`)
         }
@@ -179,18 +174,18 @@ export function createRampBridge(mqtt: RampMqtt, timeoutMs = DEPLOY_TIMEOUT_MS):
     }
 
     if (payload.state === 'deployed') {
-      const active = getVehicleReservations(vehicleId)
+      const active = getRampDb().getVehicleReservations(vehicleId)
       for (const r of active) {
-        if (r.status === 'pending' && forStop(r)) setReservationStatus(r.id, 'active')
+        if (r.status === 'pending' && forStop(r)) getRampDb().setReservationStatus(r.id, 'active')
       }
       // Immediate SSE push so clients see boarding/alighting UI without waiting for next refresh.
       rampBroadcaster.publish(Date.now())
     }
 
     if (payload.state === 'done') {
-      const active = getVehicleReservations(vehicleId)
+      const active = getRampDb().getVehicleReservations(vehicleId)
       for (const r of active.filter(forStop)) {
-        setReservationStatus(r.id, 'done')
+        getRampDb().setReservationStatus(r.id, 'done')
       }
       clearDeployTrigger(vehicleId)
       // Immediate SSE push so clients see the completed ramp cycle without waiting for next refresh.
@@ -198,9 +193,9 @@ export function createRampBridge(mqtt: RampMqtt, timeoutMs = DEPLOY_TIMEOUT_MS):
     }
 
     if (payload.state === 'error') {
-      const active = getVehicleReservations(vehicleId)
+      const active = getRampDb().getVehicleReservations(vehicleId)
       for (const r of active.filter(forStop)) {
-        setReservationStatus(r.id, 'expired')
+        getRampDb().setReservationStatus(r.id, 'expired')
       }
       clearDeployTrigger(vehicleId)
       // Immediate SSE push so clients don't sit staring at a reservation that already failed.
@@ -225,7 +220,7 @@ export function createRampBridge(mqtt: RampMqtt, timeoutMs = DEPLOY_TIMEOUT_MS):
   }
 
   function resyncAllReservations(): void {
-    const active = getAllActiveReservations()
+    const active = getRampDb().getAllActiveReservations()
     for (const r of active) {
       publishNewReservation(r)
     }

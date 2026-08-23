@@ -3,15 +3,17 @@ import { consola } from 'consola'
 import { Elysia } from 'elysia'
 import { config } from './config'
 import { swaggerPlugin } from './config/swagger'
+import { getRampDb, initRampDb } from './db/ramp'
+import { fetchVehiclePositions } from './gtfs/realtime'
 import { fetchStaticGtfs } from './gtfs/static'
 import { rampRoutes } from './routes/ramp'
 import { realtimeRoutes } from './routes/realtime'
 import { stopsRoutes } from './routes/stops'
 import { transitRoutes } from './routes/transit'
 import { initMqtt } from './services/mqtt'
-import { initRampBridge } from './services/ramp/bridge'
-import { startProximityChecker } from './services/ramp/proximity'
-import { setGtfs } from './services/state'
+import { getRampBridge, initRampBridge } from './services/ramp/bridge'
+import { createProximityChecker } from './services/ramp/proximity'
+import { getGtfs, setGtfs } from './services/state'
 
 async function initGtfs() {
   try {
@@ -21,7 +23,9 @@ async function initGtfs() {
   }
 }
 
-startProximityChecker()
+initRampDb(config.rampDbPath)
+
+createProximityChecker(getRampBridge, getGtfs, getRampDb(), fetchVehiclePositions).start()
 
 const app = new Elysia()
   .use(swaggerPlugin)
