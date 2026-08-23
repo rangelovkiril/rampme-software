@@ -6,6 +6,7 @@ Each app has its own `AGENTS.md` (also symlinked as `CLAUDE.md`) with stack-spec
 
 - [`backend/AGENTS.md`](backend/AGENTS.md)
 - [`frontend/AGENTS.md`](frontend/AGENTS.md)
+- [`hw-sim/AGENTS.md`](hw-sim/AGENTS.md)
 
 ## What is this
 
@@ -13,7 +14,9 @@ Live public transport map for Sofia. Shows vehicles, stops, routes, and real-tim
 
 The system spans three repositories:
 
-- **`rampme-software`** (this repo) holds both apps: `backend/` and `frontend/`.
+- **`rampme-software`** (this repo) holds three apps: `backend/`, `frontend/`, and `hw-sim/` (a
+  standalone ramp hardware simulator, used for non-production environments and testing - see
+  [`hw-sim/AGENTS.md`](hw-sim/AGENTS.md)).
 - **`fleet`** (https://github.com/rangelovkiril/fleet) is the Flux GitOps repo for the k3s cluster that runs the backend.
 - **`rampme-hardware`** (https://github.com/rangelovkiril/rampme-hardware) is the ramp firmware: the Raspberry Pi controller on each vehicle. It talks to the backend only through the ramp MQTT protocol.
 
