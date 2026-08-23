@@ -1,0 +1,81 @@
+# hw-sim: check on every PR; on main, build the image and push it as
+# sha-<commit> + stage-<timestamp>. Unlike backend, there is no promote job -
+# this image never ships to production, it only backs the stage environment.
+
+name: hw-sim
+
+on:
+  pull_request:
+    paths:
+      - 'hw-sim/**'
+      - '!hw-sim/**/*.md'
+      - '.github/workflows/hw-sim.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'hw-sim/**'
+      - '!hw-sim/**/*.md'
+      - '.github/workflows/hw-sim.yaml'
+
+concurrency:
+  group: hw-sim-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/hacktues12-hw-sim
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: hw-sim
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-hw-sim-${{ hashFiles('hw-sim/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-hw-sim-
+      - run: bun install --frozen-lockfile
+      - run: bunx biome check .
+      - run: bunx tsc --noEmit
+      - run: bun test
+
+  build-image:
+    name: Build image
+    needs: check
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: staging
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: tag
+        run: echo "stage=stage-$(date -u +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: hw-sim
+          push: true
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ env.IMAGE }}:sha-${{ github.sha }}
+            ${{ env.IMAGE }}:${{ steps.tag.outputs.stage }}
+          cache-from: type=gha,scope=hw-sim
+          cache-to: type=gha,mode=max,scope=hw-sim
