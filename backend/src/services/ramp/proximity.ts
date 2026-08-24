@@ -10,17 +10,9 @@
  */
 
 import { consola } from 'consola'
-import { getAllActiveReservations, setReservationStatus } from '../../db/ramp'
-import { fetchVehiclePositions } from '../../gtfs/realtime'
-import type { GtfsRtFeedEntity } from '../../gtfs/types'
-import { getGtfs } from '../state'
-import {
-  clearDeployTrigger,
-  isDeployInFlight,
-  markDeployTriggered,
-  publishDeploy,
-  wasDeployTriggered,
-} from './bridge'
+import type { RampDb } from '../../db/ramp'
+import type { GtfsData, GtfsRtFeedEntity, GtfsRtFeedMessage } from '../../gtfs/types'
+import type { RampBridge } from './bridge'
 
 const log = consola.withTag('proximity')
 
@@ -29,7 +21,18 @@ const EXPIRY_SECONDS = 2 * 60 * 60
 const VEHICLE_GONE_SECONDS = 15 * 60
 const CHECK_INTERVAL_MS = 5_000
 
-const vehicleLastSeen = new Map<string, number>()
+export interface ProximityCheckerConfig {
+  radiusM?: number
+  expirySeconds?: number
+  vehicleGoneSeconds?: number
+  checkIntervalMs?: number
+}
+
+export interface ProximityChecker {
+  tick(): Promise<void>
+  start(): void
+  stop(): void
+}
 
 function distM(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6_371_000
@@ -41,75 +44,109 @@ function distM(lat1: number, lon1: number, lat2: number, lon2: number): number {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-async function tick(): Promise<void> {
-  const data = getGtfs()
-  if (!data) return
+/**
+ * Builds an independent ProximityChecker over the given dependencies.
+ * `getBridge`/`getGtfs` are getters (not resolved instances) because the
+ * ramp bridge may not exist yet when the checker is constructed (MQTT
+ * connects asynchronously, or never) and GTFS data is refreshed
+ * periodically — a snapshot would go stale. `rampDb`/`fetchPositions` are
+ * resolved values since both are available synchronously at construction.
+ * Production wires a single instance and calls start(); tests call
+ * tick() directly, bypassing the interval.
+ */
+export function createProximityChecker(
+  getBridge: () => RampBridge,
+  getGtfs: () => GtfsData | undefined,
+  rampDb: RampDb,
+  fetchPositions: () => Promise<GtfsRtFeedMessage>,
+  config: ProximityCheckerConfig = {},
+): ProximityChecker {
+  const radiusM = config.radiusM ?? RADIUS_M
+  const expirySeconds = config.expirySeconds ?? EXPIRY_SECONDS
+  const vehicleGoneSeconds = config.vehicleGoneSeconds ?? VEHICLE_GONE_SECONDS
+  const checkIntervalMs = config.checkIntervalMs ?? CHECK_INTERVAL_MS
 
-  const reservations = getAllActiveReservations()
-  if (reservations.length === 0) return
+  const vehicleLastSeen = new Map<string, number>()
+  let interval: ReturnType<typeof setInterval> | null = null
 
-  let feedEntities: GtfsRtFeedEntity[]
-  try {
-    const feed = await fetchVehiclePositions()
-    feedEntities = feed.entity ?? []
-  } catch {
-    return
-  }
+  async function tick(): Promise<void> {
+    const data = getGtfs()
+    if (!data) return
 
-  const now = Math.floor(Date.now() / 1000)
-  const vehicles = new Map<string, { lat: number; lng: number }>()
+    const reservations = rampDb.getAllActiveReservations()
+    if (reservations.length === 0) return
 
-  for (const e of feedEntities) {
-    const v = e.vehicle
-    const vehicleId = v?.vehicle?.id || e.id
-    if (vehicleId && v?.position) {
-      vehicles.set(vehicleId, { lat: v.position.latitude, lng: v.position.longitude })
-      vehicleLastSeen.set(vehicleId, now)
+    let feedEntities: GtfsRtFeedEntity[]
+    try {
+      const feed = await fetchPositions()
+      feedEntities = feed.entity ?? []
+    } catch {
+      return
     }
-  }
 
-  for (const r of reservations) {
-    if (now - r.created_at > EXPIRY_SECONDS) {
-      setReservationStatus(r.id, 'expired')
-      continue
-    }
+    const now = Math.floor(Date.now() / 1000)
+    const vehicles = new Map<string, { lat: number; lng: number }>()
 
-    const veh = vehicles.get(r.vehicle_id)
-    if (!veh) {
-      const lastSeen = vehicleLastSeen.get(r.vehicle_id) ?? r.created_at
-      if (now - lastSeen > VEHICLE_GONE_SECONDS) {
-        log.warn(`vehicle ${r.vehicle_id} absent ${VEHICLE_GONE_SECONDS}s — expiring #${r.id}`)
-        setReservationStatus(r.id, 'expired')
+    for (const e of feedEntities) {
+      const v = e.vehicle
+      const vehicleId = v?.vehicle?.id || e.id
+      if (vehicleId && v?.position) {
+        vehicles.set(vehicleId, { lat: v.position.latitude, lng: v.position.longitude })
+        vehicleLastSeen.set(vehicleId, now)
       }
-      continue
     }
 
-    const stop = data.stops.get(r.stop_id)
-    if (!stop) continue
+    for (const r of reservations) {
+      if (now - r.created_at > expirySeconds) {
+        rampDb.setReservationStatus(r.id, 'expired')
+        continue
+      }
 
-    const d = distM(veh.lat, veh.lng, stop.stop_lat, stop.stop_lon)
-    const atStop = d <= RADIUS_M
+      const veh = vehicles.get(r.vehicle_id)
+      if (!veh) {
+        const lastSeen = vehicleLastSeen.get(r.vehicle_id) ?? r.created_at
+        if (now - lastSeen > vehicleGoneSeconds) {
+          log.warn(`vehicle ${r.vehicle_id} absent ${vehicleGoneSeconds}s — expiring #${r.id}`)
+          rampDb.setReservationStatus(r.id, 'expired')
+        }
+        continue
+      }
 
-    if (atStop && r.status === 'pending' && !isDeployInFlight(r.vehicle_id)) {
-      log.info(
-        `vehicle ${r.vehicle_id} at stop ${r.stop_id} (${d.toFixed(0)}m) — triggering deploy for #${r.id}`,
-      )
-      markDeployTriggered(r.vehicle_id, r.stop_id)
-      publishDeploy(r.vehicle_id)
-    }
+      const stop = data.stops.get(r.stop_id)
+      if (!stop) continue
 
-    // If vehicle moved away from a previously-deployed stop, clear the flag
-    // so future reservations at other stops can trigger again.
-    if (!atStop && wasDeployTriggered(r.vehicle_id, r.stop_id) && d > RADIUS_M * 2) {
-      clearDeployTrigger(r.vehicle_id)
+      const d = distM(veh.lat, veh.lng, stop.stop_lat, stop.stop_lon)
+      const atStop = d <= radiusM
+      const bridge = getBridge()
+
+      if (atStop && r.status === 'pending' && !bridge.isDeployInFlight(r.vehicle_id)) {
+        log.info(
+          `vehicle ${r.vehicle_id} at stop ${r.stop_id} (${d.toFixed(0)}m) — triggering deploy for #${r.id}`,
+        )
+        bridge.markDeployTriggered(r.vehicle_id, r.stop_id)
+        bridge.publishDeploy(r.vehicle_id)
+      }
+
+      // If vehicle moved away from a previously-deployed stop, clear the flag
+      // so future reservations at other stops can trigger again.
+      if (!atStop && bridge.wasDeployTriggered(r.vehicle_id, r.stop_id) && d > radiusM * 2) {
+        bridge.clearDeployTrigger(r.vehicle_id)
+      }
     }
   }
-}
 
-let interval: ReturnType<typeof setInterval> | null = null
+  function start(): void {
+    if (interval) return
+    interval = setInterval(() => tick().catch((e) => log.error(e)), checkIntervalMs)
+    log.info(`started (${checkIntervalMs}ms interval, radius=${radiusM}m)`)
+  }
 
-export function startProximityChecker(): void {
-  if (interval) return
-  interval = setInterval(() => tick().catch((e) => log.error(e)), CHECK_INTERVAL_MS)
-  log.info(`started (${CHECK_INTERVAL_MS}ms interval, radius=${RADIUS_M}m)`)
+  function stop(): void {
+    if (interval) {
+      clearInterval(interval)
+      interval = null
+    }
+  }
+
+  return { tick, start, stop }
 }

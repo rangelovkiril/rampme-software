@@ -112,7 +112,7 @@ async function buildVehicleByTripMap(): Promise<Map<string, string>> {
   return map
 }
 
-function collectScheduledArrivals(
+export function collectScheduledArrivals(
   data: GtfsData,
   siblingIds: string[],
   services: Set<string>,
@@ -190,7 +190,7 @@ async function collectPredictions(
   return predictions
 }
 
-function deduplicateAndSort(results: ArrivalResult[], limit: number): ArrivalResult[] {
+export function deduplicateAndSort(results: ArrivalResult[], limit: number): ArrivalResult[] {
   const seen = new Set<string>()
   return results
     .filter((r) => {

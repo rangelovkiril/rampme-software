@@ -32,6 +32,9 @@ jobs:
     name: Check
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      checks: write
     defaults:
       run:
         working-directory: hw-sim
@@ -46,7 +49,13 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bunx biome check .
       - run: bunx tsc --noEmit
-      - run: bun test
+      - run: bun test --coverage --coverage-reporter=text --reporter=junit --reporter-outfile=junit.xml
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@v6
+        if: ${{ !cancelled() }}
+        with:
+          report_paths: hw-sim/junit.xml
+          check_name: hw-sim tests
 
   build-image:
     name: Build image

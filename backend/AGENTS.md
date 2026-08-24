@@ -68,6 +68,9 @@ test/                          bun:test suite, mirrors src/ (test/gtfs/, test/se
 - **Time helpers go in `gtfs/time.ts`.** Do not inline `split(':').map(Number)` or `h % 24`; use `parseGtfsTime()`, `normalizeGtfsHour()`, `computeScheduledEtaMinutes()`.
 - **Config goes in `config/index.ts`.** No hardcoded env-driven flags in handler files.
 - **Logging goes through `consola`**, tagged per subsystem; pick the level that matches severity (`.error` for failures, `.warn` for degraded-but-running, `.info`/`.success` for routine events).
+- **Reach for extraction when a module resists testing, not as a blanket rule.** Two shapes come up often enough to name, but apply either only where it actually buys testability — not to every stateful module or every side effect:
+  - State held across calls (timers, in-flight tracking, connections) → a `createX(dependency, config)` factory returning an instance that owns its own private state, with production wiring a single instance behind `initX()`/`getX()` (mirroring `getGtfs()`/`getMqtt()`). `services/ramp/bridge.ts`'s `createRampBridge(mqtt, timeoutMs)` / `initRampBridge()` / `getRampBridge()` is the worked example; a test calls `createRampBridge()` directly with a fake `mqtt` and a short timeout, no module-level state to reset between tests.
+  - A pure computation mixed with a side effect (state update, I/O, logging) → extract the computation into a plain `f(input) -> output` function and leave the effectful caller as a thin pass-through. The frontend's `computeRampUpdate(prev, curr)` (`frontend/lib/ramp-updates.ts`) is the worked example: `RampContext`'s `applyReservations` just calls it and applies the result to state.
 
 ## Running
 

@@ -11,19 +11,12 @@ import {
 } from 'react'
 import { useSSE } from '@/hooks/useSSE'
 import { apiPath } from '@/lib/config'
+import { computeRampUpdate } from '@/lib/ramp-updates'
+import type { RampReservation } from '@/lib/types'
+
+export type { RampReservation }
 
 // ── types ────────────────────────────────────────────────────────────────
-
-export interface RampReservation {
-  id: number
-  session_id: string
-  vehicle_id: string
-  stop_id: string
-  type: 'board' | 'alight'
-  status: 'pending' | 'active' | 'done' | 'cancelled' | 'expired'
-  created_at: number
-  resolved_at: number | null
-}
 
 interface RampCtx {
   sessionId: string
@@ -99,38 +92,22 @@ export function RampProvider({ children }: { children: ReactNode }) {
   const prevReservations = useRef<RampReservation[]>([])
 
   // Applies a fresh reservation list from the server (SSE push or manual
-  // refetch), diffing against the previous list to detect status
-  // transitions driven by the hardware/proximity side (pending → active,
-  // active → done, → expired) — those never go through reserveBoard/
-  // reserveAlight/cancel, so they only ever show up here.
+  // refetch). computeRampUpdate() does the actual diffing against the
+  // previous list to detect status transitions driven by the
+  // hardware/proximity side (pending → active, active → done, → expired) —
+  // those never go through reserveBoard/reserveAlight/cancel, so they only
+  // ever show up here.
   const applyReservations = useCallback((data: RampReservation[]) => {
-    for (const prev of prevReservations.current) {
-      const curr = data.find((r) => r.id === prev.id)
-      if (curr && curr.status !== prev.status) {
-        if (curr.status === 'active') {
-          console.log(`[ramp] bus arrived at stop — ${prev.type} reservation #${prev.id} is now ACTIVE (vehicle ${prev.vehicle_id}, stop ${prev.stop_id})`)
-        } else if (curr.status === 'done') {
-          console.log(`[ramp] ramp used — ${prev.type} reservation #${prev.id} DONE (vehicle ${prev.vehicle_id}, stop ${prev.stop_id})`)
-        } else if (curr.status === 'expired') {
-          setMissedBusAlert({ message: 'Автобусът замина без да разгъне рампата.', nonce: Date.now() })
-        }
-      }
-      // Reservation disappeared from active list (removed server-side)
-      if (!curr && (prev.status === 'pending' || prev.status === 'active')) {
-        console.log(`[ramp] reservation #${prev.id} removed (${prev.type}, vehicle ${prev.vehicle_id})`)
-      }
-    }
-
+    const update = computeRampUpdate(prevReservations.current, data)
     prevReservations.current = data
-    setReservations(data)
-    const board = data.find(
-      (r) => r.type === 'board' && (r.status === 'pending' || r.status === 'active'),
-    )
-    setLockedVehicleId(board?.vehicle_id ?? null)
-    const hasActiveAlight = data.some(
-      (r) => r.type === 'alight' && (r.status === 'pending' || r.status === 'active'),
-    )
-    if (!board && !hasActiveAlight) setLockedRouteShortName(null)
+
+    setReservations(update.reservations)
+    setLockedVehicleId(update.lockedVehicleId)
+    if (update.clearLockedRoute) setLockedRouteShortName(null)
+    if (update.missedBusMessage) {
+      setMissedBusAlert({ message: update.missedBusMessage, nonce: Date.now() })
+    }
+    for (const line of update.logs) console.log(line)
   }, [])
 
   // Session reservations are pushed over SSE — the backend emits a refresh

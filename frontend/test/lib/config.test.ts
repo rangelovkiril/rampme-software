@@ -1,6 +1,6 @@
 /// <reference types="bun-types" />
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { apiPath } from './config'
+import { apiPath } from '../../lib/config'
 
 type MinimalWindow = { location: { hostname: string } }
 

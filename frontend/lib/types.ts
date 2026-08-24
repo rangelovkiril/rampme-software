@@ -42,6 +42,17 @@ export interface StopArrival {
   has_ramp: boolean
 }
 
+export interface RampReservation {
+  id: number
+  session_id: string
+  vehicle_id: string
+  stop_id: string
+  type: 'board' | 'alight'
+  status: 'pending' | 'active' | 'done' | 'cancelled' | 'expired'
+  created_at: number
+  resolved_at: number | null
+}
+
 export interface Route {
   route_id: string
   route_short_name: string
