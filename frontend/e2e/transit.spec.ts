@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test'
-import { mockTransitApi, sessionId, stop, vehicle } from './fixtures/transit'
+import { createStop, createVehicle, mockTransitApi, sessionId } from './fixtures/transit'
+import { FloatingNav } from './pages/FloatingNav'
+import { StopSheet } from './pages/StopSheet'
+
+const stop = createStop()
+const vehicle = createVehicle()
 
 test('loads the map and renders live vehicles', async ({ page }) => {
   const api = await mockTransitApi(page)
@@ -19,9 +24,9 @@ test('round-trips a ramp reservation through the session UI', async ({ page }) =
   await page.getByRole('button', { name: 'Спирки' }).click()
   await page.getByRole('button', { name: new RegExp(stop.stop_name) }).click()
 
-  const stopSheet = page.locator('section.stop-sheet-shell').filter({ hasText: stop.stop_name })
-  await expect(stopSheet).toBeVisible()
-  await stopSheet.getByRole('button', { name: 'Качване' }).click()
+  const stopSheet = new StopSheet(page, stop.stop_name)
+  await expect(stopSheet.root).toBeVisible()
+  await stopSheet.root.getByRole('button', { name: 'Качване' }).click()
 
   await expect.poll(() => api.reserveRequests).toHaveLength(1)
   expect(api.reserveRequests[0]).toEqual({
@@ -31,10 +36,7 @@ test('round-trips a ramp reservation through the session UI', async ({ page }) =
     type: 'board',
   })
 
-  const reservationBanner = page
-    .locator('[data-floating-nav]')
-    .getByRole('button')
-    .filter({ hasText: 'Качване' })
+  const reservationBanner = new FloatingNav(page).reservationButton('Качване')
   await expect(reservationBanner).toBeVisible()
   await reservationBanner.click()
 
