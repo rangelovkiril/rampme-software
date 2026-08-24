@@ -32,6 +32,9 @@ jobs:
     name: Check & build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      checks: write
     defaults:
       run:
         working-directory: frontend
@@ -46,7 +49,13 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bunx biome check .
       - run: bunx tsc --noEmit
-      - run: bun run test
+      - run: bun test test --coverage --coverage-reporter=text --reporter=junit --reporter-outfile=junit.xml
+      - name: Publish test report
+        uses: mikepenz/action-junit-report@v6
+        if: ${{ !cancelled() }}
+        with:
+          report_paths: frontend/junit.xml
+          check_name: Frontend unit tests
       - run: bun run build
       - uses: actions/upload-artifact@v4
         with:
@@ -70,6 +79,10 @@ jobs:
           key: bun-${{ runner.os }}-frontend-${{ hashFiles('frontend/bun.lock') }}
           restore-keys: bun-${{ runner.os }}-frontend-
       - run: bun install --frozen-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend/bun.lock') }}
       - run: bunx playwright install --with-deps chromium
       - run: bun run test:e2e
       - uses: actions/upload-artifact@v4
@@ -81,7 +94,7 @@ jobs:
 
   deploy-staging:
     name: Deploy to staging
-    needs: build
+    needs: [build, e2e]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5
