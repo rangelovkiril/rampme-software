@@ -27,7 +27,7 @@
 
 ## 5. Documentation
 
-- [ ] 5.1 Fix `fleet`'s `README.md`: replace the stale `apps/rampme/backend/deployment.yaml` path reference with the actual `base/deployment.yaml` + `overlays/{production,stage}/deployment-patch.yaml` structure, and update the `rampme-backend` example to match the renamed image.
-- [ ] 5.2 Fix `fleet`'s `AGENTS.md` with the same stale-path correction as 5.1.
-- [ ] 5.3 Update the software wiki's `CI-CD.md`: replace the "leftover from the hackathon... cosmetic and deferred" note (backend section) to state the images are now `rampme-backend`/`rampme-hw-sim`, and add the equivalent note to the hw-sim section noting its rename too.
-- [ ] 5.4 Apply the same update to `CI-CD-BG.md`, keeping the bilingual pair in sync.
+- [x] 5.1 Fix `fleet`'s `README.md`: replace the stale `apps/rampme/backend/deployment.yaml` path reference with the actual `base/deployment.yaml` + `overlays/{production,stage}/deployment-patch.yaml` structure, and update the `rampme-backend` example to match the renamed image. `fleet`#9 open.
+- [x] 5.2 Fix `fleet`'s `AGENTS.md` with the same stale-path correction as 5.1. `fleet`#9 open.
+- [x] 5.3 Update the software wiki's `CI-CD.md`: replace the "leftover from the hackathon... cosmetic and deferred" note (backend section) to state the images are now `rampme-backend`/`rampme-hw-sim`, and add the equivalent note to the hw-sim section noting its rename too. Pushed live (wiki has no PR review).
+- [x] 5.4 Apply the same update to `CI-CD-BG.md`, keeping the bilingual pair in sync. Pushed live.
