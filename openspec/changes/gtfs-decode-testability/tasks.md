@@ -10,8 +10,8 @@
 
 ## 3. Backend tests
 
-- [ ] 3.1 Add `backend/test/gtfs/static.test.ts` covering `parseGtfsZip()` against the fixture ZIP: correct stop/route/trip counts, `normalizeRouteType`'s extended-type mapping, and the GTFS 24+ hour `stop_time` landing in the expected structure
-- [ ] 3.2 Add `backend/test/gtfs/decode.test.ts` covering the extracted decode function against the fixture protobuf bytes: correct entity counts and field values for both trip-updates and vehicle-positions shapes
+- [x] 3.1 Add `backend/test/gtfs/static.test.ts` covering `parseGtfsZip()` against the fixture ZIP: correct stop/route/trip counts, `normalizeRouteType`'s extended-type mapping, and the GTFS 24+ hour `stop_time` landing in the expected structure
+- [x] 3.2 Add `backend/test/gtfs/decode.test.ts` covering the extracted decode function against the fixture protobuf bytes: correct entity counts and field values for both trip-updates and vehicle-positions shapes
 
 ## 4. Verification
 
