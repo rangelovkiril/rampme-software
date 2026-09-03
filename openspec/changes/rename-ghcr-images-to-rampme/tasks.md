@@ -1,7 +1,7 @@
 ## 1. rampme-software: publish the renamed images
 
-- [ ] 1.1 Update `backend.yaml`'s `IMAGE` env var from `ghcr.io/${{ github.repository_owner }}/hacktues12-backend` to `.../rampme-backend`.
-- [ ] 1.2 Update `hw-sim.yaml`'s `IMAGE` env var from `ghcr.io/${{ github.repository_owner }}/hacktues12-hw-sim` to `.../rampme-hw-sim`.
+- [x] 1.1 Update `backend.yaml`'s `IMAGE` env var from `ghcr.io/${{ github.repository_owner }}/hacktues12-backend` to `.../rampme-backend`.
+- [x] 1.2 Update `hw-sim.yaml`'s `IMAGE` env var from `ghcr.io/${{ github.repository_owner }}/hacktues12-hw-sim` to `.../rampme-hw-sim`.
 - [ ] 1.3 Merge to `main` and verify: `rampme-backend` gets `sha-<commit>` + `stage-<ts>` tags on push, then a `prod-<ts>` tag after promote; `rampme-hw-sim` gets `sha-<commit>` + `stage-<ts>` tags. Confirm via `gh api /users/rangelovkiril/packages?package_type=container` (or the package settings page) that both packages' connected repository is `rampme-software`, not `hackaton-pre`. Do not proceed to section 2 until real tags exist.
 
 ## 2. fleet: backend overlays point at rampme-backend

@@ -25,7 +25,7 @@ permissions:
   contents: read
 
 env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/hacktues12-hw-sim
+  IMAGE: ghcr.io/${{ github.repository_owner }}/rampme-hw-sim
 
 jobs:
   check:
