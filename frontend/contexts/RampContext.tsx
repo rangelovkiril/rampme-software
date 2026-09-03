@@ -57,6 +57,9 @@ async function apiReserve(
   sid: string, vehicleId: string, stopId: string, type: 'board' | 'alight',
 ): Promise<RampReservation | null> {
   try {
+    // This request shape is also hand-written in backend/src/routes/ramp.ts's
+    // t.Object schema and asserted in frontend/e2e/fixtures/transit.ts's
+    // reserveRequests mock — keep all three in sync when it changes.
     const r = await fetch(apiPath('/ramp/reserve'), {
       method: 'POST', headers: hdrs(sid),
       body: JSON.stringify({ vehicle_id: vehicleId, stop_id: stopId, type }),

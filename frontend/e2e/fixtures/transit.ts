@@ -239,6 +239,9 @@ function createRampRoutes(sessionId: string, fulfillSse: Fulfiller) {
       return true
     }
     if (method === 'POST' && pathname === '/api/ramp/reserve') {
+      // This request shape is also hand-written in backend/src/routes/ramp.ts's
+      // t.Object schema and frontend/contexts/RampContext.tsx's apiReserve() fetch
+      // body — keep all three in sync when it changes.
       const body = request.postDataJSON() as {
         vehicle_id: string
         stop_id: string
