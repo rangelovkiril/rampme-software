@@ -254,3 +254,8 @@ export function getRampBridge(): RampBridge {
   if (!bridge) throw new Error('Ramp bridge not initialized — call initRampBridge() first')
   return bridge
 }
+
+/** Whether initRampBridge() has completed, so a call site can skip a best-effort publish instead of getRampBridge() throwing. */
+export function isRampBridgeAvailable(): boolean {
+  return bridge !== null
+}
