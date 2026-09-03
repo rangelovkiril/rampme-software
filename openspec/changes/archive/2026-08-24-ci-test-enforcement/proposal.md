@@ -1,6 +1,6 @@
 ## Why
 
-CI runs tests but has real gaps in how much it actually enforces around them, found by direct inspection of `.github/workflows/*.yaml` and by reproducing behavior locally (`bun test`'s handling of `.only()`, zero-match filters, and its unused `--coverage`/`--reporter=junit` flags). None are hypothetical: the clearest is that `frontend.yaml`'s `e2e` job is not a dependency of `deploy-staging`, so a red Playwright suite does not block a production deploy of a feature whose core purpose is triggering physical hardware. Bundling all of it into one change rather than splitting by severity, since a handful of small CI edits split across several changes tends to leave most of them sitting half-landed for a long time — this is one PR touching four workflow files once.
+CI runs tests but has real gaps in how much it actually enforces around them, found by direct inspection of `.github/workflows/*.yaml` and by reproducing behavior locally (`bun test`'s handling of `.only()`, zero-match filters, and its unused `--coverage`/`--reporter=junit` flags). None are hypothetical: the clearest is that `frontend.yaml`'s `e2e` job is not a dependency of `deploy-staging`, so a red Playwright suite does not block a production deploy of a feature whose core purpose is triggering physical hardware. Bundling all of it into one change rather than splitting by severity, since a handful of small CI edits split across several changes tends to leave most of them sitting half-landed for a long time — this is one PR touching three workflow files once.
 
 ## What Changes
 

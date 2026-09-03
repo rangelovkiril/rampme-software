@@ -16,9 +16,9 @@ See proposal.md - Why for the finding list. Current state, confirmed by inspecti
 - Keep this CI-only: no application code changes.
 
 **Non-Goals:**
-- Not setting a coverage *threshold* that fails the build below some percentage. Coverage across the repo is currently thin by the root `AGENTS.md`'s own admission; a threshold picked today would either be trivially low (no signal) or immediately red (blocking unrelated PRs on a pre-existing gap). This change makes coverage *visible* (printed in the job log, and as an artifact); a future change can decide on gating once the ramp-domain and pure-helper test changes land and coverage has a real baseline.
+- Not setting a coverage *threshold* that fails the build below some percentage. Coverage across the repo is currently thin by the root `AGENTS.md`'s own admission; a threshold picked today would either be trivially low (no signal) or immediately red (blocking unrelated PRs on a pre-existing gap). This change makes coverage *visible* (printed in the job log via `--coverage-reporter=text`, no artifact upload); a future change can decide on gating once the ramp-domain and pure-helper test changes land and coverage has a real baseline.
 - Not addressing e2e's serial `workers: 1` / sharding ((e) in the finding list) — the suite is 3 tests across 2 files today; parallelizing or sharding it now has no measurable benefit and adds config to maintain. Revisit once `#50`-`#53` (fixture factories, page objects, more specs) have actually grown the suite.
-- Not changing `RADIUS_M`/any application-level test content — this change only touches `.github/workflows/*.yaml` and `playwright.config.ts`.
+- Not changing `RADIUS_M`/any application-level test content — this change touches `.github/workflows/*.yaml`, `playwright.config.ts`, and (per the `.only()`/`.skip()` guard decision below) `backend/biome.json`, `frontend/biome.json`, `hw-sim/biome.json`.
 
 ## Decisions
 
