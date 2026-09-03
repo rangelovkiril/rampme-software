@@ -15,4 +15,4 @@
 
 ## 4. Verification
 
-- [ ] 4.1 Run `bun run test` in `backend/` and confirm the new tests pass alongside the existing suite, with no change to `backend/test/gtfs/realtime.test.ts`'s existing cadence coverage
+- [x] 4.1 Run `bun run test` in `backend/` and confirm the new tests pass alongside the existing suite, with no change to `backend/test/gtfs/realtime.test.ts`'s existing cadence coverage. Confirmed: 63/63 pass, `test/gtfs/realtime.test.ts` has a zero diff from before this change.
