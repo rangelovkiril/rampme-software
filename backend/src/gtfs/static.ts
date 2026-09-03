@@ -42,15 +42,12 @@ function normalizeRouteType(raw: number): number {
 }
 
 /**
- * Fetches a GTFS ZIP from the configured static URL, parses required CSV files, and constructs in-memory GTFS collections.
+ * Parses a GTFS ZIP's bytes into in-memory GTFS collections. Pure aside from
+ * reading the zip's own entries — no network — so tests can call it directly
+ * against fixture bytes instead of a live fetch.
  */
-export async function fetchStaticGtfs(): Promise<GtfsData> {
-  consola.start('Fetching static GTFS data...')
-  const res = await fetch(config.gtfs.staticUrl)
-
-  if (!res.ok) throw new Error(`GTFS static fetch failed: ${res.status}`)
-
-  const zip = await JSZip.loadAsync(await res.arrayBuffer())
+export async function parseGtfsZip(buf: ArrayBuffer): Promise<GtfsData> {
+  const zip = await JSZip.loadAsync(buf)
 
   async function readFile(name: string): Promise<string> {
     const file = zip.file(name)
@@ -202,4 +199,16 @@ export async function fetchStaticGtfs(): Promise<GtfsData> {
     shapes,
     shapesByRoute,
   }
+}
+
+/**
+ * Fetches a GTFS ZIP from the configured static URL and parses it via `parseGtfsZip()`.
+ */
+export async function fetchStaticGtfs(): Promise<GtfsData> {
+  consola.start('Fetching static GTFS data...')
+  const res = await fetch(config.gtfs.staticUrl)
+
+  if (!res.ok) throw new Error(`GTFS static fetch failed: ${res.status}`)
+
+  return parseGtfsZip(await res.arrayBuffer())
 }
