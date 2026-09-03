@@ -16,7 +16,8 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.9",
     "bun-types": "latest",
-    "mqtt": "^5.15.0"
+    "mqtt": "^5.15.0",
+    "typescript": "^5.9.3"
   },
   "module": "src/index.js"
 }
