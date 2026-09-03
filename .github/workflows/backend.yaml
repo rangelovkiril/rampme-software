@@ -26,7 +26,7 @@ permissions:
   contents: read
 
 env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/hacktues12-backend
+  IMAGE: ghcr.io/${{ github.repository_owner }}/rampme-backend
 
 jobs:
   check:
