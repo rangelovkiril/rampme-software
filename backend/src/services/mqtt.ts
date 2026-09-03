@@ -47,7 +47,10 @@ export class MQTTHub {
 
     client.on('connect', () => log.success('connected'))
     client.on('reconnect', () => log.warn('reconnecting'))
-    client.on('error', (e) => log.error('error:', e.message))
+    // Explicit param type: the mqtt package's published .d.ts has broken internal
+    // re-export paths (e.g. 'mqtt/build/lib/clientent' instead of '.../client'),
+    // so tsc can't resolve MqttClient's 'error' event overload on its own.
+    client.on('error', (e: Error) => log.error('error:', e.message))
   }
 
   on<T = Buffer>(pattern: string, handler: Handler<T>): () => void
@@ -62,7 +65,7 @@ export class MQTTHub {
 
     const sub: Sub = { regex: toRegex(pattern), parse, handler }
     this.subs.push(sub)
-    this.client.subscribe(pattern, (err) => {
+    this.client.subscribe(pattern, (err: Error | null) => {
       if (err) log.error(`subscribe ${pattern} failed:`, err.message)
       else log.info(`subscribed to ${pattern}`)
     })
