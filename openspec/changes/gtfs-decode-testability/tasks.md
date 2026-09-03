@@ -1,7 +1,7 @@
 ## 1. Fixtures
 
-- [ ] 1.1 Build a small fixture GTFS static ZIP (stops.txt, routes.txt, trips.txt, stop_times.txt, calendar.txt - the files `fetchStaticGtfs()` reads) with a handful of rows, including one route using an extended `route_type` value (e.g. 700-range) and one `stop_time` past `24:00:00`, and check it into `backend/test/fixtures/gtfs-static.zip`
-- [ ] 1.2 Write a throwaway script using `protobufjs` + the shipped `proto/gtfs-realtime.proto` descriptor to encode a small fixture `FeedMessage` (one vehicle-position entity, one trip-update entity), and check the encoded bytes into `backend/test/fixtures/gtfs-rt.bin`
+- [x] 1.1 Build a small fixture GTFS static ZIP (stops.txt, routes.txt, trips.txt, stop_times.txt, calendar.txt - the files `fetchStaticGtfs()` reads) with a handful of rows, including one route using an extended `route_type` value (e.g. 700-range) and one `stop_time` past `24:00:00`, and check it into `backend/test/fixtures/gtfs-static.zip`. Used `calendar_dates.txt`, not `calendar.txt` — `fetchStaticGtfs()` only reads the former (confirmed by inspection; the proposal's `calendar.txt` was a naming slip), and used route_type 900 (extended tram range) rather than 700-range, to get a mapping distinguishable from the default bus fallback. `backend/.gitignore`'s blanket `**/*.zip` also needed a `test/fixtures/*.zip` negation to let this fixture be committed.
+- [x] 1.2 Write a throwaway script using `protobufjs` + the shipped `proto/gtfs-realtime.proto` descriptor to encode a small fixture `FeedMessage` (one vehicle-position entity, one trip-update entity), and check the encoded bytes into `backend/test/fixtures/gtfs-rt.bin`
 
 ## 2. Backend extraction
 
