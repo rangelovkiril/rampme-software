@@ -9,7 +9,7 @@
 
 ## 3. hw-sim workflow
 
-- [ ] 3.1 Replace `hw-sim.yaml`'s `check` job steps with calls to `setup-bun` and `bun-check-and-test` (`working-directory: hw-sim`, `check-name: "hw-sim tests"`) and verify a CI run is green
+- [x] 3.1 Replace `hw-sim.yaml`'s `check` job steps with calls to `setup-bun` and `bun-check-and-test` (`working-directory: hw-sim`, `check-name: "hw-sim tests"`) and verify a CI run is green
 
 ## 4. Frontend workflow
 
