@@ -40,6 +40,8 @@ Capability-level specs of what the system does (not how it's built) live in `ope
 
 Propose a change there before implementing behavior that isn't already specced, rather than editing code first and documenting later.
 
+Any edit that touches `openspec/` itself — a change's proposal/design/tasks, or fixing drift in an already-archived change's docs — happens on a branch named after that proposal or the issue driving it (e.g. `chore/propose-<name>`, `fix/<issue-slug>`), never bundled onto an unrelated branch. This keeps each OpenSpec-tracked change's history isolated and traceable to its own PR.
+
 ## Working rules (apply everywhere)
 
 - **Keep docs in sync with reality, immediately.** If a change alters infrastructure, deployment, configuration, CORS origins, environment variables, or a documented contract (the ramp MQTT protocol, the API), update the relevant wiki page, `AGENTS.md`, or README in the same change. Infra changes in particular must be reflected at once. Stale docs are the exact problem these files exist to prevent; do not reintroduce it.

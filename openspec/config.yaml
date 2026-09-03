@@ -77,3 +77,16 @@ operations:
         When completing a task that syncs an in-repo doc (AGENTS.md, an
         environment variable table), make the edit directly as part of that
         task instead of leaving a follow-up note or TODO.
+      - >
+        Never add a Co-Authored-By trailer or other AI-attribution line to a
+        commit made while applying a change.
+      - >
+        Commit in logical blocks, not one giant commit for the whole change:
+        one commit per task group (matching tasks.md's numbered sections) or
+        per distinct fix, so the history reads as a sequence of reviewable
+        steps.
+  archive:
+    guidance:
+      - >
+        Never add a Co-Authored-By trailer or other AI-attribution line to
+        the archive commit.
