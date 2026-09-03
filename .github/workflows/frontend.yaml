@@ -39,23 +39,14 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - uses: actions/cache@v4
+      - uses: ./.github/actions/setup-bun
         with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-frontend-${{ hashFiles('frontend/bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-frontend-
-      - run: bun install --frozen-lockfile
-      - run: bunx biome check .
-      - run: bunx tsc --noEmit
-      - run: bun test test --coverage --coverage-reporter=text --reporter=junit --reporter-outfile=junit.xml
-      - name: Publish test report
-        uses: mikepenz/action-junit-report@v6
-        if: ${{ !cancelled() }}
+          working-directory: frontend
+      - uses: ./.github/actions/bun-check-and-test
         with:
-          report_paths: frontend/junit.xml
-          check_name: Frontend unit tests
+          working-directory: frontend
+          check-name: Frontend unit tests
+          test-path: test
       - run: bun run build
       - uses: actions/upload-artifact@v4
         with:
@@ -71,14 +62,9 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - uses: actions/cache@v4
+      - uses: ./.github/actions/setup-bun
         with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-frontend-${{ hashFiles('frontend/bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-frontend-
-      - run: bun install --frozen-lockfile
+          working-directory: frontend
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright

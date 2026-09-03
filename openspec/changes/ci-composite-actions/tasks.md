@@ -13,8 +13,8 @@
 
 ## 4. Frontend workflow
 
-- [ ] 4.1 Replace `frontend.yaml`'s `build` job steps with calls to `setup-bun` and `bun-check-and-test` (`working-directory: frontend`, `check-name: "Frontend tests"`), keeping `bun run build` and the `upload-artifact` step as-is after them, and verify a CI run is green
-- [ ] 4.2 Replace `frontend.yaml`'s `e2e` job's setup steps (checkout through `bun install`) with a call to `setup-bun` only, leaving the Playwright install/run/report steps untouched, and verify a CI run is green
+- [x] 4.1 Replace `frontend.yaml`'s `build` job steps with calls to `setup-bun` and `bun-check-and-test` (`working-directory: frontend`, `check-name: "Frontend tests"`), keeping `bun run build` and the `upload-artifact` step as-is after them, and verify a CI run is green. Used `check-name: "Frontend unit tests"` instead — that's the check_name already live in `frontend.yaml` today (the proposal's "Frontend tests" was a naming slip), and preserving the existing name byte-for-byte is this change's own stated goal. Also passed the new `test-path: test` input, since frontend's `bun test` step scopes to a positional `test` path that backend/hw-sim don't use.
+- [x] 4.2 Replace `frontend.yaml`'s `e2e` job's setup steps (checkout through `bun install`) with a call to `setup-bun` only, leaving the Playwright install/run/report steps untouched, and verify a CI run is green
 
 ## 5. Verification
 
