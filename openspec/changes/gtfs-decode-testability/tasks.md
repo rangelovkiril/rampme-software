@@ -5,8 +5,8 @@
 
 ## 2. Backend extraction
 
-- [ ] 2.1 Extract a pure `parseGtfsZip(buf: ArrayBuffer): GtfsData` from `fetchStaticGtfs()` in `backend/src/gtfs/static.ts`, with `fetchStaticGtfs()` becoming a thin `fetch()` + `parseGtfsZip()` wrapper, and verify `bun run check` passes with no behavior change
-- [ ] 2.2 Extract the decode step from `fetchFeed()` in `backend/src/gtfs/realtime.ts` into a directly-callable function taking raw bytes, with `fetchFeed()` becoming a thin `fetch()` wrapper around it, and verify `bun run check` passes with no behavior change
+- [x] 2.1 Extract a pure `parseGtfsZip(buf: ArrayBuffer): GtfsData` from `fetchStaticGtfs()` in `backend/src/gtfs/static.ts`, with `fetchStaticGtfs()` becoming a thin `fetch()` + `parseGtfsZip()` wrapper, and verify `bun run check` passes with no behavior change. Signature is `Promise<GtfsData>`, not `GtfsData` — `JSZip.loadAsync()` is inherently async, so full synchrony wasn't achievable; "pure" here means no network dependency, not synchronous.
+- [x] 2.2 Extract the decode step from `fetchFeed()` in `backend/src/gtfs/realtime.ts` into a directly-callable function taking raw bytes, with `fetchFeed()` becoming a thin `fetch()` wrapper around it, and verify `bun run check` passes with no behavior change. Named it `decodeFeedMessage(buf: Uint8Array): GtfsRtFeedMessage`.
 
 ## 3. Backend tests
 

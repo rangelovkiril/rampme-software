@@ -8,15 +8,22 @@ import type { GtfsRtFeedMessage } from './types'
 const root = protobuf.Root.fromJSON(descriptor)
 const FeedMessage = root.lookupType('FeedMessage')
 
+/**
+ * Decodes raw GTFS-RT protobuf bytes. FeedMessage.decode() enforces the
+ * .proto shape at the wire level, so a single assertion here is enough to
+ * type the rest of the codebase. No network — tests can call this directly
+ * against fixture bytes instead of a live fetch.
+ */
+export function decodeFeedMessage(buf: Uint8Array): GtfsRtFeedMessage {
+  return FeedMessage.decode(buf).toJSON() as GtfsRtFeedMessage
+}
+
 async function fetchFeed(endpoint: string): Promise<GtfsRtFeedMessage> {
   const res = await fetch(`${config.gtfs.realtimeBaseUrl}/${endpoint}`, {
     signal: AbortSignal.timeout(4_000),
   })
   if (!res.ok) throw new Error(`GTFS-RT ${endpoint}: ${res.status}`)
-  const buf = new Uint8Array(await res.arrayBuffer())
-  // FeedMessage.decode() enforces the .proto shape at the wire level, so a
-  // single assertion here is enough to type the rest of the codebase.
-  return FeedMessage.decode(buf).toJSON() as GtfsRtFeedMessage
+  return decodeFeedMessage(new Uint8Array(await res.arrayBuffer()))
 }
 
 const REFRESH_INTERVAL_MS = 5_000
