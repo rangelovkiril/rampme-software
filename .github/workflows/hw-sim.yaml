@@ -39,6 +39,7 @@ jobs:
       run:
         working-directory: hw-sim
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-bun
         with:
           working-directory: hw-sim

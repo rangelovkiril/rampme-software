@@ -1,7 +1,9 @@
 name: Setup Bun
 description: >
-  Checkout, install Bun, restore the bun install cache, and install
-  dependencies with a frozen lockfile for one app directory.
+  Install Bun, restore the bun install cache, and install dependencies
+  with a frozen lockfile for one app directory. The calling job must run
+  actions/checkout itself first — a local composite action can't be
+  resolved before the repo it lives in has been checked out.
 
 inputs:
   working-directory:
@@ -11,7 +13,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v4
     - uses: oven-sh/setup-bun@v2
     - uses: actions/cache@v4
       with:
