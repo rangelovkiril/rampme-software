@@ -34,6 +34,9 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
       return r
     },
     {
+      // This request shape is also hand-written in frontend/contexts/RampContext.tsx's
+      // apiReserve() fetch body and asserted in frontend/e2e/fixtures/transit.ts's
+      // reserveRequests mock — keep all three in sync when it changes.
       body: t.Object({
         vehicle_id: t.String({ minLength: 1 }),
         stop_id: t.String({ minLength: 1 }),
