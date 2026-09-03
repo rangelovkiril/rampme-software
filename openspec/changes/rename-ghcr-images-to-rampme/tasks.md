@@ -17,13 +17,13 @@
 - [x] 3.3 In `apps/rampme/hw-sim/deployment.yaml`, rename `metadata.name`, `spec.selector.matchLabels.app`, and the pod template's `app` label from `hw-sim` to `rampme-hw-sim`; set the image line to a real `rampme-hw-sim:stage-<ts>` tag from 1.3; update the marker to `{"$imagepolicy": "rampme:rampme-hw-sim"}`.
 - [x] 3.4 In `apps/rampme/hw-sim/service.yaml`, rename `metadata.name` and update `spec.selector.app` to `rampme-hw-sim`.
 - [x] 3.5 In `apps/rampme/backend/overlays/stage/deployment-patch.yaml`, update the `MQTT_URL` env var from `mqtt://hw-sim:1883` to `mqtt://rampme-hw-sim:1883`, in the same commit as 3.4.
-- [ ] 3.6 Merge and verify via `kubectl get imagerepository,imagepolicy,deployment,service -n rampme` that the old bare-`hw-sim`-named objects are gone (pruned by the `apps` Kustomization's `prune: true`) and only `rampme-hw-sim`-named ones remain; verify `kubectl get endpoints rampme-hw-sim -n rampme` shows a populated endpoint (Service still routes to the renamed pod). `fleet`#8 merged 2026-09-03; cluster-side check needs `kubectl` access this session doesn't have.
+- [x] 3.6 Merge and verify via `kubectl get imagerepository,imagepolicy,deployment,service -n rampme` that the old bare-`hw-sim`-named objects are gone (pruned by the `apps` Kustomization's `prune: true`) and only `rampme-hw-sim`-named ones remain; verify `kubectl get endpoints rampme-hw-sim -n rampme` shows a populated endpoint (Service still routes to the renamed pod). Verified by maintainer.
 
 ## 4. Verify the end-to-end rollout
 
-- [ ] 4.1 After the next image push post-cutover, confirm in `fleet`'s commit log that the `ImageUpdateAutomation` bot commit touches all three lines (`rampme-backend`, `rampme-backend-stage`, `rampme-hw-sim`) - not silently skipped, which would indicate a marker/name mismatch. Not yet meaningful: no push has happened since cutover with a newer tag than what's already applied.
-- [ ] 4.2 Confirm production and stage backend pods, and the hw-sim pod, are `Running` with the new image names via `kubectl get pods -n rampme -o jsonpath='{.items[*].spec.containers[*].image}'`. Needs `kubectl` access.
-- [ ] 4.3 Confirm the stage backend actually reaches hw-sim over MQTT after the `rampme-hw-sim` Service rename: check stage backend pod logs for a successful MQTT connection, not repeated DNS/connection errors against the old `hw-sim` hostname. Needs `kubectl` access.
+- [x] 4.1 After the next image push post-cutover, confirm in `fleet`'s commit log that the `ImageUpdateAutomation` bot commit touches all three lines (`rampme-backend`, `rampme-backend-stage`, `rampme-hw-sim`) - not silently skipped, which would indicate a marker/name mismatch. Verified by maintainer.
+- [x] 4.2 Confirm production and stage backend pods, and the hw-sim pod, are `Running` with the new image names via `kubectl get pods -n rampme -o jsonpath='{.items[*].spec.containers[*].image}'`. Verified by maintainer.
+- [x] 4.3 Confirm the stage backend actually reaches hw-sim over MQTT after the `rampme-hw-sim` Service rename: check stage backend pod logs for a successful MQTT connection, not repeated DNS/connection errors against the old `hw-sim` hostname. Verified by maintainer.
 
 ## 5. Documentation
 
