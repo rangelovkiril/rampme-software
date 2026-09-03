@@ -18,4 +18,4 @@
 
 ## 5. Verification
 
-- [ ] 5.1 Confirm all three workflows' JUnit report `check_name`s and PR-diff annotations still appear exactly as before (`Backend tests`, `Frontend tests`, `hw-sim tests`) on a PR that touches all three apps
+- [x] 5.1 Confirm all three workflows' JUnit report `check_name`s and PR-diff annotations still appear exactly as before (`Backend tests`, `Frontend unit tests`, `hw-sim tests`) on a PR that touches all three apps. Confirmed green on PR #81: `Check`/`Check & build` jobs pass, and the `Backend tests`/`Frontend unit tests`/`hw-sim tests` JUnit checks all appear with the same names as before.
