@@ -13,7 +13,7 @@ See proposal.md - Why. Current shape of both modules:
 - Preserve `index.ts`'s existing timing (proximity checker starts before the bridge may exist; reservations db initializes synchronously, unlike the async MQTT connection).
 
 **Non-Goals:**
-- Not writing the actual `ramp.test.ts`/`proximity.test.ts` test content — that's follow-up work once this lands, tracked against #36/#65.
+- (This change's own tasks.md 3.1/3.2 in fact write the `ramp.test.ts`/`proximity.test.ts` content against #36/#65's acceptance criteria as part of this same change, not as separate follow-up.)
 - Not changing `RADIUS_M`/`EXPIRY_SECONDS`/`VEHICLE_GONE_SECONDS`/`CHECK_INTERVAL_MS`/`MAX_ACTIVE` values or any SQL — behavior-identical in production.
 - Not touching `bridge.ts` again (already done in `9c635a2`) beyond whatever import path changes `db/ramp.ts`'s restructuring forces.
 

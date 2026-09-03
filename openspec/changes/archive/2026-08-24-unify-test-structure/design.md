@@ -37,7 +37,7 @@ The `bun test lib` scoping in `frontend/package.json` is itself evidence the col
 
 ## Risks / Trade-offs
 
-- [Moving `frontend/lib/*.test.ts` breaks import-relative paths inside those test files] → Mitigation: paths are relative imports (`./ramp-updates`, `./config`), so imports must be updated to `../lib/...` at move time; `bun run check` and `bun run test` after the move catch anything missed.
+- [Moving `frontend/lib/*.test.ts` breaks import-relative paths inside those test files] → Mitigation: paths are relative imports (`./ramp-updates`, `./config`), so imports must be updated to `../../lib/...` at move time; `bun run check` and `bun run test` after the move catch anything missed.
 - [Convention decided today drifts as more contributors/agents touch the repo] → Mitigation: written into `frontend/AGENTS.md` and `backend/AGENTS.md` (source of truth for both humans and agents per root `AGENTS.md`), not just this change's archive.
 
 ## Migration Plan
