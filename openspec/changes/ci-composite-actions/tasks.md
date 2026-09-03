@@ -1,11 +1,11 @@
 ## 1. Composite actions
 
-- [ ] 1.1 Create `.github/actions/setup-bun/action.yaml` (checkout + `oven-sh/setup-bun` + `bun.lock`-keyed cache + `bun install --frozen-lockfile`), parameterized by a `working-directory` input, and verify it produces the same cache key shape as today's inline steps
-- [ ] 1.2 Create `.github/actions/bun-check-and-test/action.yaml` (`bunx biome check .` + `bunx tsc --noEmit` + `bun test --coverage --coverage-reporter=text --reporter=junit --reporter-outfile=junit.xml` + `mikepenz/action-junit-report`), parameterized by `working-directory` and `check-name` inputs
+- [x] 1.1 Create `.github/actions/setup-bun/action.yaml` (checkout + `oven-sh/setup-bun` + `bun.lock`-keyed cache + `bun install --frozen-lockfile`), parameterized by a `working-directory` input, and verify it produces the same cache key shape as today's inline steps
+- [x] 1.2 Create `.github/actions/bun-check-and-test/action.yaml` (`bunx biome check .` + `bunx tsc --noEmit` + `bun test --coverage --coverage-reporter=text --reporter=junit --reporter-outfile=junit.xml` + `mikepenz/action-junit-report`), parameterized by `working-directory` and `check-name` inputs. Also took a `test-path` input (default empty), since frontend's `bun test` step passes a positional `test` path argument that backend/hw-sim don't.
 
 ## 2. Backend workflow
 
-- [ ] 2.1 Replace `backend.yaml`'s `check` job steps with calls to `setup-bun` and `bun-check-and-test` (`working-directory: backend`, `check-name: "Backend tests"`) and verify a CI run on this branch is green with identical step output to before
+- [x] 2.1 Replace `backend.yaml`'s `check` job steps with calls to `setup-bun` and `bun-check-and-test` (`working-directory: backend`, `check-name: "Backend tests"`) and verify a CI run on this branch is green with identical step output to before
 
 ## 3. hw-sim workflow
 
