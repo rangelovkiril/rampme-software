@@ -41,22 +41,13 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - uses: actions/cache@v4
+      - uses: ./.github/actions/setup-bun
         with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-backend-${{ hashFiles('backend/bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-backend-
-      - run: bun install --frozen-lockfile
-      - run: bunx biome check .
-      - run: bunx tsc --noEmit
-      - run: bun test --coverage --coverage-reporter=text --reporter=junit --reporter-outfile=junit.xml
-      - name: Publish test report
-        uses: mikepenz/action-junit-report@v6
-        if: ${{ !cancelled() }}
+          working-directory: backend
+      - uses: ./.github/actions/bun-check-and-test
         with:
-          report_paths: backend/junit.xml
-          check_name: Backend tests
+          working-directory: backend
+          check-name: Backend tests
 
   build-image:
     name: Build image

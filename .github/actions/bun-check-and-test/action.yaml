@@ -1,0 +1,36 @@
+name: Bun check and test
+description: >
+  Run biome check, tsc --noEmit, bun test with coverage/JUnit reporting, and
+  publish the JUnit report for one app directory. Assumes setup-bun already
+  ran in the same job.
+
+inputs:
+  working-directory:
+    description: App directory to run the checks in (e.g. backend, frontend, hw-sim)
+    required: true
+  check-name:
+    description: check_name passed to the JUnit report action (e.g. "Backend tests")
+    required: true
+  test-path:
+    description: Optional positional path/filter passed to `bun test` (frontend scopes to `test`)
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - run: bunx biome check .
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+    - run: bunx tsc --noEmit
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+    - run: bun test ${{ inputs.test-path }} --coverage --coverage-reporter=text --reporter=junit --reporter-outfile=junit.xml
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+    - name: Publish test report
+      uses: mikepenz/action-junit-report@v6
+      if: ${{ !cancelled() }}
+      with:
+        report_paths: ${{ inputs.working-directory }}/junit.xml
+        check_name: ${{ inputs.check-name }}

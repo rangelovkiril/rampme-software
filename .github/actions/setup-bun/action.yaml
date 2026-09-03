@@ -1,0 +1,24 @@
+name: Setup Bun
+description: >
+  Install Bun, restore the bun install cache, and install dependencies
+  with a frozen lockfile for one app directory. The calling job must run
+  actions/checkout itself first — a local composite action can't be
+  resolved before the repo it lives in has been checked out.
+
+inputs:
+  working-directory:
+    description: App directory to install dependencies in (e.g. backend, frontend, hw-sim)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+    - uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: bun-${{ runner.os }}-${{ inputs.working-directory }}-${{ hashFiles(format('{0}/bun.lock', inputs.working-directory)) }}
+        restore-keys: bun-${{ runner.os }}-${{ inputs.working-directory }}-
+    - run: bun install --frozen-lockfile
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
