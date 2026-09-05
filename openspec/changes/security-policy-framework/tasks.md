@@ -1,6 +1,6 @@
 ## 1. SECURITY.md
 
-- [ ] 1.1 Write root `SECURITY.md`: scope (backend, frontend, `hw-sim` as a test double — explicitly not production hardware firmware, which lives in `rampme-hardware`), the project-specific severity scale (physical/mechanical actuation > availability > everything else), and a pointer to GitHub's private vulnerability reporting as the sole channel. Verify by confirming the file renders under the repo's Security tab with a working "Report a vulnerability" button.
+- [x] 1.1 Write root `SECURITY.md`: scope (backend, frontend, `hw-sim` as a test double — explicitly not production hardware firmware, which lives in `rampme-hardware`), the project-specific severity scale (physical/mechanical actuation > availability > everything else), and a pointer to GitHub's private vulnerability reporting as the sole channel. Verify by confirming the file renders under the repo's Security tab with a working "Report a vulnerability" button.
 
 ## 2. Threat model wiki sync (rampme-software.wiki, separate repo)
 
