@@ -11,13 +11,13 @@
 
 ## 3. Apply and verify live
 
-- [ ] 3.1 Run the change through the `fleet` CI pipeline (PR -> plan in job summary -> manual approval -> apply). **Blocked**: five apply-time errors found in sequence, each fixed as it appeared — token scope (fleet#12), `cf.colo.id` characteristic (fleet#12), one-rule-per-phase quota (fleet#14), 10s-only period (fleet#15), and mitigation_timeout must equal the period (fleet#16). Still needs fleet#16 merged and the Apply job run again.
-- [ ] 3.2 Manually verify SSE streams stay connected after the rule is live. **Pending merge + apply.**
-- [ ] 3.3 Manually verify a scripted burst of `POST /ramp/reserve` against the live API gets rejected. **Pending merge + apply.**
-- [ ] 3.4 Manually verify normal reservation create/cancel from the deployed frontend still succeeds end to end. **Pending merge + apply.**
+- [x] 3.1 Run the change through the `fleet` CI pipeline (PR -> plan in job summary -> manual approval -> apply). Five apply-time errors found in sequence and fixed as each appeared — token scope, `cf.colo.id` characteristic, one-rule-per-phase quota, 10s-only period, mitigation_timeout must equal period (fleet#12, #14, #15, #16) — final apply succeeded.
+- [x] 3.2 Manually verify SSE streams stay connected after the rule is live. Verified: `GET /realtime/vehicles/stream` against `api.rampme.site` streamed normal vehicle data during and after the burst test in 3.3, unaffected.
+- [x] 3.3 Manually verify a scripted burst of `POST /ramp/reserve` against the live API gets rejected. Verified directly against production: 8 sequential requests from 8 distinct (fake) session ids, same source IP — requests 1-5 succeeded (200), requests 6-8 rejected (429), matching the configured 5-per-10s threshold exactly. Test reservations cancelled afterward to leave the DB clean.
+- [x] 3.4 Manually verify normal reservation create/cancel from the deployed frontend still succeeds end to end. Verified at the API level (same endpoints the frontend calls): create returned a well-formed reservation object, cancel returned `200`. Not separately driven through the browser UI — no browser-automation tool was available this session.
 
 ## 4. Docs
 
-- [x] 4.1 Document the rule in the `fleet` wiki Operations page — worded as authored/pending the pipeline, not yet live, to avoid overclaiming ahead of 3.1.
-- [ ] 4.2 Update `rampme-software.wiki`'s `Threat-Model.md` "Current containment" section to mark the WAF rule as implemented. **Deliberately not done yet** — it isn't implemented until 3.1 clears; doing this now would make the wiki inaccurate, which is exactly what this whole change exists to stop doing.
-- [ ] 4.3 Close out `fleet` issue #1's acceptance criteria to match what actually shipped, and note the residual distributed-multi-IP risk from this design as a comment for a follow-up decision. **Pending merge + apply.**
+- [x] 4.1 Document the rule in the `fleet` wiki Operations page — updated to say it's live with the real (not originally-designed) numbers, once 3.1-3.4 confirmed that.
+- [x] 4.2 Update `rampme-software.wiki`'s `Threat-Model.md` "Current containment" section to mark the WAF rule as implemented, with the real thresholds.
+- [x] 4.3 Checked off the rate-limit and wiki-documentation acceptance criteria on `fleet` issue #1 via a comment; left the issue open since the other two criteria (bot patterns, SSE/normal-usage confirmation as a closing action) belong to `cloudflare-bot-mitigation`. Noted the residual distributed-multi-IP risk there too, since it wasn't part of the originally reviewed backlog and doesn't have its own issue yet.
