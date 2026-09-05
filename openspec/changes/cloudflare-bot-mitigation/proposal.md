@@ -22,8 +22,8 @@ _None._
 
 ## Impact
 
-- `fleet/tofu`: new `cloudflare_bot_management` resource (`bot.tf`), `fight_mode = true`.
-- `fleet` wiki Operations page: document the configuration and the zone-wide/no-scoping limitation.
+- Cloudflare dashboard: Bot Fight Mode enabled by hand (Security Settings → Bot traffic → Bot fight mode). Not tofu-managed — tried as `cloudflare_bot_management`/`bot.tf` and abandoned: `PUT .../bot_management` returns `403`/code 10000 even with the correct token scope, an entitlement gate on the API endpoint itself (undocumented by Cloudflare for this product, matching community reports), not a permission problem. See `fleet/tofu/README.md`'s "not managed here" section.
+- `fleet` wiki Operations page: document the configuration, the zone-wide/no-scoping limitation, and why it's dashboard-only rather than tofu-managed.
 - `rampme-software.wiki` `Threat-Model.md`: add bot mitigation alongside the WAF rate limit in "Current containment", including the accepted zone-wide risk.
 - A new backlog issue tracking the Super Bot Fight Mode / Pro-plan upgrade as deferred, not purchased now.
 - No changes to `backend/` or `frontend/` source.
