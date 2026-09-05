@@ -4,7 +4,7 @@
 
 ## 2. Configuration
 
-- [ ] 2.1 Enable `cloudflare_bot_management` with `fight_mode = true` at the zone level (`fleet/tofu/bot.tf`), verify via `tofu fmt`/`tofu validate` against the real provider schema in an isolated scratch config (no state/credentials touched), then the real `tofu plan`/`apply` in `fleet`'s CI.
+- [x] 2.1 Enable `cloudflare_bot_management` with `fight_mode = true` at the zone level (`fleet/tofu/bot.tf`, fleet#18). Verified: `tofu fmt` clean, `tofu validate` passes against the real `cloudflare/cloudflare` v5.24.0 provider schema in an isolated scratch config (no state/credentials touched). Real `tofu plan`/`apply` pending fleet#18's CI + approval gate.
 - [ ] 2.2 ~~Configure the stricter action scoped to write routes only~~ — not achievable at this plan tier (see 1.1); superseded by 2.1's zone-wide toggle.
 - [ ] 2.3 No fallback tuning needed beyond 2.1: `fight_mode` is a single on/off setting with a fixed action, nothing to loosen or tighten.
 
