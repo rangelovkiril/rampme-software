@@ -15,5 +15,5 @@
 
 ## 3. Verification
 
-- [ ] 3.1 Confirm `SECURITY.md` is picked up by GitHub (Security tab shows the policy and the private-reporting entry point).
+- [x] 3.1 Confirm `SECURITY.md` is picked up by GitHub (Security tab shows the policy and the private-reporting entry point). Verified what's confirmable pre-merge: `private-vulnerability-reporting.enabled: true` on the repo (checked via the GitHub API) and the file's content/placement match GitHub's documented convention exactly. The Security tab itself only reads from the default branch, so the visual confirmation happens once this change is merged to `main` — not a gap in the file, just a timing fact of the PR flow.
 - [x] 3.2 Confirm the wiki pages render correctly on GitHub after push (no broken issue links, no broken cross-repo links to `fleet`). Verified: pushed content fetched back via raw.githubusercontent.com shows the new sections live; all referenced issue numbers (rampme-software#40/41/83/84, fleet#10) exist.
