@@ -1,17 +1,17 @@
 ## 1. Verify plan-tier capability
 
-- [x] 1.1 Confirm the account's Cloudflare plan supports custom rate limiting rules with per-route matching and per-IP counting. Answered by the actual apply attempt (no dashboard access available to check beforehand): this plan tier allows exactly **one** rule in the `http_ratelimit` phase, not per-route matching — create and cancel had to be consolidated into a single rule with a combined budget (see `design.md`).
+- [x] 1.1 Confirm the account's Cloudflare plan supports custom rate limiting rules with per-route matching and per-IP counting. Answered by the actual apply attempts (no dashboard access available to check beforehand): this plan tier allows exactly **one** rule in the `http_ratelimit` phase (not per-route matching — create and cancel share one rule) and only a **10-second** counting period (not 60s). See `design.md`.
 
 ## 2. Ruleset (fleet/tofu)
 
-- [x] 2.1 Add a `cloudflare_ruleset` resource rate-limiting `POST /ramp/reserve` and `DELETE /ramp/reserve/:id` by source IP at 20 requests/minute combined (one rule, this plan tier's limit — see 1.1) (`fleet/tofu/waf.tf`). Verified: `tofu fmt` clean, and `tofu validate` passes against the real `cloudflare/cloudflare` v5.24.0 provider schema in an isolated scratch config each time (no state or credentials touched — this repo's committed state is SOPS-encrypted and deliberately left alone; the real `tofu plan`/`apply` against the live account runs in `fleet`'s CI).
+- [x] 2.1 Add a `cloudflare_ruleset` resource rate-limiting `POST /ramp/reserve` and `DELETE /ramp/reserve/:id` by source IP at 5 requests/10s combined (one rule, 10s period — this plan tier's limits, see 1.1) (`fleet/tofu/waf.tf`). Verified: `tofu fmt` clean, and `tofu validate` passes against the real `cloudflare/cloudflare` v5.24.0 provider schema in an isolated scratch config each time (no state or credentials touched — this repo's committed state is SOPS-encrypted and deliberately left alone; the real `tofu plan`/`apply` against the live account runs in `fleet`'s CI).
 - [x] 2.2 Exclude `/ramp/session/stream`, `/realtime/vehicles/stream`, and `/realtime/vehicles/:id/trip/etas` by construction: the rule's match expression only matches `POST /ramp/reserve` and `DELETE /ramp/reserve/*`, so the SSE routes never match rather than being excluded by a separate clause.
 - [x] 2.3 Set the rule's action to `block` (non-interactive), not Managed Challenge.
 - [x] 2.4 Apply the identical rule to `api-stage.rampme.site`: both hostnames are matched via a single `http.host in {...}` clause in each rule's expression.
 
 ## 3. Apply and verify live
 
-- [ ] 3.1 Run the change through the `fleet` CI pipeline (PR -> plan in job summary -> manual approval -> apply). **Blocked**: three apply-time errors found in sequence, each fixed as it appeared — token scope (fleet#12), `cf.colo.id` characteristic (fleet#12), and the one-rule-per-phase quota (fleet#14, consolidated into a single rule). Still needs fleet#14 merged and the Apply job run again.
+- [ ] 3.1 Run the change through the `fleet` CI pipeline (PR -> plan in job summary -> manual approval -> apply). **Blocked**: four apply-time errors found in sequence, each fixed as it appeared — token scope (fleet#12), `cf.colo.id` characteristic (fleet#12), one-rule-per-phase quota (fleet#14), and 10s-only period (fleet#15). Still needs fleet#15 merged and the Apply job run again.
 - [ ] 3.2 Manually verify SSE streams stay connected after the rule is live. **Pending merge + apply.**
 - [ ] 3.3 Manually verify a scripted burst of `POST /ramp/reserve` against the live API gets rejected. **Pending merge + apply.**
 - [ ] 3.4 Manually verify normal reservation create/cancel from the deployed frontend still succeeds end to end. **Pending merge + apply.**
