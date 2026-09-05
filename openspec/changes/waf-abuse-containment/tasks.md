@@ -11,7 +11,7 @@
 
 ## 3. Apply and verify live
 
-- [ ] 3.1 Run the change through the `fleet` CI pipeline (PR -> plan in job summary -> manual approval -> apply). **Blocked**: token scope fixed (fleet#12) and re-applied clean of the auth error, but hit a real API validation error next — code 20155, `characteristics` for a rate limit must include `cf.colo.id` alongside `ip.src` (Cloudflare counts per-colocation, not globally per IP). Fix in fleet#13; still needs merge + re-run.
+- [ ] 3.1 Run the change through the `fleet` CI pipeline (PR -> plan in job summary -> manual approval -> apply). **Blocked**: two apply-time errors found, both fixed in one consolidated PR (fleet#12) so the approval gate is only needed once more — token scope (`Zone / Zone WAF / Edit` was missing) and a rate-limit `characteristics` validation error (`cf.colo.id` required alongside `ip.src`, Cloudflare counts per-colocation not globally per IP). Still needs fleet#12 merged and the Apply job run again.
 - [ ] 3.2 Manually verify SSE streams stay connected after the rule is live. **Pending merge + apply.**
 - [ ] 3.3 Manually verify a scripted burst of `POST /ramp/reserve` against the live API gets rejected. **Pending merge + apply.**
 - [ ] 3.4 Manually verify normal reservation create/cancel from the deployed frontend still succeeds end to end. **Pending merge + apply.**
