@@ -1,6 +1,6 @@
 ## 1. Verify plan-tier capability
 
-- [x] 1.1 Confirm the account's Cloudflare plan supports custom rate limiting rules with per-route matching and per-IP counting. Answered by the actual apply attempts (no dashboard access available to check beforehand): this plan tier allows exactly **one** rule in the `http_ratelimit` phase (not per-route matching — create and cancel share one rule) and only a **10-second** counting period (not 60s). See `design.md`.
+- [x] 1.1 Confirm the account's Cloudflare plan supports custom rate limiting rules with per-route matching and per-IP counting. Answered by the actual apply attempts (no dashboard access available to check beforehand): this plan tier allows exactly **one** rule in the `http_ratelimit` phase (not per-route matching — create and cancel share one rule), only a **10-second** counting period (not 60s), and a `mitigation_timeout` that must equal that period. See `design.md`.
 
 ## 2. Ruleset (fleet/tofu)
 
@@ -11,7 +11,7 @@
 
 ## 3. Apply and verify live
 
-- [ ] 3.1 Run the change through the `fleet` CI pipeline (PR -> plan in job summary -> manual approval -> apply). **Blocked**: four apply-time errors found in sequence, each fixed as it appeared — token scope (fleet#12), `cf.colo.id` characteristic (fleet#12), one-rule-per-phase quota (fleet#14), and 10s-only period (fleet#15). Still needs fleet#15 merged and the Apply job run again.
+- [ ] 3.1 Run the change through the `fleet` CI pipeline (PR -> plan in job summary -> manual approval -> apply). **Blocked**: five apply-time errors found in sequence, each fixed as it appeared — token scope (fleet#12), `cf.colo.id` characteristic (fleet#12), one-rule-per-phase quota (fleet#14), 10s-only period (fleet#15), and mitigation_timeout must equal the period (fleet#16). Still needs fleet#16 merged and the Apply job run again.
 - [ ] 3.2 Manually verify SSE streams stay connected after the rule is live. **Pending merge + apply.**
 - [ ] 3.3 Manually verify a scripted burst of `POST /ramp/reserve` against the live API gets rejected. **Pending merge + apply.**
 - [ ] 3.4 Manually verify normal reservation create/cancel from the deployed frontend still succeeds end to end. **Pending merge + apply.**
