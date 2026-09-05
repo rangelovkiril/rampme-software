@@ -4,10 +4,11 @@ Rate limiting (`waf-abuse-containment`) stops volume; it does not stop a single 
 
 ## What Changes
 
-- Enable Cloudflare bot management (Bot Fight Mode or Super Bot Fight Mode, whichever the account's plan tier supports) at the zone level.
-- Configure a stricter action (block or non-interactive challenge) for low bot-score traffic scoped to `POST /ramp/reserve` and `DELETE /ramp/reserve/:id`.
-- Leave read-only map traffic (`/stops`, `/routes*`, `/realtime/vehicles`, all SSE routes) unaffected by the stricter rule — legitimate map panning/zooming produces rapid, regular request patterns that can resemble automation, and should not be penalized by a rule aimed at write-route abuse.
-- No interactive (human-solvable) challenge anywhere on `/ramp/*` — explicitly ruled out per the accessibility constraint.
+- Enable Cloudflare **Bot Fight Mode** (the Free-plan product; **Super Bot Fight Mode requires Pro**, not purchased for this project) at the zone level.
+- Accept that this is zone-wide with no per-route scoping: Bot Fight Mode runs outside the Ruleset Engine and cannot be skipped or scoped via custom rules at this plan tier, unlike Super Bot Fight Mode. It therefore also covers `/ramp/reserve`/`/ramp/reserve/:id` and the read-only map routes identically — there is no way to leave map traffic unaffected while still protecting the write routes, as originally scoped.
+- Accept the documented risk that Cloudflare's own docs state Bot Fight Mode "may challenge API or mobile app traffic" with a computationally-expensive challenge a `fetch()` call cannot solve — the same category of problem the interactive-challenge rejection (checkbox CAPTCHA) already ruled out, now an accepted risk instead of an avoided one, because there is no zone-wide-but-not-`/ramp/*` middle ground on this plan.
+- Mitigate the residual risk operationally, not architecturally: verify the live reservation create/cancel flow immediately after enabling, with a one-toggle rollback (disabling `fight_mode`) ready if it interferes.
+- Defer per-route scoping (Super Bot Fight Mode, Pro plan) as a tracked backlog item, not purchased now.
 
 ## Capabilities
 
@@ -21,7 +22,8 @@ _None._
 
 ## Impact
 
-- Cloudflare zone-level bot management setting (dashboard, and `fleet/tofu` if a Terraform resource exists for the account's plan tier — to be confirmed, see design.md).
-- `fleet` wiki Operations page: document the configuration.
-- `rampme-software.wiki` `Threat-Model.md`: add bot mitigation alongside the WAF rate limit in "Current containment".
+- `fleet/tofu`: new `cloudflare_bot_management` resource (`bot.tf`), `fight_mode = true`.
+- `fleet` wiki Operations page: document the configuration and the zone-wide/no-scoping limitation.
+- `rampme-software.wiki` `Threat-Model.md`: add bot mitigation alongside the WAF rate limit in "Current containment", including the accepted zone-wide risk.
+- A new backlog issue tracking the Super Bot Fight Mode / Pro-plan upgrade as deferred, not purchased now.
 - No changes to `backend/` or `frontend/` source.
