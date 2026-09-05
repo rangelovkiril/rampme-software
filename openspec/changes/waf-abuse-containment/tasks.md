@@ -11,7 +11,7 @@
 
 ## 3. Apply and verify live
 
-- [ ] 3.1 Run the change through the `fleet` CI pipeline (PR -> plan in job summary -> manual approval -> apply). **Pending**: PR opened, needs review + the production-environment approval gate from the repo owner.
+- [ ] 3.1 Run the change through the `fleet` CI pipeline (PR -> plan in job summary -> manual approval -> apply). **Blocked**: fleet#11 merged and the post-merge apply ran, but failed — `403`, code 10000, on `POST .../zones/{zone_id}/rulesets`. Per `tofu/README.md`'s own troubleshooting note, that means CI's `CLOUDFLARE_API_TOKEN` is missing a scope, not that the resource is invalid. Fix authored in fleet#12 (adds `Zone / Zone WAF / Edit`); still needs the token itself updated in the account and the failed Apply job re-run.
 - [ ] 3.2 Manually verify SSE streams stay connected after the rule is live. **Pending merge + apply.**
 - [ ] 3.3 Manually verify a scripted burst of `POST /ramp/reserve` against the live API gets rejected. **Pending merge + apply.**
 - [ ] 3.4 Manually verify normal reservation create/cancel from the deployed frontend still succeeds end to end. **Pending merge + apply.**
