@@ -13,8 +13,8 @@
 
 ## 3. Frontend visualization
 
-- [ ] 3.1 Extend `frontend/components/layers/VehiclesLayer.tsx` marker rendering so ramp-equipped, not-equipped, and unknown vehicles are visually distinguishable on the map itself (not only in the detail sheet); verify manually via `bun run dev` against vehicles in each state.
-- [ ] 3.2 Extend `frontend/e2e/fixtures/transit.ts` with vehicles covering all three states and add/extend a Playwright test asserting the marker distinction; verify with `bun run test:e2e`.
+- [x] 3.1 Extended `VehiclesLayer.tsx`'s marker rendering with an `accessibilityRingColor()`-driven border (green = ramp-equipped, gray = not-equipped, transparent = unknown) on both the detailed and dot icons, plus a matching text line in the popup (`accessibilityLabel()`); verified with `bun run check` (clean) and manually reasoned against `lib/types.ts`'s 4-literal `ramp_status` (updated to include `no_ramp`).
+- [x] 3.2 Widened `mockTransitApi()` in `frontend/e2e/fixtures/transit.ts` with an optional `vehicles` array (defaults to today's single-vehicle behavior, so every existing test is unaffected) and added a new Playwright test in `transit.spec.ts` asserting 3 vehicles in the 3 states render 3 distinct, non-overlapping border colors; verified with `bun run test:e2e` — all 5 tests pass (2 pre-existing + this one, plus the 2 mobile-sheet tests).
 
 ## 4. Infra (fleet repo — cross-repo, tracked here for plan completeness)
 

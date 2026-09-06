@@ -19,7 +19,7 @@ export interface Vehicle {
   route_type: number | null
   headsign: string | null
   label: string | null
-  ramp_status: 'unknown' | 'working' | 'in_use'
+  ramp_status: 'unknown' | 'no_ramp' | 'working' | 'in_use'
   ramp_reservations: Array<{
     id: number
     stop_id: string

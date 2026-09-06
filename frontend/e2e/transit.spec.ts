@@ -17,6 +17,45 @@ test('loads the map and renders live vehicles', async ({ page }) => {
   expect(api.unhandledRequests).toEqual([])
 })
 
+test('vehicle markers distinguish ramp-equipped, not-equipped, and unknown', async ({ page }) => {
+  const equipped = createVehicle({
+    id: 'vehicle-equipped',
+    lat: 42.6978,
+    lng: 23.322,
+    ramp_status: 'working',
+  })
+  const notEquipped = createVehicle({
+    id: 'vehicle-not-equipped',
+    lat: 42.699,
+    lng: 23.323,
+    ramp_status: 'no_ramp',
+  })
+  const unknown = createVehicle({
+    id: 'vehicle-unknown',
+    lat: 42.696,
+    lng: 23.321,
+    ramp_status: 'unknown',
+  })
+  await mockTransitApi(page, { vehicles: [equipped, notEquipped, unknown] })
+
+  await page.goto('/')
+
+  const markers = page.locator('.leaflet-marker-pane .leaflet-marker-icon > div')
+  await expect(markers).toHaveCount(3)
+  const borders = await markers.evaluateAll((els) =>
+    els.map((el) => getComputedStyle(el).borderColor),
+  )
+
+  // Exactly one marker per state, and no two states render the same border
+  // color — the map's whole "at a glance" contract per
+  // openspec/changes/ramp-vehicle-accessibility.
+  expect(new Set(borders).size).toBe(3)
+  // Ramp-equipped is the only state with a visible (non-transparent) green ring.
+  expect(borders.filter((c) => c === 'rgb(34, 197, 94)')).toHaveLength(1)
+  // Not-equipped is the only state with a visible gray ring.
+  expect(borders.filter((c) => c === 'rgb(107, 114, 128)')).toHaveLength(1)
+})
+
 test('round-trips a ramp reservation through the session UI', async ({ page }) => {
   const api = await mockTransitApi(page)
 
