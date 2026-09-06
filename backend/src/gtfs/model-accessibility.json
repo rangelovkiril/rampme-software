@@ -1,0 +1,902 @@
+{
+  "11Г5": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Chavdar_(company)"
+  },
+  "11М3": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Chavdar_(company)"
+  },
+  "11М4": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Chavdar_(company)"
+  },
+  "130": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "140": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Public_buses_in_Sofia"
+  },
+  "141": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Public_buses_in_Sofia"
+  },
+  "14Tr06": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/%C5%A0koda_14Tr"
+  },
+  "180": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_180"
+  },
+  "250": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_250"
+  },
+  "250.59": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_250"
+  },
+  "250.67": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_250"
+  },
+  "260.08": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_260"
+  },
+  "260.50": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_260"
+  },
+  "266.25": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_260"
+  },
+  "26Tr Solaris III": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Solaris_Trollino"
+  },
+  "27Tr Solaris III": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/%C5%A0koda_27Tr_Solaris"
+  },
+  "27Tr Solaris IV": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/%C5%A0koda_27Tr_Solaris"
+  },
+  "280.02": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.03": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.04": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.04T": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.08": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.1": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.33": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.43": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.49": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.54B": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.59": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.92T": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "280.94": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ikarus_280"
+  },
+  "317 ETR": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "421 AL": {
+    "low_floor": false,
+    "source": "https://it.wikipedia.org/wiki/Fiat_421"
+  },
+  "530 Caroser Cemkar": {
+    "low_floor": false,
+    "source": "https://www.bus-planet.com/bus/bus-europe/Bulgaria-site/Busbuilders/Chavdar/index.html"
+  },
+  "610 FEC1": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "682V1UA": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "682В /В00/": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "706 RO": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/%C5%A0koda_706_RTO"
+  },
+  "706 RTO": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/%C5%A0koda_706_RTO"
+  },
+  "895 NL202": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/MAN_NL202"
+  },
+  "9Tr": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9Tr10": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9Tr12": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9Tr13": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9Tr14": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9Tr16": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9Tr18": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9Tr19": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9Tr4": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9Tr6": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9Tr9": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9TrH25": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "9TrHT28": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "A10 NL202": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/MAN_NL202"
+  },
+  "A10 NL312": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/MAN_Lion%27s_City"
+  },
+  "A183N1": {
+    "low_floor": null,
+    "source": null
+  },
+  "A21 Lion's City NL263": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/MAN_Lion%27s_City"
+  },
+  "Alliance City B90": {
+    "low_floor": true,
+    "source": "https://nl.wikipedia.org/wiki/Den_Oudsten_Alliance"
+  },
+  "Alliance City B96": {
+    "low_floor": true,
+    "source": "https://nl.wikipedia.org/wiki/Den_Oudsten_B96"
+  },
+  "Ansaldo-Breda (121-140)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Anversoise (90-104)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "B13-20": {
+    "low_floor": false,
+    "source": "https://www.bus-planet.com/bus/bus-europe/Bulgaria-site/Busbuilders/Chavdar/index.html"
+  },
+  "B14-20": {
+    "low_floor": false,
+    "source": "https://www.bus-planet.com/bus/bus-europe/Bulgaria-site/Busbuilders/Chavdar/index.html"
+  },
+  "B2007": {
+    "low_floor": null,
+    "source": null
+  },
+  "B4": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tatra_T4"
+  },
+  "B4D-C": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tatra_T4"
+  },
+  "B4D-M": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tatra_T4"
+  },
+  "B731": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "BBC GEO": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "BBC - ремарке (51-64)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Beaver 4-73": {
+    "low_floor": null,
+    "source": null
+  },
+  "Belde 220-17C": {
+    "low_floor": false,
+    "source": "https://busphoto.eu/model/3711/"
+  },
+  "Belde 220-CB": {
+    "low_floor": false,
+    "source": "https://busphoto.eu/model/3711/"
+  },
+  "Belde 220-SLF": {
+    "low_floor": true,
+    "source": "https://busphoto.eu/model/3711/"
+  },
+  "Belde 250-SLF": {
+    "low_floor": true,
+    "source": "https://busphoto.eu/model/3711/"
+  },
+  "C12G": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/TEDOM_C_12"
+  },
+  "C6K-1000": {
+    "low_floor": null,
+    "source": null
+  },
+  "C734": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Karosa_C_734"
+  },
+  "Caetano H2 Citygold (тестов)": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Caetano_City_Gold"
+  },
+  "Charleroi (51-62 -> 151-162)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "CN113ALB": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Scania_N113"
+  },
+  "Conecto NG": {
+    "low_floor": true,
+    "source": "https://www.mercedes-benz-bus.com/int/en/models/conecto.html"
+  },
+  "Crossway 12 LE": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Irisbus_Crossway"
+  },
+  "E12LF": {
+    "low_floor": true,
+    "source": "https://en.yutong.com/products/ZK6126HG.shtml"
+  },
+  "EBN 11.1": {
+    "low_floor": true,
+    "source": "https://www.sor.cz/en/ebn/"
+  },
+  "EBN 8": {
+    "low_floor": true,
+    "source": "https://www.sor.cz/en/ebn/"
+  },
+  "e-Jest": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Karsan_Jest"
+  },
+  "Energie (401-432)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Fiat": {
+    "low_floor": null,
+    "source": null
+  },
+  "Franco-Belge / E&H (1-25)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Franco-Belge/ÖВВW (91-105 -> 51-65)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "GD 272": {
+    "low_floor": false,
+    "source": "https://busphoto.eu/model/2840/"
+  },
+  "GE152 M18": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "Gräf & Stift": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "GT6": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Duewag"
+  },
+  "GT8": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Duewag_GT8_Typ_Freiburg"
+  },
+  "Güleryüz Cobra GD 272": {
+    "low_floor": false,
+    "source": "https://busphoto.eu/model/2840/"
+  },
+  "Güleryüz Cobra TSN 2005": {
+    "low_floor": null,
+    "source": null
+  },
+  "ie tram 12": {
+    "low_floor": true,
+    "source": "https://www.sustainable-bus.com/electric-bus/irizar-emt-fuenlabrada/"
+  },
+  "Iveco": {
+    "low_floor": null,
+    "source": null
+  },
+  "Jest+ (тестов)": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Karsan_Jest"
+  },
+  "Jumper": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Citro%C3%ABn_Jumper"
+  },
+  "KLQ6125GEV3 (50**)": {
+    "low_floor": true,
+    "source": "https://en.yutong.com/products/ZK6126HG.shtml"
+  },
+  "KLQ6186GEV (тестов)": {
+    "low_floor": null,
+    "source": null
+  },
+  "KLQ6832GEV (28**)": {
+    "low_floor": null,
+    "source": null
+  },
+  "Končar TMK 2200 (тестов)": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/TMK_2200"
+  },
+  "LC51": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Chavdar_(company)"
+  },
+  "Lion's City CNG (2017)": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/MAN_Lion%27s_City"
+  },
+  "Lion's City DD ND313": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/MAN_Lion%27s_City"
+  },
+  "Lion's City G CNG (2014)": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/MAN_Lion%27s_City"
+  },
+  "Lion's City G CNG (2018)": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/MAN_Lion%27s_City"
+  },
+  "Lion's City LE": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/MAN_Lion%27s_City"
+  },
+  "MAN/AEG (66-80)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "MAN/Siemens (81-92)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "MG11": {
+    "low_floor": null,
+    "source": null
+  },
+  "MPE 1": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "MTB-82": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/MTB-82"
+  },
+  "N4009": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Neoplan_N4009"
+  },
+  "N4426/3 Centroliner": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Neoplan_Centroliner"
+  },
+  "Nivelle-ASEA (106-115)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 141/147 (MAN)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 251/277": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 301/312 (Siemens)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 31/50 (MAN)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 341/346 (Siemens)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 351/370 (за мотриси Breda)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 371/380 (MAN)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 381/392 (Energie)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 41/46 (Siemens)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 431/479": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 501/512 (Кардалев)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 521/523 (Летни ремаркета)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "№ 651/660 (Лодка)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "O302T": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O302"
+  },
+  "O305": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O305"
+  },
+  "O305G": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O305"
+  },
+  "O305G Heuliez GTX": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O305"
+  },
+  "O309 Irankhodro": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O309"
+  },
+  "O345": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O405"
+  },
+  "O345 Conecto": {
+    "low_floor": true,
+    "source": "https://www.mercedes-benz-bus.com/int/en/models/conecto.html"
+  },
+  "O345 Conecto G": {
+    "low_floor": true,
+    "source": "https://www.mercedes-benz-bus.com/int/en/models/conecto.html"
+  },
+  "O345G": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O405"
+  },
+  "O402": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O303"
+  },
+  "O405": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O405"
+  },
+  "O405G": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O405"
+  },
+  "O405 Hispano VÖV II": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O405"
+  },
+  "O405N": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O405"
+  },
+  "O405N2": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_O405"
+  },
+  "O520 Cito (9.6m)": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_Cito"
+  },
+  "O530 Citaro": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_Citaro"
+  },
+  "O530 Citaro CNG": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_Citaro"
+  },
+  "O530 Citaro Facelift": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_Citaro"
+  },
+  "O530 Citaro Facelift CNG": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Mercedes-Benz_Citaro"
+  },
+  "O560 Intouro E": {
+    "low_floor": false,
+    "source": "https://www.mercedes-benz-bus.com/int/en/models/intouro.html"
+  },
+  "O560 Intouro M": {
+    "low_floor": false,
+    "source": "https://www.mercedes-benz-bus.com/int/en/models/intouro.html"
+  },
+  "O560 Intouro ME": {
+    "low_floor": false,
+    "source": "https://www.mercedes-benz-bus.com/int/en/models/intouro.html"
+  },
+  " O628 Conecto Lf": {
+    "low_floor": true,
+    "source": "https://www.mercedes-benz-bus.com/int/en/models/conecto.html"
+  },
+  "O628 Conecto LF G": {
+    "low_floor": true,
+    "source": "https://www.mercedes-benz-bus.com/int/en/models/conecto.html"
+  },
+  "Prestij City": {
+    "low_floor": false,
+    "source": "https://www.temsa.com/en/temsa-world/detail/temsas-midibus-icon-prestij-returns-with-a-bold-new-identity/313/407/0"
+  },
+  "Procity CNG 2017": {
+    "low_floor": true,
+    "source": "https://bmcromania.ro/wp-content/uploads/2021/02/BMC-PROCITY-CNG-12M-FOY-EN-3-copy.pdf"
+  },
+  "Procity CNG 2018": {
+    "low_floor": true,
+    "source": "https://bmcromania.ro/wp-content/uploads/2021/02/BMC-PROCITY-CNG-12M-FOY-EN-3-copy.pdf"
+  },
+  "S215SL": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Setra"
+  },
+  "Sanos S200GNR": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/FAS_Sanos"
+  },
+  "SB250 LPG / Berkhof Premier": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/VDL_SB250"
+  },
+  "SD200": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/MAN_SL200"
+  },
+  "SD202": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/MAN_SL202"
+  },
+  "SG192": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/MAN_SG_220"
+  },
+  "SG262": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/MAN_Lion%27s_City"
+  },
+  "Siemens (61-90 -> 1-12, 14-31)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "SL200": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/MAN_SL200"
+  },
+  "SL232": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/MAN_SL202"
+  },
+  "Steyr": {
+    "low_floor": null,
+    "source": null
+  },
+  "Swing-122NaSF": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Pesa_Swing"
+  },
+  "Swing-122NaSF2": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Pesa_Swing"
+  },
+  "Swing-122NaSF2-3": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Pesa_Swing"
+  },
+  "T4": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tatra_T4"
+  },
+  "T4D": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tatra_T4"
+  },
+  "T4D-C": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tatra_T4"
+  },
+  "T4D-M2": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tatra_T4"
+  },
+  "T4M-81": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "T6A2B": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tatra_T6A2"
+  },
+  "T6A2 SF": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tatra_T6A2"
+  },
+  "T6A5": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tatra_T6A5"
+  },
+  "T6B5": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tatra_T6B5"
+  },
+  "T6M-400 (София 100)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tramkar"
+  },
+  "T6M-700/M": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tramkar"
+  },
+  "T6M-801 (София)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tramkar"
+  },
+  "T6M-901 (Космонавт)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tramkar"
+  },
+  "T6MD-1000/M": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tramkar"
+  },
+  "T6К-503": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tramkar"
+  },
+  "Tezauto LF 280": {
+    "low_floor": true,
+    "source": "https://busphoto.eu/model/3737/"
+  },
+  "TN": {
+    "low_floor": null,
+    "source": null
+  },
+  "Transit": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Ford_Transit"
+  },
+  "Trollino II 15 AC": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Solaris_Trollino"
+  },
+  "Uerdingen (321-332)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Unknown (31-33)": {
+    "low_floor": null,
+    "source": null
+  },
+  "Urbino IV 12 electric": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Solaris_Urbino_12"
+  },
+  "Urbino IV 12 hybrid": {
+    "low_floor": true,
+    "source": "https://en.wikipedia.org/wiki/Solaris_Urbino_12"
+  },
+  "Waggon AG Be 4-6": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia (partially low-floor per trinmo.org's own specifications.accessibility field; treated conservatively as not ramp-equipped)"
+  },
+  "ZiU-682V1UB": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "ZK6126HGA": {
+    "low_floor": true,
+    "source": "https://en.yutong.com/products/ZK6126HG.shtml"
+  },
+  "ZK6126HGA CNG": {
+    "low_floor": true,
+    "source": "https://en.yutong.com/products/ZK6126HG.shtml"
+  },
+  "АМ-АСЕС Cepelin (34-39 -> 201-206)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Графиня": {
+    "low_floor": false,
+    "source": "https://autobild.bg/"
+  },
+  "М65": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Chavdar_(company)"
+  },
+  "М80": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Chavdar_(company)"
+  },
+  "Неизвестен модел": {
+    "low_floor": null,
+    "source": null
+  },
+  "Работни вагони": {
+    "low_floor": null,
+    "source": null
+  },
+  "Работни трамваи": {
+    "low_floor": null,
+    "source": null
+  },
+  "Т14-20": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Т4М-221 (Република)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Т4М-50": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Т4М-54 (Мотриса на мира)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Т4М-701 (Комсомолец)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Т4М-801": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Т4М-900": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Т4Р-1001  (Комсомолец)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Т4Р-1006 (Комсомолец)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Т4Р-521 (Република)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trams_in_Sofia"
+  },
+  "Т8К-503": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tramkar"
+  },
+  "Т8М-301 (България 1300)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/T8M-301_Bulgaria_1300"
+  },
+  "Т8М-700IT (Inekon)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Inekon_T8M-700IT"
+  },
+  "Т8М-700/M": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tramkar"
+  },
+  "Т8М-730 (София 70)": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Tramkar"
+  },
+  "ТБ-51-55": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  },
+  "Чавдар 130": {
+    "low_floor": false,
+    "source": "https://en.wikipedia.org/wiki/Trolleybuses_in_Sofia"
+  }
+}
