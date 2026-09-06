@@ -38,12 +38,20 @@ src/
     services.ts               activeServiceIds() - active service_ids for a given calendar date
     time.ts                   GTFS time parsing/formatting + computeScheduledEtaMinutes (shared midnight-wrap logic)
     enrich.ts                 enrichVehicles() - merges RT vehicle positions with static data + ramp status
+    accessibility.ts          createAccessibilityResolver() - loads/reloads the vehicle accessibility dataset, resolves a live vehicle.id to ramp-equipped/not/unknown
+    accessibility-table.ts    buildAccessibilityTable() - pure join of trinmo sightings + the curated model table, used by scripts/refresh-accessibility.ts
+    model-accessibility.json  Curated model -> low_floor table (hand-maintained, rarely changes)
+    vehicle-accessibility.seed.json  Bootstrap snapshot of the crawled inventory -> model table, baked into the Docker image so a fresh deploy has real data before any fleet CronJob exists
 
   db/
     ramp.ts                   SQLite access for ramp reservations (create/cancel/status, session + vehicle queries)
 
 proto/
   gtfs-realtime.proto          Minimal GTFS-RT proto (FeedMessage, TripUpdate, VehiclePosition, ...)
+
+scripts/
+  refresh-accessibility.ts     Crawls trinmo.org's fleet registry to rebuild vehicle-accessibility.seed.json's data; run out-of-band (see openspec/changes/ramp-vehicle-accessibility), never from the request path
+  trinmo-schemas.ts            TypeBox schemas validating trinmo.org's untrusted response shapes
 
 test/                          bun:test suite, mirrors src/ (test/gtfs/, test/services/)
 ```
@@ -57,6 +65,7 @@ test/                          bun:test suite, mirrors src/ (test/gtfs/, test/se
 - **GTFS 24+ hour times**: GTFS allows times like `25:30:00` for post-midnight trips on the same service day, and separately, yesterday's active service can have stop_times >= 24:00 that land on today. `gtfs/time.ts` (`computeScheduledEtaMinutes`, `normalizeGtfsHour`) and `services/transit/arrivals.ts` (`collectScheduledArrivals`) both handle this.
 - **Ramp reservations** are SQLite rows (`db/ramp.ts`) with a `pending -> active -> done` (or `cancelled`/`expired`) lifecycle. `services/ramp/bridge.ts` mirrors state to/from hardware over MQTT topics `ramp/{vehicle_id}/cmd` and `ramp/{vehicle_id}/state`; `services/ramp/proximity.ts` triggers the deploy command via GPS distance to the reserved stop. The client-facing contract is the [ramp MQTT protocol](https://github.com/rangelovkiril/rampme-software/wiki/Ramp-MQTT-Protocol) in the wiki; keep it in sync when the topics or payloads change.
 - **SSE** (`services/sse.ts`) is a generic transport: `makeSseStream(broadcaster, getData)` sends a `retry: 3000` hint and the current data on connect, re-sends on every `Broadcaster` publish, and heartbeats (`: hb`) every 20s during quiet periods so Cloudflare's edge and the tunnel do not reap idle streams (100s idle cutoff). It knows nothing about GTFS or ramp - each domain owns and publishes to its own `Broadcaster<T>` (`gtfsRealtimeBroadcaster` in `gtfs/realtime.ts`, `rampBroadcaster` in `services/ramp/broadcaster.ts`), so one domain's signal never has to be faked to push another's stream (e.g. `/ramp/session/stream`). GTFS-derived streams also get a distinct `health` SSE event on staleness transitions (healthy<->degraded), separate from the regular data event.
+- **Vehicle accessibility** has two datasets with very different volatility, deliberately kept separate: `gtfs/model-accessibility.json` is hand-curated (model -> low_floor) and barely ever changes, so it's just a checked-in source file. `vehicle-accessibility.seed.json` (inventory -> model, crowd-sourced from trinmo.org) drifts as vehicles get reassigned/retired, so it's rebuilt by `scripts/refresh-accessibility.ts` and baked into the Docker image at build time (see the `Dockerfile`) as a bootstrap snapshot - not a live source of truth. A `fleet` CronJob mounting a volume over the same path is the intended long-term freshness mechanism; until it exists, each new image build simply re-runs the script to refresh the snapshot. `gtfs/accessibility.ts`'s loader doesn't care which one put the file there - it just reads `RAMP_ACCESSIBILITY_DATA_PATH` and reloads on an interval.
 - **MQTT payload validation** uses TypeBox (`@sinclair/typebox` + `Value.Check`) at the point untrusted hardware input enters the system (`HardwareStateSchema` in `bridge.ts`). This is the pattern for any new untrusted-input parsing. Internally decoded, structurally guaranteed data (GTFS-RT) uses plain TS interfaces instead; do not add TypeBox validation to hot per-tick paths.
 - **Logging** goes through `consola`, tagged per subsystem via `consola.withTag('mqtt' | 'ramp-mqtt' | 'proximity')`. No bare `console.*` calls.
 

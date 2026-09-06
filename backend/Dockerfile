@@ -24,6 +24,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 WORKDIR /app
 COPY --from=build --chown=app:app /app/server ./server
 RUN mkdir -p /app/data && chown app:app /app/data
+# Bootstrap snapshot of the vehicle accessibility dataset (see
+# openspec/changes/ramp-vehicle-accessibility), so every image ships with a
+# working answer instead of "unknown" for everything. It goes stale as
+# vehicles get reassigned/retired — the fleet CronJob (once it exists)
+# refreshes it in place by mounting a volume over the same path; until then,
+# a new image build re-runs scripts/refresh-accessibility.ts to update it.
+COPY --chown=app:app src/gtfs/vehicle-accessibility.seed.json ./data/vehicle-accessibility.json
 
 USER app
 EXPOSE 3000
