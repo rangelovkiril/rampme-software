@@ -12,6 +12,11 @@ export const config = {
 
   rampDbPath: process.env.RAMP_DB_PATH ?? './data/ramp.db',
 
+  rampAccessibility: {
+    dataPath: process.env.RAMP_ACCESSIBILITY_DATA_PATH ?? './data/vehicle-accessibility.json',
+    refreshMs: Number(process.env.RAMP_ACCESSIBILITY_REFRESH_MS ?? 60 * 60 * 1000),
+  },
+
   mqtt: {
     url: process.env.MQTT_URL,
     username: process.env.MQTT_USERNAME,

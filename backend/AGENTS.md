@@ -96,6 +96,8 @@ Starts without a broker: with no `MQTT_URL` set, MQTT and the ramp hardware path
 | `GTFS_RT_STALE_THRESHOLD_MS` | `15000` | How long since a GTFS-RT feed's last successful fetch before it's considered degraded |
 | `PROTO_PATH` | `proto/gtfs-realtime.proto` | Protobuf definition path |
 | `RAMP_DB_PATH` | `./data/ramp.db` | SQLite path for ramp reservations |
+| `RAMP_ACCESSIBILITY_DATA_PATH` | `./data/vehicle-accessibility.json` | Path to the vehicle wheelchair-ramp accessibility reference dataset, rebuilt out-of-band by `scripts/refresh-accessibility.ts` (see `openspec/changes/ramp-vehicle-accessibility`); missing file means every vehicle resolves as unknown |
+| `RAMP_ACCESSIBILITY_REFRESH_MS` | `3600000` (1h) | How often the backend reloads the accessibility dataset from disk to pick up a scheduled refresh |
 | `MQTT_URL` | _(unset)_ | MQTT broker URL; if unset, MQTT/ramp hardware integration is skipped entirely |
 | `MQTT_USERNAME` / `MQTT_PASSWORD` | _(unset)_ | MQTT broker credentials |
 | `MQTT_CLIENT_ID` | `rampme-backend` | MQTT client ID |

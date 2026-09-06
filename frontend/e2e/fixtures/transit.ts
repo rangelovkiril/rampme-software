@@ -163,14 +163,19 @@ function createStopsRoutes(stop: Stop, arrivals: StopArrival[], fulfillSse: Fulf
 // vehicle/trip/ETA handlers) and backend/src/routes/transit.ts (which owns
 // `/routes/shapes`). Only this internal name changes; the `/api/realtime/*`
 // route prefix the frontend calls is unaffected.
-function createTransitRoutes(vehicle: Vehicle, trip: TripData, fulfillSse: Fulfiller) {
+function createTransitRoutes(
+  vehicle: Vehicle,
+  vehicles: Vehicle[],
+  trip: TripData,
+  fulfillSse: Fulfiller,
+) {
   const handle: DomainRouteHandler = async (route, method, pathname) => {
     if (method === 'GET' && pathname === '/api/realtime/vehicles') {
-      await fulfillJson(route, [vehicle])
+      await fulfillJson(route, vehicles)
       return true
     }
     if (method === 'GET' && pathname === '/api/realtime/vehicles/stream') {
-      await fulfillSse(route, [vehicle])
+      await fulfillSse(route, vehicles)
       return true
     }
     if (method === 'GET' && pathname === `/api/realtime/vehicles/${vehicle.id}/trip`) {
@@ -278,9 +283,16 @@ function createRampRoutes(sessionId: string, fulfillSse: Fulfiller) {
   return { handle, state }
 }
 
-export async function mockTransitApi(page: Page): Promise<ApiMockState> {
+export async function mockTransitApi(
+  page: Page,
+  options: { vehicles?: Vehicle[] } = {},
+): Promise<ApiMockState> {
   const stop = createStop()
   const vehicle = createVehicle()
+  // The primary `vehicle` still backs the single-vehicle trip/etas routes
+  // below; `vehicles` only widens what the list-returning routes serve, so
+  // every existing single-vehicle test is unaffected by this default.
+  const vehicles = options.vehicles ?? [vehicle]
   const arrivals = createArrivals()
   const trip = createTrip()
   const unhandledRequests: string[] = []
@@ -307,7 +319,7 @@ export async function mockTransitApi(page: Page): Promise<ApiMockState> {
   }
 
   const stopsRoutes = createStopsRoutes(stop, arrivals, fulfillSse)
-  const transitRoutes = createTransitRoutes(vehicle, trip, fulfillSse)
+  const transitRoutes = createTransitRoutes(vehicle, vehicles, trip, fulfillSse)
   const rampRoutes = createRampRoutes(sessionId, fulfillSse)
 
   await page.addInitScript((id) => localStorage.setItem('rampme_session', id), sessionId)

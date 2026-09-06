@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+import { getAccessibility } from '../gtfs/accessibility'
 import { type EnrichedVehicle, enrichVehicles } from '../gtfs/enrich'
 import {
   fetchTripUpdates,
@@ -25,7 +26,12 @@ const EnrichedVehicleSchema = t.Object({
   route_type: t.Nullable(t.Number()),
   headsign: t.Nullable(t.String()),
   label: t.Nullable(t.String()),
-  ramp_status: t.Union([t.Literal('unknown'), t.Literal('working'), t.Literal('in_use')]),
+  ramp_status: t.Union([
+    t.Literal('unknown'),
+    t.Literal('no_ramp'),
+    t.Literal('working'),
+    t.Literal('in_use'),
+  ]),
   ramp_reservations: t.Array(
     t.Object({
       id: t.Number(),
@@ -53,7 +59,12 @@ async function getUnfilteredVehicles(): Promise<EnrichedVehicle[] | null> {
   if (cache && cache.tick === currentTick) return cache.vehicles
   const feed = await fetchVehiclePositions()
   const reservationsByVehicle = getReservationsByVehicle()
-  const vehicles = enrichVehicles(feed.entity ?? [], data, reservationsByVehicle)
+  const vehicles = enrichVehicles(
+    feed.entity ?? [],
+    data,
+    reservationsByVehicle,
+    getAccessibility().resolve,
+  )
   cache = { tick: currentTick, vehicles }
   return vehicles
 }
@@ -69,7 +80,8 @@ async function buildEnrichedVehicles(filters: {
   if (filters.route_id) filtered = filtered.filter((v) => v.route_id === filters.route_id)
   if (filters.route_type !== undefined)
     filtered = filtered.filter((v) => v.route_type === Number(filters.route_type))
-  if (filters.has_ramp === 'true') filtered = filtered.filter((v) => v.ramp_status !== 'unknown')
+  if (filters.has_ramp === 'true')
+    filtered = filtered.filter((v) => v.ramp_status === 'working' || v.ramp_status === 'in_use')
   return filtered
 }
 

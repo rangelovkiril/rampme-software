@@ -1,6 +1,13 @@
 import { getRampDb, type RampReservation } from '../../db/ramp'
 
-export type RampStatus = 'unknown' | 'working' | 'in_use'
+// 'unknown' and 'no_ramp' are both ramp-absent-from-a-reservation's-perspective
+// (neither can ever carry a reservation), but they are not the same fact:
+// 'no_ramp' means the vehicle is confirmed not equipped, 'unknown' means its
+// equipment couldn't be resolved. Collapsing them back into one value would
+// undo the accessibility feature's whole point — see
+// openspec/changes/ramp-vehicle-accessibility's "Three distinguishable
+// accessibility states" requirement.
+export type RampStatus = 'unknown' | 'no_ramp' | 'working' | 'in_use'
 
 export interface VehicleRampInfo {
   ramp_status: RampStatus
@@ -16,8 +23,11 @@ export function getVehicleRampInfoFrom(
   reservations: RampReservation[],
   hasRamp: boolean | null,
 ): VehicleRampInfo {
-  if (hasRamp !== true) {
+  if (hasRamp === null) {
     return { ramp_status: 'unknown', reservations: [] }
+  }
+  if (hasRamp === false) {
+    return { ramp_status: 'no_ramp', reservations: [] }
   }
 
   const compact = reservations.map((r) => ({

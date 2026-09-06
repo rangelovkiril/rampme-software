@@ -10,21 +10,51 @@ import { useSSE } from "@/hooks/useSSE";
 const MIN_ZOOM = 10;
 const DETAIL_ZOOM = 16;
 
-function vehicleIcon(_bearing: number, routeType: number, routeName: string) {
+// Ring around the marker: green = confirmed ramp-equipped, gray = confirmed
+// not equipped, none (transparent) = unknown — so "we don't know" never
+// looks like either answer. See openspec/changes/ramp-vehicle-accessibility's
+// "Map shows accessibility at a glance" requirement.
+function accessibilityRingColor(rampStatus: Vehicle["ramp_status"]): string {
+  if (rampStatus === "working" || rampStatus === "in_use") return "#22c55e";
+  if (rampStatus === "no_ramp") return "#6b7280";
+  return "transparent";
+}
+
+function accessibilityLabel(rampStatus: Vehicle["ramp_status"]): {
+  text: string;
+  color: string;
+} {
+  if (rampStatus === "working" || rampStatus === "in_use") {
+    return { text: "♿ С рампа", color: "#22c55e" };
+  }
+  if (rampStatus === "no_ramp") {
+    return { text: "Без рампа", color: "#9ca3af" };
+  }
+  return { text: "Достъпност неизвестна", color: "#9ca3af" };
+}
+
+function vehicleIcon(
+  _bearing: number,
+  routeType: number,
+  routeName: string,
+  rampStatus: Vehicle["ramp_status"],
+) {
   const color = getRouteColor(routeType);
+  const ring = accessibilityRingColor(rampStatus);
   return L.divIcon({
     className: "",
-    html: `<div style="position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:${color};color:#fff;font-family:Inter,sans-serif;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.4)">${routeName}</div>`,
+    html: `<div style="position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:${color};color:#fff;font-family:Inter,sans-serif;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;border:2px solid ${ring};box-shadow:0 2px 6px rgba(0,0,0,0.4)">${routeName}</div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
   });
 }
 
-function vehicleDotIcon(routeType: number) {
+function vehicleDotIcon(routeType: number, rampStatus: Vehicle["ramp_status"]) {
   const color = getRouteColor(routeType);
+  const ring = accessibilityRingColor(rampStatus);
   return L.divIcon({
     className: "",
-    html: `<div style="width:10px;height:10px;border-radius:50%;background:${color};box-shadow:0 1px 4px rgba(0,0,0,0.5);transform:translate(-50%,-50%)"></div>`,
+    html: `<div style="width:10px;height:10px;border-radius:50%;background:${color};border:2px solid ${ring};box-shadow:0 1px 4px rgba(0,0,0,0.5);transform:translate(-50%,-50%)"></div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
   });
@@ -108,16 +138,18 @@ export default function VehiclesLayer({
         ? `${label} ${v.route_short_name}`
         : displayName;
       const headsign = v.headsign ?? "";
+      const ramp = accessibilityLabel(v.ramp_status);
 
       const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:13px">
         <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${titleLabel}</span>
         ${headsign ? `<br/>${headsign}` : ""}
         <br/><span style="opacity:0.5;font-size:11px">${v.id} · ${v.speed} km/h</span>
+        <br/><span style="color:${ramp.color};font-size:11px;font-weight:600">${ramp.text}</span>
       </div>`;
 
       const icon = useDetailed
-        ? vehicleIcon(v.bearing ?? 0, v.route_type ?? 3, displayName)
-        : vehicleDotIcon(v.route_type ?? 3);
+        ? vehicleIcon(v.bearing ?? 0, v.route_type ?? 3, displayName, v.ramp_status)
+        : vehicleDotIcon(v.route_type ?? 3, v.ramp_status);
       const marker = L.marker(latlng, { icon, zIndexOffset: 1000 });
       marker.bindPopup(popupHtml);
       if (onVehicleSelect) marker.on("click", () => onVehicleSelect(v));

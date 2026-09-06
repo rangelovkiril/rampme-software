@@ -4,6 +4,7 @@ import { Elysia } from 'elysia'
 import { config } from './config'
 import { swaggerPlugin } from './config/swagger'
 import { getRampDb, initRampDb } from './db/ramp'
+import { initAccessibility } from './gtfs/accessibility'
 import { fetchVehiclePositions } from './gtfs/realtime'
 import { fetchStaticGtfs } from './gtfs/static'
 import { rampRoutes } from './routes/ramp'
@@ -24,6 +25,7 @@ async function initGtfs() {
 }
 
 initRampDb(config.rampDbPath)
+initAccessibility(config.rampAccessibility.dataPath, config.rampAccessibility.refreshMs)
 
 createProximityChecker(getRampBridge, getGtfs, getRampDb(), fetchVehiclePositions).start()
 
