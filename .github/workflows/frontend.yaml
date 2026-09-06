@@ -49,6 +49,8 @@ jobs:
           check-name: Frontend unit tests
           test-path: test
       - run: bun run build
+        env:
+          NEXT_PUBLIC_CARTO_API_KEY: ${{ secrets.CARTO_API_KEY }}
       - uses: actions/upload-artifact@v4
         with:
           name: frontend-out
