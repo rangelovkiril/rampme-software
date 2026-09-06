@@ -35,6 +35,7 @@ export function enrichVehicles(
   entities: GtfsRtFeedEntity[],
   data: GtfsData,
   reservationsByVehicle: Map<string, RampReservation[]>,
+  resolveAccessibility: (vehicleId: string) => boolean | null,
 ): EnrichedVehicle[] {
   return entities.filter(hasPosition).map((e) => {
     const v = e.vehicle
@@ -45,7 +46,7 @@ export function enrichVehicles(
     const routeId = trip?.route_id ?? rawRouteId
     const route = routeId ? data.routes.get(routeId) : undefined
     const vehicleId = v.vehicle?.id ?? e.id
-    const hasRamp = trip?.wheelchair_accessible === 1
+    const hasRamp = resolveAccessibility(vehicleId)
     const ramp = getVehicleRampInfoFrom(reservationsByVehicle.get(vehicleId) ?? [], hasRamp)
 
     return {
