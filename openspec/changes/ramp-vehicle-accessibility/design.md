@@ -42,4 +42,4 @@ Purely additive, no schema migration. New env var `RAMP_ACCESSIBILITY_DATA_PATH`
 
 ## Open Questions
 
-- Live trolleybus samples (`TB` prefix) haven't been directly observed yet — only inferred from the GTFS static route-id prefix scheme, since no trolleybus was running during the (night-time) capture window. Worth confirming against a daytime capture during implementation; doesn't change the approach if it turns out to need a different prefix.
+None remaining. The one open question this design started with — whether live trolleybus `vehicle.id` values actually carry the `TB` prefix, unconfirmed at design time because no trolleybus was running during the original (night-time) capture — was resolved during implementation: a full daytime capture (200 concurrent vehicles: 116 bus, 44 tram, 40 trolleybus) confirmed the `TB` prefix and got real resolutions for 24/40 trolleybuses. See tasks.md 5.2 for the full match-rate breakdown.
