@@ -23,7 +23,7 @@ const TILES = {
 
 const SOFIA_CENTER = { lat: 42.6977, lng: 23.3219 }
 
-export default function Map() {
+export default function MapView() {
   const mapRef = useRef<LeafletMap | null>(null)
   const [dark, setDark] = useState(true)
   const [tracking, setTracking] = useState(false)
@@ -35,7 +35,6 @@ export default function Map() {
   } | null>(null)
   const [activePanel, setActivePanel] = useState<string | null>(null)
   const [navCloseSignal, setNavCloseSignal] = useState(0)
-  const [compactSheet, setCompactSheet] = useState(false)
 
   const { lockedVehicleId } = useRamp()
 
@@ -62,7 +61,6 @@ export default function Map() {
     setSelectedVehicle(v)
     setSelectedStop(null)
     setActivePanel(null)
-    setCompactSheet(false)
     setNavCloseSignal((s) => s + 1)
     if (v.route_id && v.route_type != null)
       setSelectedRoute({ routeId: v.route_id, routeType: v.route_type })
@@ -76,7 +74,6 @@ export default function Map() {
     setSelectedVehicle({ id: vehicleId } as Vehicle)
     setSelectedStop(null)
     setSelectedRoute(null)
-    setCompactSheet(true)
     setActivePanel(null)
     setNavCloseSignal((s) => s + 1)
 
@@ -113,7 +110,6 @@ export default function Map() {
   // to call fitBounds() on close → jarring unzoom. Now: clear state, no map op.
   const handleVehicleSheetClose = useCallback(() => {
     setSelectedVehicle(null)
-    setCompactSheet(false)
     setSelectedRoute(null)
   }, [])
 
@@ -189,7 +185,6 @@ export default function Map() {
         vehicle={selectedVehicle}
         onClose={handleVehicleSheetClose}
         onTripLoaded={handleTripLoaded}
-        compact={compactSheet}
       />
     </div>
   )

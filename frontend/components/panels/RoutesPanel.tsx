@@ -57,7 +57,7 @@ export default function RoutesPanel({ onSelectRoute, onClose }: RoutesPanelProps
       if (ta !== tb) return ta - tb
       const na = parseInt(a.route_short_name, 10)
       const nb = parseInt(b.route_short_name, 10)
-      if (!isNaN(na) && !isNaN(nb)) return na - nb
+      if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb
       return a.route_short_name.localeCompare(b.route_short_name)
     })
   }, [routes, search, filterType])

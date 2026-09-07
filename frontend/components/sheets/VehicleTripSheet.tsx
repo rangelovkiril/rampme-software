@@ -33,7 +33,6 @@ interface Props {
   vehicle: Vehicle | null
   onClose: () => void
   onTripLoaded?: (routeId: string | null, routeType: number | null) => void
-  compact?: boolean
 }
 
 // How far below min-height the user must drag to dismiss
@@ -47,7 +46,6 @@ export default function VehicleTripSheet({
   vehicle,
   onClose,
   onTripLoaded,
-  compact = false,
 }: Props) {
   const [trip, setTrip] = useState<TripData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -116,7 +114,7 @@ export default function VehicleTripSheet({
     if (!vehicle) return
     const id = requestAnimationFrame(() => {
       measure()
-      setHeight((h) => {
+      setHeight(() => {
         const target = minHeight + (maxHeight - minHeight) * 0.6
         return Math.min(Math.max(target, minHeight), maxHeight)
       })
@@ -373,8 +371,13 @@ export default function VehicleTripSheet({
                   {visibleStops.map((stop, i, arr) => {
                     const isDeparted = stop.status === 'departed'
                     const isAtStop = false
-                    const isBoarding = boardingRes?.stop_id === stop.stop_id
-                    const isAlighting = alightingRes?.stop_id === stop.stop_id
+                    const boardingHere =
+                      boardingRes?.stop_id === stop.stop_id ? boardingRes : null
+                    const alightingHere =
+                      alightingRes?.stop_id === stop.stop_id ? alightingRes : null
+                    const cancelableRes = boardingHere ?? alightingHere
+                    const isBoarding = boardingHere !== null
+                    const isAlighting = alightingHere !== null
                     const isAfterBoarding = boardingSeq >= 0 && stop.stop_sequence > boardingSeq
                     const canAlight =
                       isLocked &&
@@ -400,7 +403,7 @@ export default function VehicleTripSheet({
 
                     return (
                       <div
-                        key={stop.stop_id + i}
+                        key={`${stop.stop_id}-${stop.stop_sequence}`}
                         data-stop-row
                         className="relative flex gap-3 pb-3"
                       >
@@ -495,12 +498,10 @@ export default function VehicleTripSheet({
                                 </div>
                               )}
 
-                              {isBoarding || isAlighting ? (
+                              {cancelableRes ? (
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    cancel((isBoarding ? boardingRes : alightingRes)!.id)
-                                  }
+                                  onClick={() => cancel(cancelableRes.id)}
                                   className="rounded-lg px-2 py-1 text-xs font-semibold cursor-pointer transition-all"
                                   style={{
                                     background:

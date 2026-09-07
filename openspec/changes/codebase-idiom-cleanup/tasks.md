@@ -8,7 +8,7 @@
 
 - [x] 2.1 Add `"**/*.tsx"` to `files.includes` in `frontend/biome.json`, and verify `bunx biome check .` now reports 41 files checked instead of 18.
 - [x] 2.2 Apply the mechanical fixes with `bunx biome check --fix .` (formatting and `organizeImports` only) and commit alone, verifying `git diff --stat` touches only `.tsx` files and `bunx tsc --noEmit` still passes.
-- [ ] 2.3 Resolve the local lint classes (`noNonNullAssertion`, `noUnusedVariables`, `noUnusedFunctionParameters`, `noArrayIndexKey`, `noShadowRestrictedNames`, `noGlobalIsNan`) and verify those rules report zero findings.
+- [x] 2.3 Resolve the local lint classes (`noNonNullAssertion`, `noUnusedVariables`, `noUnusedFunctionParameters`, `noArrayIndexKey`, `noShadowRestrictedNames`, `noGlobalIsNan`) and verify those rules report zero findings.
 - [ ] 2.4 Resolve the a11y classes (`noSvgWithoutTitle`, `noStaticElementInteractions`, `useKeyWithClickEvents`, `noDangerouslySetInnerHtml`) by adding titles and keyboard handlers rather than suppressions, and verify with a Playwright accessibility-tree snapshot that the affected controls expose an accessible name.
 - [ ] 2.5 Review each of the 13 `useExhaustiveDependencies` findings individually, either adding the missing dependency or suppressing it with a comment stating why the omission is deliberate; commit separately from 2.2 and verify `bun run test:e2e` passes on this commit specifically.
 - [ ] 2.6 Verify `bun run check` in `frontend/` passes clean with the widened config.

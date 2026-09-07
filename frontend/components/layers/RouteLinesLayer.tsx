@@ -44,15 +44,16 @@ export default function RouteLinesLayer({
       return
     }
 
+    const id = routeId
     let cancelled = false
     async function fetchShape() {
       try {
-        const res = await fetch(apiPath(`/routes/shapes?ids=${routeId}`))
+        const res = await fetch(apiPath(`/routes/shapes?ids=${id}`))
         if (!res.ok || cancelled) return
         const data: Record<string, RouteShape> = await res.json()
-        const s = data[routeId!]
+        const s = data[id]
         if (s) {
-          cacheRef.current.set(routeId!, s)
+          cacheRef.current.set(id, s)
           if (!cancelled) setShape(s)
         } else {
           if (!cancelled) setShape(null)

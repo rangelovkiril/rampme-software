@@ -100,7 +100,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
     // Open at a reasonable default — around 60% of available range
     requestAnimationFrame(() => {
       measure()
-      setHeight((h) => {
+      setHeight(() => {
         const target = minHeight + (maxHeight - minHeight) * 0.6
         return Math.min(Math.max(target, minHeight), maxHeight)
       })
@@ -130,7 +130,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
           setArrivals(Array.isArray(data) ? data : [])
           setError(null)
         }
-      } catch (e) {
+      } catch {
         if (!controller.signal.aborted && active) {
           setError('Неуспешно зареждане на пристигащи превозни средства.')
         }

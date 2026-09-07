@@ -80,7 +80,6 @@ function ReservationCard({
   onOpen?: () => void
 }) {
   const isPending = r.status === 'pending'
-  const isActive = r.status === 'pending' || r.status === 'active'
   return (
     <div
       role={onOpen ? 'button' : undefined}

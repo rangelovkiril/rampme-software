@@ -36,7 +36,7 @@ export default function FloatingNav({
   onReservationsOpen,
   closeSignal,
 }: Props) {
-  const { reservations, lockedVehicleId, lockedRouteShortName, cancel } = useRamp()
+  const { reservations, lockedRouteShortName, cancel } = useRamp()
   const [sheetOpen, setSheetOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [dragY, setDragY] = useState(0)
@@ -274,7 +274,7 @@ export default function FloatingNav({
         >
           {hasActive ? (
             <div className="flex flex-col gap-1.5">
-              {showAlightingFirst ? (
+              {showAlightingFirst && boardingRes && alightingRes ? (
                 <>
                   <button
                     type="button"
@@ -295,10 +295,10 @@ export default function FloatingNav({
                       routeType={
                         secondaryTripInfo?.route_type ?? primaryTripInfo?.route_type ?? null
                       }
-                      stopName={getAlightingMeta(alightingRes!.stop_id)?.stop_name ?? null}
+                      stopName={getAlightingMeta(alightingRes.stop_id)?.stop_name ?? null}
                       eta={alightingEta}
-                      status={getAlightingMeta(alightingRes!.stop_id)?.status ?? null}
-                      resStatus={alightingRes!.status as 'pending' | 'active'}
+                      status={getAlightingMeta(alightingRes.stop_id)?.status ?? null}
+                      resStatus={alightingRes.status as 'pending' | 'active'}
                     />
                   </button>
                   <button
@@ -318,10 +318,10 @@ export default function FloatingNav({
                       type="board"
                       routeName={primaryTripInfo?.route_short_name ?? lockedRouteShortName}
                       routeType={primaryTripInfo?.route_type ?? null}
-                      stopName={getBoardingMeta(boardingRes!.stop_id)?.stop_name ?? null}
+                      stopName={getBoardingMeta(boardingRes.stop_id)?.stop_name ?? null}
                       eta={boardingEta}
-                      status={getBoardingMeta(boardingRes!.stop_id)?.status ?? null}
-                      resStatus={boardingRes!.status as 'pending' | 'active'}
+                      status={getBoardingMeta(boardingRes.stop_id)?.status ?? null}
+                      resStatus={boardingRes.status as 'pending' | 'active'}
                     />
                   </button>
                 </>
