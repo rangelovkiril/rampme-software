@@ -1,20 +1,20 @@
-"use client";
+'use client'
 
-import type { RampReservation } from "@/contexts/RampContext";
+import type { RampReservation } from '@/contexts/RampContext'
 
 interface StopMeta {
-  eta_minutes: number | null;
-  stop_name: string | null;
-  status: "departed" | "delay" | "on_time" | "scheduled" | null;
+  eta_minutes: number | null
+  stop_name: string | null
+  status: 'departed' | 'delay' | 'on_time' | 'scheduled' | null
 }
 
 interface ResDetailCardProps {
-  res: RampReservation;
-  meta: StopMeta | null;
-  routeName: string | null;
-  type: "board" | "alight";
-  onCancel: (id: number) => Promise<void>;
-  onOpenVehicle?: (vehicleId: string) => void;
+  res: RampReservation
+  meta: StopMeta | null
+  routeName: string | null
+  type: 'board' | 'alight'
+  onCancel: (id: number) => Promise<void>
+  onOpenVehicle?: (vehicleId: string) => void
 }
 
 export function ResDetailCard({
@@ -25,7 +25,7 @@ export function ResDetailCard({
   onCancel,
   onOpenVehicle,
 }: ResDetailCardProps) {
-  const typeColor = type === "board" ? "#22c55e" : "#f59e0b";
+  const typeColor = type === 'board' ? '#22c55e' : '#f59e0b'
 
   return (
     <div
@@ -40,22 +40,22 @@ export function ResDetailCard({
         className="flex-shrink-0 rounded-lg px-3 py-1.5 text-lg font-black text-white cursor-pointer"
         style={{ background: typeColor }}
       >
-        {routeName ?? "?"}
+        {routeName ?? '?'}
       </button>
       <span
         className="flex-1 truncate text-sm font-semibold"
-        style={{ color: "var(--text-muted)" }}
+        style={{ color: 'var(--text-muted)' }}
       >
-        {meta?.stop_name ?? ""}
+        {meta?.stop_name ?? ''}
       </span>
       <button
         type="button"
         onClick={() => onCancel(res.id)}
         className="flex-shrink-0 cursor-pointer rounded-lg px-3 py-1 text-sm font-semibold"
-        style={{ background: "#ef4444", color: "#fff" }}
+        style={{ background: '#ef4444', color: '#fff' }}
       >
         Отказ
       </button>
     </div>
-  );
+  )
 }

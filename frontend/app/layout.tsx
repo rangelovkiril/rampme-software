@@ -37,7 +37,7 @@ export const viewport: Viewport = {
  * @returns The HTML root element containing head and body with the provided children
  */
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
@@ -54,7 +54,7 @@ export default function RootLayout({
                   document.documentElement.classList.add('dark');
                 }
               } catch (e) {}
-            })()`
+            })()`,
           }}
         />
       </head>

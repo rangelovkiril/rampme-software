@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
 interface MapControlsProps {
-  dark: boolean;
-  onToggleTheme: () => void;
-  tracking: boolean;
-  onToggleTracking: () => void;
-  liftLocate?: boolean;
+  dark: boolean
+  onToggleTheme: () => void
+  tracking: boolean
+  onToggleTracking: () => void
+  liftLocate?: boolean
 }
 
 export default function MapControls({
@@ -18,10 +18,7 @@ export default function MapControls({
   return (
     <div className="absolute right-4 bottom-8 z-[800] flex flex-col gap-2">
       {/* Theme toggle */}
-      <ControlButton
-        onClick={onToggleTheme}
-        title={dark ? "Светла тема" : "Тъмна тема"}
-      >
+      <ControlButton onClick={onToggleTheme} title={dark ? 'Светла тема' : 'Тъмна тема'}>
         {dark ? (
           <svg
             width="16"
@@ -60,17 +57,14 @@ export default function MapControls({
         )}
       </ControlButton>
 
-      <div
-        className="h-px w-6 self-center"
-        style={{ background: "var(--border)" }}
-      />
+      <div className="h-px w-6 self-center" style={{ background: 'var(--border)' }} />
 
       {/* Live location toggle */}
       <ControlButton
         onClick={onToggleTracking}
-        title={tracking ? "Спри проследяването" : "Проследи местоположение"}
+        title={tracking ? 'Спри проследяването' : 'Проследи местоположение'}
         active={tracking}
-        className={`transition-transform duration-300 ${liftLocate ? "locate-btn-lift" : ""}`}
+        className={`transition-transform duration-300 ${liftLocate ? 'locate-btn-lift' : ''}`}
       >
         <svg
           width="16"
@@ -87,7 +81,7 @@ export default function MapControls({
         </svg>
       </ControlButton>
     </div>
-  );
+  )
 }
 
 function ControlButton({
@@ -95,13 +89,13 @@ function ControlButton({
   title,
   children,
   active = false,
-  className = "",
+  className = '',
 }: {
-  onClick: () => void;
-  title: string;
-  children: React.ReactNode;
-  active?: boolean;
-  className?: string;
+  onClick: () => void
+  title: string
+  children: React.ReactNode
+  active?: boolean
+  className?: string
 }) {
   return (
     <button
@@ -111,18 +105,18 @@ function ControlButton({
       aria-label={title}
       className={`map-control-btn flex cursor-pointer items-center justify-center rounded-xl transition-all active:scale-95 ${className}`}
       style={{
-        background: active ? "#3b82f6" : "var(--control-bg)",
-        color: active ? "#ffffff" : "var(--text-secondary)",
-        boxShadow: "var(--shadow)",
+        background: active ? '#3b82f6' : 'var(--control-bg)',
+        color: active ? '#ffffff' : 'var(--text-secondary)',
+        boxShadow: 'var(--shadow)',
       }}
       onMouseEnter={(e) => {
-        if (!active) e.currentTarget.style.background = "var(--control-hover)";
+        if (!active) e.currentTarget.style.background = 'var(--control-hover)'
       }}
       onMouseLeave={(e) => {
-        if (!active) e.currentTarget.style.background = "var(--control-bg)";
+        if (!active) e.currentTarget.style.background = 'var(--control-bg)'
       }}
     >
       {children}
     </button>
-  );
+  )
 }

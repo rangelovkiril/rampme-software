@@ -3,8 +3,8 @@
 import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
-import type { Stop } from '@/lib/types'
 import { apiPath } from '@/lib/config'
+import type { Stop } from '@/lib/types'
 
 const MIN_ZOOM_FOR_STOPS = 15
 
@@ -58,7 +58,9 @@ export default function StopsLayer({ selectedStopId = null, onStopSelect }: Stop
   }, [])
 
   useEffect(() => {
-    function update() { setRevision(r => r + 1) }
+    function update() {
+      setRevision((r) => r + 1)
+    }
     map.on('zoomend', update)
     map.on('moveend', update)
     return () => {
@@ -69,9 +71,13 @@ export default function StopsLayer({ selectedStopId = null, onStopSelect }: Stop
 
   useEffect(() => {
     if (!onStopSelect) return
-    function closeSelectedStop() { onStopSelect?.(null) }
+    function closeSelectedStop() {
+      onStopSelect?.(null)
+    }
     map.on('click', closeSelectedStop)
-    return () => { map.off('click', closeSelectedStop) }
+    return () => {
+      map.off('click', closeSelectedStop)
+    }
   }, [map, onStopSelect])
 
   useEffect(() => {
@@ -97,7 +103,7 @@ export default function StopsLayer({ selectedStopId = null, onStopSelect }: Stop
       const marker = L.marker(latlng, {
         icon: selectedStopId === stop.stop_id ? selectedIconRef.current : iconRef.current,
         riseOnHover: true,
-        bubblingMouseEvents: false
+        bubblingMouseEvents: false,
       })
       marker.on('click', () => onStopSelect?.(stop))
       marker.addTo(group)

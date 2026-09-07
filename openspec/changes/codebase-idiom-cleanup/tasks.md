@@ -1,13 +1,13 @@
 ## 1. Prerequisites
 
-- [ ] 1.0 Confirm `simplify-vehicle-ramp-payload` (#96) is merged and archived before starting; this change's field counts assume `ramp_reservations` and `VehicleRampInfo` are already gone.
+- [x] 1.0 Confirm `simplify-vehicle-ramp-payload` (#96) is merged and archived before starting; this change's field counts assume `ramp_reservations` and `VehicleRampInfo` are already gone.
 
-- [ ] 1.1 On its own branch, sync the `ramp/reservations` capability from `openspec/changes/archive/2026-09-03-ramp-reserve-without-mqtt/specs/ramp/reservations/spec.md` into `openspec/specs/ramp/reservations/spec.md`, and verify `openspec/specs/ramp/reservations/spec.md` exists with its three archived requirements and a real (non-`TBD`) Purpose. This change's delta cannot be archived until it lands.
+- [x] 1.1 On its own branch, sync the `ramp/reservations` capability from `openspec/changes/archive/2026-09-03-ramp-reserve-without-mqtt/specs/ramp/reservations/spec.md` into `openspec/specs/ramp/reservations/spec.md`, and verify `openspec/specs/ramp/reservations/spec.md` exists with its three archived requirements and a real (non-`TBD`) Purpose. This change's delta cannot be archived until it lands.
 
 ## 2. Frontend tooling (do first, it rewrites most `.tsx` files)
 
-- [ ] 2.1 Add `"**/*.tsx"` to `files.includes` in `frontend/biome.json`, and verify `bunx biome check .` now reports 41 files checked instead of 18.
-- [ ] 2.2 Apply the mechanical fixes with `bunx biome check --fix .` (formatting and `organizeImports` only) and commit alone, verifying `git diff --stat` touches only `.tsx` files and `bunx tsc --noEmit` still passes.
+- [x] 2.1 Add `"**/*.tsx"` to `files.includes` in `frontend/biome.json`, and verify `bunx biome check .` now reports 41 files checked instead of 18.
+- [x] 2.2 Apply the mechanical fixes with `bunx biome check --fix .` (formatting and `organizeImports` only) and commit alone, verifying `git diff --stat` touches only `.tsx` files and `bunx tsc --noEmit` still passes.
 - [ ] 2.3 Resolve the local lint classes (`noNonNullAssertion`, `noUnusedVariables`, `noUnusedFunctionParameters`, `noArrayIndexKey`, `noShadowRestrictedNames`, `noGlobalIsNan`) and verify those rules report zero findings.
 - [ ] 2.4 Resolve the a11y classes (`noSvgWithoutTitle`, `noStaticElementInteractions`, `useKeyWithClickEvents`, `noDangerouslySetInnerHtml`) by adding titles and keyboard handlers rather than suppressions, and verify with a Playwright accessibility-tree snapshot that the affected controls expose an accessible name.
 - [ ] 2.5 Review each of the 13 `useExhaustiveDependencies` findings individually, either adding the missing dependency or suppressing it with a comment stating why the omission is deliberate; commit separately from 2.2 and verify `bun run test:e2e` passes on this commit specifically.

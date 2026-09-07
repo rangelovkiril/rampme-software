@@ -3,8 +3,8 @@
 import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
-import { getRouteColor } from '@/lib/transit'
 import { apiPath } from '@/lib/config'
+import { getRouteColor } from '@/lib/transit'
 
 interface RouteShape {
   route_type: number
@@ -17,20 +17,32 @@ interface RouteLinesLayerProps {
   autoFit?: boolean
 }
 
-export default function RouteLinesLayer({ routeId, routeType, autoFit = true }: RouteLinesLayerProps) {
+export default function RouteLinesLayer({
+  routeId,
+  routeType,
+  autoFit = true,
+}: RouteLinesLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.LayerGroup | null>(null)
   const cacheRef = useRef<Map<string, RouteShape>>(new Map())
   const [shape, setShape] = useState<RouteShape | null>(null)
   // Use a ref so fitBounds only fires when shape loads, not when autoFit prop changes
   const autoFitRef = useRef(autoFit)
-  useEffect(() => { autoFitRef.current = autoFit }, [autoFit])
+  useEffect(() => {
+    autoFitRef.current = autoFit
+  }, [autoFit])
 
   useEffect(() => {
-    if (!routeId) { setShape(null); return }
+    if (!routeId) {
+      setShape(null)
+      return
+    }
 
     const cached = cacheRef.current.get(routeId)
-    if (cached) { setShape(cached); return }
+    if (cached) {
+      setShape(cached)
+      return
+    }
 
     let cancelled = false
     async function fetchShape() {
@@ -45,10 +57,14 @@ export default function RouteLinesLayer({ routeId, routeType, autoFit = true }: 
         } else {
           if (!cancelled) setShape(null)
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     fetchShape()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [routeId])
 
   useEffect(() => {
@@ -56,14 +72,20 @@ export default function RouteLinesLayer({ routeId, routeType, autoFit = true }: 
     const group = groupRef.current
     group.clearLayers()
 
-    if (!shape || shape.polylines.length === 0) { group.remove(); return }
+    if (!shape || shape.polylines.length === 0) {
+      group.remove()
+      return
+    }
 
     const color = getRouteColor(routeType ?? shape.route_type)
 
     for (const polyline of shape.polylines) {
       if (polyline.length < 2) continue
       L.polyline(polyline as L.LatLngExpression[], {
-        color, weight: 4, opacity: 0.8, smoothFactor: 1,
+        color,
+        weight: 4,
+        opacity: 0.8,
+        smoothFactor: 1,
       }).addTo(group)
     }
 

@@ -1,8 +1,8 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { RampProvider } from '@/contexts/RampContext'
 import MissedBusAlert from '@/components/MissedBusAlert'
+import { RampProvider } from '@/contexts/RampContext'
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false })
 
