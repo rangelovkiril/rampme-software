@@ -29,7 +29,6 @@ export function createVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
     headsign: 'Орлов мост',
     label: 'E2E bus',
     ramp_status: 'working',
-    ramp_reservations: [],
     ...overrides,
   }
 }

@@ -32,14 +32,6 @@ const EnrichedVehicleSchema = t.Object({
     t.Literal('working'),
     t.Literal('in_use'),
   ]),
-  ramp_reservations: t.Array(
-    t.Object({
-      id: t.Number(),
-      stop_id: t.String(),
-      type: t.Union([t.Literal('board'), t.Literal('alight')]),
-      status: t.Union([t.Literal('pending'), t.Literal('active')]),
-    }),
-  ),
 })
 
 // Bumped on every realtime tick so the unfiltered enrichment below is
