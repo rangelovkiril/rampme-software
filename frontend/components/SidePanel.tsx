@@ -125,6 +125,8 @@ export default function SidePanel({
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               <svg
+                role="img"
+                aria-label="Затвори"
                 width="16"
                 height="16"
                 viewBox="0 0 24 24"
@@ -132,6 +134,7 @@ export default function SidePanel({
                 stroke="currentColor"
                 strokeWidth="2.5"
               >
+                <title>Затвори</title>
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>

@@ -21,6 +21,7 @@ export default function MapControls({
       <ControlButton onClick={onToggleTheme} title={dark ? 'Светла тема' : 'Тъмна тема'}>
         {dark ? (
           <svg
+            aria-hidden="true"
             width="16"
             height="16"
             viewBox="0 0 24 24"
@@ -42,6 +43,7 @@ export default function MapControls({
           </svg>
         ) : (
           <svg
+            aria-hidden="true"
             width="16"
             height="16"
             viewBox="0 0 24 24"
@@ -67,6 +69,7 @@ export default function MapControls({
         className={`transition-transform duration-300 ${liftLocate ? 'locate-btn-lift' : ''}`}
       >
         <svg
+          aria-hidden="true"
           width="16"
           height="16"
           viewBox="0 0 24 24"

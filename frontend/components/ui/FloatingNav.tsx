@@ -402,6 +402,7 @@ export default function FloatingNav({
               label="Линии"
             >
               <svg
+                aria-hidden="true"
                 width="15"
                 height="15"
                 viewBox="0 0 24 24"
@@ -422,6 +423,7 @@ export default function FloatingNav({
               label="Спирки"
             >
               <svg
+                aria-hidden="true"
                 width="15"
                 height="15"
                 viewBox="0 0 24 36"
@@ -442,9 +444,11 @@ export default function FloatingNav({
       {/* Reservations detail sheet */}
       {sheetOpen && (
         <>
-          <div
-            className="fixed inset-0 z-[840]"
-            style={{ background: 'rgba(0,0,0,0.4)' }}
+          <button
+            type="button"
+            aria-label="Затвори"
+            className="fixed inset-0 z-[840] cursor-default"
+            style={{ background: 'rgba(0,0,0,0.4)', border: 'none' }}
             onClick={() => setSheetOpen(false)}
           />
           <div className="fixed inset-x-0 bottom-0 z-[850] flex justify-center px-0 sm:px-4">

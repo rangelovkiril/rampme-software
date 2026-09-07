@@ -42,11 +42,7 @@ const TOP_GAP = 12
 // Fallback viewport-relative max, if nav measurement fails
 const MAX_FALLBACK_RATIO = 0.85
 
-export default function VehicleTripSheet({
-  vehicle,
-  onClose,
-  onTripLoaded,
-}: Props) {
+export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Props) {
   const [trip, setTrip] = useState<TripData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -371,8 +367,7 @@ export default function VehicleTripSheet({
                   {visibleStops.map((stop, i, arr) => {
                     const isDeparted = stop.status === 'departed'
                     const isAtStop = false
-                    const boardingHere =
-                      boardingRes?.stop_id === stop.stop_id ? boardingRes : null
+                    const boardingHere = boardingRes?.stop_id === stop.stop_id ? boardingRes : null
                     const alightingHere =
                       alightingRes?.stop_id === stop.stop_id ? alightingRes : null
                     const cancelableRes = boardingHere ?? alightingHere

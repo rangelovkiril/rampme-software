@@ -80,49 +80,56 @@ function ReservationCard({
   onOpen?: () => void
 }) {
   const isPending = r.status === 'pending'
+  const details = (
+    <>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span
+          className="rounded-full px-2 py-0.5 text-xs font-semibold"
+          style={{
+            background: r.type === 'board' ? '#22c55e22' : '#3b82f622',
+            color: r.type === 'board' ? '#22c55e' : '#3b82f6',
+          }}
+        >
+          {r.type === 'board' ? 'Качване' : 'Слизане'}
+        </span>
+        <span className="text-xs font-semibold" style={{ color: STATUS_COLOR[r.status] }}>
+          {STATUS_LABEL[r.status]}
+        </span>
+      </div>
+      <p className="mt-1 text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>
+        {r.vehicle_id}
+      </p>
+      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+        Спирка {r.stop_id}
+      </p>
+    </>
+  )
+
   return (
     <div
-      role={onOpen ? 'button' : undefined}
-      tabIndex={onOpen ? 0 : undefined}
-      onClick={onOpen}
-      onKeyDown={onOpen ? (e) => e.key === 'Enter' && onOpen() : undefined}
       className="rounded-xl p-3 flex items-start justify-between gap-3"
       style={{
         background: 'var(--surface-elevated)',
         border: '1px solid var(--border)',
-        cursor: onOpen ? 'pointer' : 'default',
       }}
     >
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className="rounded-full px-2 py-0.5 text-xs font-semibold"
-            style={{
-              background: r.type === 'board' ? '#22c55e22' : '#3b82f622',
-              color: r.type === 'board' ? '#22c55e' : '#3b82f6',
-            }}
-          >
-            {r.type === 'board' ? 'Качване' : 'Слизане'}
-          </span>
-          <span className="text-xs font-semibold" style={{ color: STATUS_COLOR[r.status] }}>
-            {STATUS_LABEL[r.status]}
-          </span>
-        </div>
-        <p className="mt-1 text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>
-          {r.vehicle_id}
-        </p>
-        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-          Спирка {r.stop_id}
-        </p>
-      </div>
+      {onOpen ? (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="min-w-0 flex-1 cursor-pointer text-left"
+          style={{ background: 'transparent', border: 'none', padding: 0 }}
+        >
+          {details}
+        </button>
+      ) : (
+        <div className="min-w-0 flex-1">{details}</div>
+      )}
 
       {onCancel && isPending && (
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onCancel()
-          }}
+          onClick={onCancel}
           className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold cursor-pointer"
           style={{
             background: 'color-mix(in oklab, var(--control-bg) 80%, #ef4444 20%)',

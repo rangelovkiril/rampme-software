@@ -274,6 +274,8 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
               title={rampOnly ? 'Покажи всички' : 'Само с рампа'}
             >
               <svg
+                role="img"
+                aria-label={rampOnly ? 'Покажи всички' : 'Само с рампа'}
                 width="14"
                 height="14"
                 viewBox="0 0 24 24"
@@ -283,6 +285,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
+                <title>{rampOnly ? 'Покажи всички' : 'Само с рампа'}</title>
                 <circle cx="10" cy="17.5" r="3.5" />
                 <path d="M18 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" fill="currentColor" stroke="none" />
                 <path d="M17 7l-5 5" />
