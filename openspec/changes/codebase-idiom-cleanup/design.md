@@ -5,6 +5,7 @@ See proposal.md for motivation. The design-relevant constraints:
 - The change spans tooling, both apps, and the shared wire format between them, so ordering matters more than usual: the Biome fix mechanically rewrites 21 of 26 `.tsx` files, and any hand edit to those files made first would be rewritten underneath.
 - `/realtime/vehicles` and `/realtime/vehicles/stream` are public cross-origin endpoints on `api.rampme.site`. The frontend is the only known consumer, but it deploys independently of the backend, so a wire-format rename is not atomic.
 - `openspec/specs/ramp/reservations/` does not exist despite its capability having been archived. Every other archived capability is synced. This change's delta targets that path, so the sync gap is a hard sequencing dependency, not a cosmetic one.
+- `simplify-vehicle-ramp-payload` (#96) lands first. It removes `EnrichedVehicle.ramp_reservations`, `VehicleRampInfo`, and the reservations projection from `services/ramp/status.ts`. Every count in this document is measured against the tree with it applied.
 - Backend tests reference members this change removes: `test/gtfs/static.test.ts` asserts on `stopTimes`, and three fixture files set `stopTimes: []`.
 
 ## Goals / Non-Goals
@@ -28,13 +29,13 @@ See proposal.md for motivation. The design-relevant constraints:
 
 Every field crossing the wire is camelCase. Internal types that mirror an external schema keep that schema's spelling: `Stop`, `Route`, `Trip`, `StopTime`, and `CalendarDate` stay snake_case because they are GTFS columns, and `RampReservation` stays snake_case because those are SQLite column names. The translation happens once, at the response boundary.
 
-This is the larger of the two options and was chosen deliberately. Scope, measured rather than estimated: 44 snake_case fields across 8 response types, and 334 references across 17 frontend files.
+This is the larger of the two options and was chosen deliberately. Scope, measured rather than estimated: 43 snake_case fields across 8 response types, and 331 references across 17 frontend files.
 
 It also requires mapping where none exists today. Four routes currently return rows straight through with no transformation at all: `/stops` and `/stops/:id` return `Stop` objects parsed from `stops.txt`, `/routes` returns `Route` objects, and `/ramp/session`, `/ramp/vehicle/:id`, and `POST /ramp/reserve` return `RampReservation` rows cast directly out of `bun:sqlite` (`stmts.sessionActive.all() as RampReservation[]`). Each gains an explicit mapping function. That is new code, and it is the real cost of this decision, but it is also what makes the boundary explicit instead of leaking storage and feed vocabulary into the public API.
 
 The request side moves too: `POST /ramp/reserve`'s body becomes `{ vehicleId, stopId, type }`.
 
-**The rename is sequenced after Eden, not before.** Wiring Eden first means the backend rename makes `tsc` enumerate every stale frontend reference by hand-free exhaustion. Renaming first would leave those 334 references to be found by grep and by eye. This ordering turns the largest and most error-prone part of the change into a compiler-checked worklist.
+**The rename is sequenced after Eden, not before.** Wiring Eden first means the backend rename makes `tsc` enumerate every stale frontend reference by hand-free exhaustion. Renaming first would leave those 331 references to be found by grep and by eye. This ordering turns the largest and most error-prone part of the change into a compiler-checked worklist.
 
 **The schema is the type. Response shapes are defined once, and the TypeScript type is derived from them.**
 

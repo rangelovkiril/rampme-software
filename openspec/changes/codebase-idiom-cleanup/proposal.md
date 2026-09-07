@@ -50,7 +50,7 @@ The remaining findings are internal quality. Doing them together is deliberate: 
 
 **Naming**
 
-- **BREAKING**: every API request and response field becomes camelCase. `EnrichedVehicle` currently mixes conventions within a single interface (`tripId` and `lat` beside `route_id` and `ramp_status`), and the mix is copied verbatim into `frontend/lib/types.ts` and from there into every consuming component. Measured scope: 44 snake_case fields across 8 response types, 334 references across 17 frontend files. `POST /ramp/reserve`'s body becomes `{ vehicleId, stopId, type }`.
+- **BREAKING**: every API request and response field becomes camelCase. `EnrichedVehicle` currently mixes conventions within a single interface (`tripId` and `lat` beside `route_id` and `ramp_status`), and the mix is copied verbatim into `frontend/lib/types.ts` and from there into every consuming component. Measured scope: 43 snake_case fields across 8 response types, 331 references across 17 frontend files. `POST /ramp/reserve`'s body becomes `{ vehicleId, stopId, type }`.
 - Internal types that mirror an external schema keep that schema's spelling: `Stop`, `Route`, `Trip`, `StopTime`, and `CalendarDate` stay snake_case as GTFS columns, and `RampReservation` stays snake_case as SQLite columns. The translation happens once, at the response boundary. Four routes that currently return rows straight through (`/stops`, `/stops/:id`, `/routes`, and the three ramp routes serving `RampReservation`) gain an explicit mapping function, which they have never had.
 - Abbreviated component filenames (`ResBanner.tsx`, `ResDetailCard.tsx`, `NavBtn.tsx`) are spelled out to match their siblings (`ReservationsPanel.tsx`, `StopArrivalsSheet.tsx`, `MapControls.tsx`).
 
@@ -74,7 +74,7 @@ Everything outside the proximity fix is a pure refactor with no spec-level behav
 
 ## Impact
 
-**Excluded by design.** `EnrichedVehicle.ramp_reservations` is dead payload but is already covered by the open `openspec/changes/simplify-vehicle-ramp-payload`; it stays there rather than being duplicated here. Replacing the `getX()`/`initX()` module singletons with Elysia `.state`/`.derive` is also excluded: it is idiomatic, but it reverses the DI-factory shape `backend/AGENTS.md` chose for testability and deserves its own change.
+**Prerequisite, already applied.** `EnrichedVehicle.ramp_reservations` was dead payload and is removed by `simplify-vehicle-ramp-payload` (#96), which also renamed `getVehicleRampInfoFrom` to `getVehicleRampStatusFrom` and dropped `VehicleRampInfo`. This change's measurements are taken against the tree with #96 applied, so #96 lands first. Replacing the `getX()`/`initX()` module singletons with Elysia `.state`/`.derive` is also excluded: it is idiomatic, but it reverses the DI-factory shape `backend/AGENTS.md` chose for testability and deserves its own change.
 
 - `frontend/biome.json` (`files.includes`), and consequently all 26 `.tsx` files under `frontend/app`, `frontend/components`, and `frontend/contexts`
 - `backend/src/services/ramp/proximity.ts` (`tick()`'s `getBridge()` call)
