@@ -20,12 +20,6 @@ export interface Vehicle {
   headsign: string | null
   label: string | null
   ramp_status: 'unknown' | 'no_ramp' | 'working' | 'in_use'
-  ramp_reservations: Array<{
-    id: number
-    stop_id: string
-    type: 'board' | 'alight'
-    status: 'pending' | 'active'
-  }>
 }
 
 export interface StopArrival {
