@@ -27,7 +27,7 @@ RUN mkdir -p /app/data && chown app:app /app/data
 # Fallback default for anyone running this image outside the fleet topology
 # (which overrides RAMP_ACCESSIBILITY_DATA_PATH to a ConfigMap-mounted path
 # instead) — see openspec/changes/ramp-vehicle-accessibility.
-COPY --chown=app:app src/gtfs/vehicle-accessibility.seed.json ./data/vehicle-accessibility.json
+COPY --chown=app:app src/data/vehicle-accessibility.seed.json ./data/vehicle-accessibility.json
 
 USER app
 EXPOSE 3000
