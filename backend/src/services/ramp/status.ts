@@ -9,38 +9,13 @@ import { getRampDb, type RampReservation } from '../../db/ramp'
 // accessibility states" requirement.
 export type RampStatus = 'unknown' | 'no_ramp' | 'working' | 'in_use'
 
-export interface VehicleRampInfo {
-  ramp_status: RampStatus
-  reservations: Array<{
-    id: number
-    stop_id: string
-    type: 'board' | 'alight'
-    status: 'pending' | 'active'
-  }>
-}
-
-export function getVehicleRampInfoFrom(
+export function getVehicleRampStatusFrom(
   reservations: RampReservation[],
   hasRamp: boolean | null,
-): VehicleRampInfo {
-  if (hasRamp === null) {
-    return { ramp_status: 'unknown', reservations: [] }
-  }
-  if (hasRamp === false) {
-    return { ramp_status: 'no_ramp', reservations: [] }
-  }
-
-  const compact = reservations.map((r) => ({
-    id: r.id,
-    stop_id: r.stop_id,
-    type: r.type,
-    status: r.status as 'pending' | 'active',
-  }))
-
-  return {
-    ramp_status: reservations.some((r) => r.status === 'active') ? 'in_use' : 'working',
-    reservations: compact,
-  }
+): RampStatus {
+  if (hasRamp === null) return 'unknown'
+  if (hasRamp === false) return 'no_ramp'
+  return reservations.some((r) => r.status === 'active') ? 'in_use' : 'working'
 }
 
 export function getReservationsByVehicle(): Map<string, RampReservation[]> {

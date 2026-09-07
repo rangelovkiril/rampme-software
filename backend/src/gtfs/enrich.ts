@@ -1,5 +1,5 @@
 import type { RampReservation } from '../db/ramp'
-import { getVehicleRampInfoFrom, type RampStatus } from '../services/ramp/status'
+import { getVehicleRampStatusFrom, type RampStatus } from '../services/ramp/status'
 import type { GtfsData, GtfsRtFeedEntity, GtfsRtPosition, GtfsRtVehiclePosition } from './types'
 
 export interface EnrichedVehicle {
@@ -15,12 +15,6 @@ export interface EnrichedVehicle {
   headsign: string | null
   label: string | null
   ramp_status: RampStatus
-  ramp_reservations: Array<{
-    id: number
-    stop_id: string
-    type: 'board' | 'alight'
-    status: 'pending' | 'active'
-  }>
 }
 
 type EntityWithPosition = GtfsRtFeedEntity & {
@@ -47,7 +41,10 @@ export function enrichVehicles(
     const route = routeId ? data.routes.get(routeId) : undefined
     const vehicleId = v.vehicle?.id ?? e.id
     const hasRamp = resolveAccessibility(vehicleId)
-    const ramp = getVehicleRampInfoFrom(reservationsByVehicle.get(vehicleId) ?? [], hasRamp)
+    const ramp_status = getVehicleRampStatusFrom(
+      reservationsByVehicle.get(vehicleId) ?? [],
+      hasRamp,
+    )
 
     return {
       id: vehicleId,
@@ -61,8 +58,7 @@ export function enrichVehicles(
       route_type: route?.route_type ?? null,
       headsign: trip?.trip_headsign ?? null,
       label: v.vehicle?.label ?? null,
-      ramp_status: ramp.ramp_status,
-      ramp_reservations: ramp.reservations,
+      ramp_status,
     }
   })
 }

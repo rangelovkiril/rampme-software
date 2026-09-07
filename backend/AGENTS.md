@@ -28,7 +28,7 @@ src/
       bridge.ts               Reservations <-> hardware over MQTT (publish cmd, handle hw state, deploy timeout)
       broadcaster.ts          rampBroadcaster - ramp domain's own Broadcaster, published to on reservation state changes
       proximity.ts            GPS proximity checker - triggers deploy when a ramp-reserved vehicle nears its stop
-      status.ts               Ramp status/reservations shaping for enrichment (getReservationsByVehicle, getVehicleRampInfoFrom)
+      status.ts               Ramp status derivation for enrichment (getReservationsByVehicle, getVehicleRampStatusFrom)
 
   gtfs/                       GTFS data layer
     types.ts                  All GTFS + GTFS-RT data interfaces (Stop, Route, Trip, GtfsData, GtfsRt*)
