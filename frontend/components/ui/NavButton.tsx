@@ -2,14 +2,14 @@
 
 import type { ReactNode } from 'react'
 
-interface NavBtnProps {
+interface NavButtonProps {
   active: boolean
   onClick: () => void
   label: string
   children: ReactNode
 }
 
-export function NavBtn({ active, onClick, label, children }: NavBtnProps) {
+export function NavButton({ active, onClick, label, children }: NavButtonProps) {
   return (
     <button
       type="button"

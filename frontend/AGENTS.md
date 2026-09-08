@@ -33,9 +33,9 @@ components/
   ui/                         Standalone UI controls (positioned outside MapContainer)
     MapControls.tsx           Zoom, theme toggle, location tracking buttons
     FloatingNav.tsx           Top navigation pills (Routes/Stops/Reservations)
-    NavBtn.tsx                Shared nav pill button
-    ResBanner.tsx             Compact banner for an active ramp reservation
-    ResDetailCard.tsx         Expanded reservation detail card
+    NavButton.tsx             Shared nav pill button
+    ReservationBanner.tsx     Compact banner for an active ramp reservation
+    ReservationDetailCard.tsx Expanded reservation detail card
 
   SidePanel.tsx               Thin shell - handles open/close, renders active sub-panel
 

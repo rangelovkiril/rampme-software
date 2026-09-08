@@ -48,7 +48,7 @@ test('vehicle markers distinguish ramp-equipped, not-equipped, and unknown', asy
 
   // Exactly one marker per state, and no two states render the same border
   // color — the map's whole "at a glance" contract per
-  // openspec/changes/ramp-vehicle-accessibility.
+  // openspec/specs/ramp/vehicle-accessibility.
   expect(new Set(borders).size).toBe(3)
   // Ramp-equipped is the only state with a visible (non-transparent) green ring.
   expect(borders.filter((c) => c === 'rgb(34, 197, 94)')).toHaveLength(1)

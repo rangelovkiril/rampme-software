@@ -8,7 +8,7 @@ interface StopMeta {
   status: 'departed' | 'delay' | 'on_time' | 'scheduled' | null
 }
 
-interface ResDetailCardProps {
+interface ReservationDetailCardProps {
   res: RampReservation
   meta: StopMeta | null
   routeName: string | null
@@ -17,14 +17,14 @@ interface ResDetailCardProps {
   onOpenVehicle?: (vehicleId: string) => void
 }
 
-export function ResDetailCard({
+export function ReservationDetailCard({
   res,
   meta,
   routeName,
   type,
   onCancel,
   onOpenVehicle,
-}: ResDetailCardProps) {
+}: ReservationDetailCardProps) {
   const typeColor = type === 'board' ? '#22c55e' : '#f59e0b'
 
   return (

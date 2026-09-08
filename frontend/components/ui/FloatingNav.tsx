@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRamp } from '@/contexts/RampContext'
 import { type TripStop, useVehicleTripInfo } from '@/hooks/useVehicleTripInfo'
-import { NavBtn } from './NavBtn'
-import { ResBanner } from './ResBanner'
-import { ResDetailCard } from './ResDetailCard'
+import { NavButton } from './NavButton'
+import { ReservationBanner } from './ReservationBanner'
+import { ReservationDetailCard } from './ReservationDetailCard'
 
 interface Props {
   activePanel: string | null
@@ -136,7 +136,7 @@ export default function FloatingNav({
                       padding: 0,
                     }}
                   >
-                    <ResBanner
+                    <ReservationBanner
                       type="alight"
                       routeName={alightingRouteName}
                       routeType={secondary.trip?.routeType ?? primary.trip?.routeType ?? null}
@@ -159,7 +159,7 @@ export default function FloatingNav({
                       padding: 0,
                     }}
                   >
-                    <ResBanner
+                    <ReservationBanner
                       type="board"
                       routeName={primary.trip?.routeShortName ?? lockedRouteShortName}
                       routeType={primary.trip?.routeType ?? null}
@@ -186,7 +186,7 @@ export default function FloatingNav({
                         padding: 0,
                       }}
                     >
-                      <ResBanner
+                      <ReservationBanner
                         type="board"
                         routeName={primary.trip?.routeShortName ?? lockedRouteShortName}
                         routeType={primary.trip?.routeType ?? null}
@@ -211,7 +211,7 @@ export default function FloatingNav({
                         padding: 0,
                       }}
                     >
-                      <ResBanner
+                      <ReservationBanner
                         type="alight"
                         routeName={alightingRouteName}
                         routeType={secondary.trip?.routeType ?? primary.trip?.routeType ?? null}
@@ -239,7 +239,7 @@ export default function FloatingNav({
 
           {/* Nav buttons */}
           <div className="flex gap-2">
-            <NavBtn
+            <NavButton
               active={activePanel === 'routes'}
               onClick={() => onTogglePanel('routes')}
               label="Линии"
@@ -259,8 +259,8 @@ export default function FloatingNav({
                 <circle cx="18" cy="5" r="3" />
                 <path d="M12 19h4.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H18" />
               </svg>
-            </NavBtn>
-            <NavBtn
+            </NavButton>
+            <NavButton
               active={activePanel === 'stops'}
               onClick={() => onTogglePanel('stops')}
               label="Спирки"
@@ -279,7 +279,7 @@ export default function FloatingNav({
                 <rect x="2" y="4" width="20" height="12" rx="2" />
                 <line x1="12" y1="16" x2="12" y2="36" />
               </svg>
-            </NavBtn>
+            </NavButton>
           </div>
         </div>
       </div>
@@ -341,7 +341,7 @@ export default function FloatingNav({
 
               <div className="flex flex-col gap-3 px-4 pb-5 pt-2">
                 {showAlightingFirst && alightingRes && (
-                  <ResDetailCard
+                  <ReservationDetailCard
                     res={alightingRes}
                     meta={getAlightingMeta(alightingRes.stopId)}
                     routeName={alightingRouteName}
@@ -353,7 +353,7 @@ export default function FloatingNav({
                   />
                 )}
                 {boardingRes && (
-                  <ResDetailCard
+                  <ReservationDetailCard
                     res={boardingRes}
                     meta={getBoardingMeta(boardingRes.stopId)}
                     routeName={primary.trip?.routeShortName ?? null}
@@ -372,7 +372,7 @@ export default function FloatingNav({
                   />
                 )}
                 {!showAlightingFirst && alightingRes && (
-                  <ResDetailCard
+                  <ReservationDetailCard
                     res={alightingRes}
                     meta={getAlightingMeta(alightingRes.stopId)}
                     routeName={alightingRouteName}

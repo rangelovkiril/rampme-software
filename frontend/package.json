@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "check": "biome check . && tsc --noEmit",
+    "check": "bun run scripts/check-no-elysia-dep.ts && biome check . && tsc --noEmit",
     "fix": "biome check --fix .",
     "test": "bun test test",
     "test:e2e": "playwright test",

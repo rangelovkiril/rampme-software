@@ -2,7 +2,7 @@
 
 import { getRouteColor } from '@/lib/transit'
 
-interface ResBannerProps {
+interface ReservationBannerProps {
   type: 'board' | 'alight'
   routeName: string | null
   routeType: number | null
@@ -12,7 +12,7 @@ interface ResBannerProps {
   resStatus: 'pending' | 'active'
 }
 
-export function ResBanner({
+export function ReservationBanner({
   type,
   routeName,
   routeType,
@@ -20,7 +20,7 @@ export function ResBanner({
   eta,
   status,
   resStatus,
-}: ResBannerProps) {
+}: ReservationBannerProps) {
   const borderColor = type === 'board' ? '#22c55e' : '#f59e0b'
   const label = type === 'board' ? 'Качване' : 'Слизане'
   const transportColor = getRouteColor(routeType)

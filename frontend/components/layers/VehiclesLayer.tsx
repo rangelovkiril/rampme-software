@@ -12,7 +12,7 @@ const DETAIL_ZOOM = 16
 
 // Ring around the marker: green = confirmed ramp-equipped, gray = confirmed
 // not equipped, none (transparent) = unknown — so "we don't know" never
-// looks like either answer. See openspec/changes/ramp-vehicle-accessibility's
+// looks like either answer. See openspec/specs/ramp/vehicle-accessibility's
 // "Map shows accessibility at a glance" requirement.
 function accessibilityRingColor(rampStatus: Vehicle['rampStatus']): string {
   if (rampStatus === 'working' || rampStatus === 'in_use') return '#22c55e'

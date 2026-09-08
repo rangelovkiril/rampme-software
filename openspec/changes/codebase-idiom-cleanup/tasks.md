@@ -48,10 +48,10 @@
 - [x] 4.7 Delete `frontend/lib/types.ts` and update `e2e/fixtures/transit.ts` to the derived types; verify `bunx tsc --noEmit` passes with no hand-written response type remaining in `frontend/`.
 - [x] 4.8 Update all 331 snake_case field references across the 17 affected frontend files to camelCase, working from the list `bunx tsc --noEmit` produces after the backend rename in 3.14 rather than from grep; verify `tsc` reports zero errors and `bun run test:e2e` passes.
 - [x] 4.9 Update `contexts/RampContext.tsx`'s `apiReserve()` body to `{ vehicleId, stopId, type }` and the `reserveRequests` assertion in `e2e/fixtures/transit.ts` to match task 3.16; verify the reservation flow works end to end in Playwright.
-- [ ] 4.10 Add a guard that fails if `frontend/package.json` ever declares its own `elysia` dependency, since a second instance silently breaks Eden's type derivation; verify the guard fails when `elysia` is temporarily added and passes when it is removed.
-- [ ] 4.11 Rename `components/ui/ResBanner.tsx`, `ResDetailCard.tsx`, and `NavBtn.tsx` to spelled-out names matching their siblings, updating all importers; verify `bunx tsc --noEmit` passes and `bun run test:e2e` still passes.
-- [ ] 4.12 Replace the stale `openspec/changes/ramp-vehicle-accessibility` references in `components/layers/VehiclesLayer.tsx` and `e2e/transit.spec.ts` with `openspec/specs/ramp/vehicle-accessibility`.
-- [ ] 4.13 Verify `bun run check`, `bun run test`, and `bun run test:e2e` pass in `frontend/`.
+- [x] 4.10 Add a guard that fails if `frontend/package.json` ever declares its own `elysia` dependency, since a second instance silently breaks Eden's type derivation; verify the guard fails when `elysia` is temporarily added and passes when it is removed.
+- [x] 4.11 Rename `components/ui/ResBanner.tsx`, `ResDetailCard.tsx`, and `NavBtn.tsx` to spelled-out names matching their siblings, updating all importers; verify `bunx tsc --noEmit` passes and `bun run test:e2e` still passes.
+- [x] 4.12 Replace the stale `openspec/changes/ramp-vehicle-accessibility` references in `components/layers/VehiclesLayer.tsx` and `e2e/transit.spec.ts` with `openspec/specs/ramp/vehicle-accessibility`.
+- [x] 4.13 Verify `bun run check`, `bun run test`, and `bun run test:e2e` pass in `frontend/`.
 
 ## 5. Documentation
 
