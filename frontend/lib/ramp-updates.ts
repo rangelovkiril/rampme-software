@@ -32,7 +32,7 @@ export function computeRampUpdate(prev: RampReservation[], curr: RampReservation
           `[ramp] ramp used — ${p.type} reservation #${p.id} DONE (vehicle ${p.vehicleId}, stop ${p.stopId})`,
         )
       } else if (c.status === 'expired') {
-        missedBusMessage = 'Автобусът замина без да разгъне рампата.'
+        missedBusMessage = 'Автобусът замина, без да разгъне рампата.'
       }
     }
     // Reservation disappeared from active list (removed server-side)

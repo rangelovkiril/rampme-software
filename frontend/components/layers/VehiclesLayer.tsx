@@ -5,7 +5,7 @@ import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 import { useSSE } from '@/hooks/useSSE'
-import { getRouteColor, ROUTE_TYPE_CONFIG } from '@/lib/transit'
+import { getRouteColor, getRouteLabel } from '@/lib/transit'
 
 const MIN_ZOOM = 10
 const DETAIL_ZOOM = 16
@@ -35,7 +35,7 @@ function accessibilityLabel(rampStatus: Vehicle['rampStatus']): {
 
 function vehicleIcon(
   _bearing: number,
-  routeType: number,
+  routeType: number | null | undefined,
   routeName: string,
   rampStatus: Vehicle['rampStatus'],
 ) {
@@ -49,7 +49,7 @@ function vehicleIcon(
   })
 }
 
-function vehicleDotIcon(routeType: number, rampStatus: Vehicle['rampStatus']) {
+function vehicleDotIcon(routeType: number | null | undefined, rampStatus: Vehicle['rampStatus']) {
   const color = getRouteColor(routeType)
   const ring = accessibilityRingColor(rampStatus)
   return L.divIcon({
@@ -129,8 +129,7 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
       if (!bounds.contains(latlng)) continue
 
       const color = getRouteColor(v.routeType)
-      const label =
-        (v.routeType != null ? ROUTE_TYPE_CONFIG[v.routeType]?.label : undefined) ?? 'Автобус'
+      const label = getRouteLabel(v.routeType)
       const displayName = v.routeShortName ?? v.label ?? v.id
       const titleLabel = v.routeShortName ? `${label} ${v.routeShortName}` : displayName
       const headsign = v.headsign ?? ''
@@ -144,8 +143,8 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
       </div>`
 
       const icon = useDetailed
-        ? vehicleIcon(v.bearing ?? 0, v.routeType ?? 3, displayName, v.rampStatus)
-        : vehicleDotIcon(v.routeType ?? 3, v.rampStatus)
+        ? vehicleIcon(v.bearing ?? 0, v.routeType, displayName, v.rampStatus)
+        : vehicleDotIcon(v.routeType, v.rampStatus)
       const marker = L.marker(latlng, { icon, zIndexOffset: 1000 })
       marker.bindPopup(popupHtml)
       if (onVehicleSelect) marker.on('click', () => onVehicleSelect(v))

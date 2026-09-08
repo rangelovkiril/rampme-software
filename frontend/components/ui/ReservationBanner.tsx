@@ -79,7 +79,7 @@ export function ReservationBanner({
             className="text-base font-black leading-tight text-center whitespace-nowrap"
             style={{ color: 'var(--text)' }}
           >
-            {type === 'board' ? 'Качваш се' : 'Слизаш сега'}
+            {type === 'board' ? 'Качвате се' : 'Слизате сега'}
           </p>
         </div>
       ) : isDeparted ? (

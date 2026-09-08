@@ -34,7 +34,7 @@ describe('computeRampUpdate', () => {
 
     const update = computeRampUpdate(prev, curr)
 
-    expect(update.missedBusMessage).toBe('Автобусът замина без да разгъне рампата.')
+    expect(update.missedBusMessage).toBe('Автобусът замина, без да разгъне рампата.')
   })
 
   test('a reservation disappearing while pending/active is logged, not alerted', () => {

@@ -7,10 +7,13 @@ export const ROUTE_TYPE_CONFIG: Record<number, RouteTypeMeta> = {
   0: { label: 'Трамвай', color: '#F7941D' },
   1: { label: 'Метро', color: '#9B59B6' },
   3: { label: 'Автобус', color: '#BE1E2D' },
-  11: { label: 'Тролей', color: '#27AAE1' },
+  11: { label: 'Тролейбус', color: '#27AAE1' },
 }
 
-export const DEFAULT_ROUTE_COLOR = '#BE1E2D'
+// Must stay distinct from every colour in ROUTE_TYPE_CONFIG: it used to be the
+// bus red, which made an unknown route type indistinguishable from a real bus,
+// so a whole-fleet data failure rendered as a plausible all-bus map.
+export const DEFAULT_ROUTE_COLOR = '#64748B'
 
 /** Display order for route type filter chips and listings */
 export const ROUTE_TYPE_ORDER = [3, 0, 11, 1] as const

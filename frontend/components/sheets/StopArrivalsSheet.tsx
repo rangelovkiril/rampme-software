@@ -302,7 +302,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                 background: 'var(--control-bg)',
                 color: 'var(--text-secondary)',
               }}
-              aria-label="Close"
+              aria-label="Затвори"
             >
               x
             </button>
@@ -443,19 +443,17 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                             : canRequest
                               ? 'Резервирай рампа за качване'
                               : vehicleId
-                                ? `Приближи се до ${RAMP_PROXIMITY_METERS}м от спирката`
+                                ? `Приближете се до ${RAMP_PROXIMITY_METERS}м от спирката`
                                 : 'Няма данни за превозното средство'
                         }
                       >
                         {reserved
-                          ? 'Резервирано'
+                          ? 'Резервирана'
                           : isReserving
                             ? '...'
-                            : canRequest
+                            : canRequest || vehicleId
                               ? 'Качване'
-                              : vehicleId
-                                ? 'Качване'
-                                : 'Без ID'}
+                              : 'Няма данни'}
                       </button>
                     </div>
                   </div>
