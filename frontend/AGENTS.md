@@ -33,9 +33,9 @@ components/
   ui/                         Standalone UI controls (positioned outside MapContainer)
     MapControls.tsx           Zoom, theme toggle, location tracking buttons
     FloatingNav.tsx           Top navigation pills (Routes/Stops/Reservations)
-    NavBtn.tsx                Shared nav pill button
-    ResBanner.tsx             Compact banner for an active ramp reservation
-    ResDetailCard.tsx         Expanded reservation detail card
+    NavButton.tsx             Shared nav pill button
+    ReservationBanner.tsx     Compact banner for an active ramp reservation
+    ReservationDetailCard.tsx Expanded reservation detail card
 
   SidePanel.tsx               Thin shell - handles open/close, renders active sub-panel
 
@@ -44,11 +44,18 @@ contexts/
 
 hooks/
   useSSE.ts                   Generic SSE hook with reconnect-with-backoff (2s->30s) on a closed connection
+  useStops.ts                 The stop list, fetched once per load and shared by every consumer
+  useVehicleTripInfo.ts       A vehicle's trip with its stop ETAs kept live over SSE
 
 lib/
-  types.ts                    Shared TypeScript interfaces (Stop, Vehicle, StopArrival, TripData, etc.)
+  api.ts                      Eden treaty client - every HTTP call, typed from the backend's own routes
   transit.ts                  Route type config (colors, labels), getRouteColor(), formatEta()
-  config.ts                   apiPath() - resolves the backend base URL (explicit override, dev proxy, or runtime hostname)
+  trip-etas.ts                applyEtaUpdates() - merges live ETAs onto a trip's stops
+  ramp-updates.ts             computeRampUpdate() - diffs reservation state for the missed-bus alert
+  config.ts                   apiBase()/apiPath() - resolve the backend base URL (explicit override, dev proxy, or runtime hostname)
+
+scripts/
+  check-no-elysia-dep.ts      Fails `bun run check` if this app ever declares its own elysia
 
 test/                          bun:test suite, mirrors lib/ (test/lib/)
 e2e/                            Playwright suite, organized by user flow, own testDir
@@ -66,13 +73,14 @@ e2e/                            Playwright suite, organized by user flow, own te
 
 ## Rules
 
-- **Types go in `lib/types.ts`.** Do not define `Stop`, `Vehicle`, etc. inside component files.
+- **Wire types come from the backend, never hand-written.** `Stop`, `Vehicle`, `StopArrival`, `TripData` and the rest are derived from the backend's TypeBox models and imported from `@backend/schemas` over the `tsconfig.json` path mapping. There is no `lib/types.ts`; do not reintroduce one, and do not restate a response shape in a component. Types that are genuinely local to a component (props, view state) stay in that component.
 - **Route colors/labels come from `lib/transit.ts`.** Do not hardcode color maps in components; use `getRouteColor()`.
 - **Layers do not render DOM elements.** They return `null` and manipulate Leaflet directly via refs.
 - **Sheets and panels own their data fetching.** They fetch on mount/prop change and manage their own loading/error state.
 - **Keep `Map.tsx` a wiring layer.** State + callbacks + composition. No inline fetch logic or complex JSX.
 - **Inline `style` props for CSS variable values.** Tailwind for layout/spacing, `style={{ color: 'var(--text)' }}` for theme-dependent values that cannot be Tailwind classes.
-- **API calls go through `apiPath()`** (`lib/config.ts`), never a hardcoded `/api/...` or absolute URL.
+- **HTTP calls go through the Eden client** (`lib/api.ts`), never `fetch()` with a hardcoded path. `apiPath()` remains only for `EventSource`, which Eden does not cover.
+- **`package.json` must never declare `elysia`.** The specifier is mapped at `../backend/node_modules` so Eden sees one Elysia instance; a second copy breaks type derivation silently, as a nominal mismatch rather than a missing module. `scripts/check-no-elysia-dep.ts` enforces this.
 - **Component names and prop types should be self-documenting.** No excessive JSDoc.
 - **Mobile responsiveness**: sheets use `max-sm:` breakpoints. StopArrivalsSheet has drag-to-resize on mobile. Test both viewports.
 

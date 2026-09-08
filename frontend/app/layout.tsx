@@ -26,37 +26,29 @@ export const viewport: Viewport = {
   ],
 }
 
-/**
- * Root layout component for the application; sets the document language to Bulgarian and ensures
- * an initial color theme (`dark` class) is applied before hydration.
- *
- * Renders the top-level HTML structure (<html>, <head>, <body>) and injects the provided children
- * into the body.
- *
- * @param children - The React node(s) to render inside the document body
- * @returns The HTML root element containing head and body with the provided children
- */
+// Runs before first paint so the page never renders in the wrong theme.
+const THEME_INIT = `(function() {
+  try {
+    var theme = localStorage.getItem('theme');
+    var supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (theme === 'dark' || (!theme && supportDarkMode)) {
+      document.documentElement.classList.add('dark');
+    }
+  } catch (e) {}
+})()`
+
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
     <html lang="bg" className="h-full antialiased" suppressHydrationWarning>
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function() {
-              try {
-                var theme = localStorage.getItem('theme');
-                var supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                if (theme === 'dark' || (!theme && supportDarkMode)) {
-                  document.documentElement.classList.add('dark');
-                }
-              } catch (e) {}
-            })()`
-          }}
-        />
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a static literal with no
+            interpolated input. Inlining is the point: the script must run before first paint,
+            and React offers no other way to emit a blocking inline script. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
       <body className="h-full overflow-hidden font-sans">{children}</body>
     </html>

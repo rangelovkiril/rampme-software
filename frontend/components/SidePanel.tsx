@@ -1,10 +1,10 @@
 'use client'
 
+import type { StopResponse as Stop } from '@backend/schemas'
 import { useEffect, useRef, useState } from 'react'
-import type { Stop } from '@/lib/types'
+import ReservationsPanel from './panels/ReservationsPanel'
 import RoutesPanel from './panels/RoutesPanel'
 import StopsPanel from './panels/StopsPanel'
-import ReservationsPanel from './panels/ReservationsPanel'
 
 const PANEL_IDS = ['routes', 'stops', 'reservations'] as const
 type PanelId = (typeof PANEL_IDS)[number]
@@ -27,7 +27,13 @@ function isPanelId(value: string | null): value is PanelId {
   return value !== null && PANEL_IDS.includes(value as PanelId)
 }
 
-export default function SidePanel({ activePanel, onClose, onSelectRoute, onSelectStop, onSelectVehicle }: SidePanelProps) {
+export default function SidePanel({
+  activePanel,
+  onClose,
+  onSelectRoute,
+  onSelectStop,
+  onSelectVehicle,
+}: SidePanelProps) {
   const isOpen = isPanelId(activePanel)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
@@ -41,8 +47,11 @@ export default function SidePanel({ activePanel, onClose, onSelectRoute, onSelec
     return () => document.removeEventListener('keydown', handleKey)
   }, [isOpen, onClose])
 
-  // Reset drag when panel opens/closes
-  useEffect(() => { setDragY(0) }, [isOpen])
+  // isOpen is the trigger for resetting the drag offset, not a value the body reads.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate.
+  useEffect(() => {
+    setDragY(0)
+  }, [isOpen])
 
   const handleDragStart = (e: React.TouchEvent) => {
     setIsDragging(true)
@@ -116,7 +125,17 @@ export default function SidePanel({ activePanel, onClose, onSelectRoute, onSelec
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--control-hover)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg
+                role="img"
+                aria-label="Затвори"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <title>Затвори</title>
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -124,9 +143,15 @@ export default function SidePanel({ activePanel, onClose, onSelectRoute, onSelec
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 pb-4 lg:px-7 lg:pb-7">
-            {activePanel === 'routes' && <RoutesPanel onSelectRoute={onSelectRoute} onClose={onClose} />}
-            {activePanel === 'stops' && <StopsPanel onSelectStop={onSelectStop} onClose={onClose} />}
-            {activePanel === 'reservations' && <ReservationsPanel onOpenVehicle={handleOpenVehicle} />}
+            {activePanel === 'routes' && (
+              <RoutesPanel onSelectRoute={onSelectRoute} onClose={onClose} />
+            )}
+            {activePanel === 'stops' && (
+              <StopsPanel onSelectStop={onSelectStop} onClose={onClose} />
+            )}
+            {activePanel === 'reservations' && (
+              <ReservationsPanel onOpenVehicle={handleOpenVehicle} />
+            )}
           </div>
         </>
       )}

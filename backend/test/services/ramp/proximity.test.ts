@@ -16,7 +16,6 @@ function gtfsData(stops: Array<{ id: string; lat: number; lon: number }>): GtfsD
           stop_name: s.id,
           stop_lat: s.lat,
           stop_lon: s.lon,
-          wheelchair_boarding: 0,
         },
       ]),
     ),
@@ -24,12 +23,10 @@ function gtfsData(stops: Array<{ id: string; lat: number; lon: number }>): GtfsD
     routes: new Map(),
     trips: new Map(),
     tripsByRoute: new Map(),
-    stopTimes: [],
     stopTimesByStop: new Map(),
     stopTimesByTrip: new Map(),
     stopIdsByRoute: new Map(),
     calendarDates: [],
-    shapes: new Map(),
     shapesByRoute: new Map(),
   }
 }
@@ -164,5 +161,75 @@ describe('createProximityChecker', () => {
     await checker.tick()
 
     expect(bridge.isDeployInFlight('bus1')).toBe(false)
+  })
+  test('expires a due reservation when no hardware bridge is available, without rejecting', async () => {
+    const rampDb = createRampDb(':memory:')
+    rampDb.createReservation('sess-1', 'bus1', 'stopA', 'board')
+    const data = gtfsData([{ id: 'stopA', lat: 0, lon: 0 }])
+    const fetchPositions = positions([{ vehicleId: 'bus1', lat: 0, lng: 0 }]) // at the stop
+
+    const checker = createProximityChecker(
+      () => null, // MQTT_URL unset: the bridge never initializes
+      () => data,
+      rampDb,
+      fetchPositions,
+      { expirySeconds: -1 },
+    )
+
+    await expect(checker.tick()).resolves.toBeUndefined()
+
+    const [reservation] = rampDb.getSessionReservations('sess-1')
+    expect(reservation?.status).toBe('expired')
+  })
+
+  test('expires a long-absent vehicle reservation when no hardware bridge is available', async () => {
+    const rampDb = createRampDb(':memory:')
+    rampDb.createReservation('sess-1', 'bus1', 'stopA', 'board')
+    const data = gtfsData([{ id: 'stopA', lat: 0, lon: 0 }])
+    const fetchPositions = positions([]) // vehicle never reports a position
+
+    const checker = createProximityChecker(
+      () => null,
+      () => data,
+      rampDb,
+      fetchPositions,
+      { vehicleGoneSeconds: -1 },
+    )
+
+    await checker.tick()
+
+    const [reservation] = rampDb.getSessionReservations('sess-1')
+    expect(reservation?.status).toBe('expired')
+  })
+
+  test('a reservation that cannot be advanced does not stop another from expiring in the same pass', async () => {
+    const rampDb = createRampDb(':memory:')
+    const blocked = rampDb.createReservation('sess-1', 'bus-blocked', 'stopA', 'board')
+    rampDb.createReservation('sess-1', 'bus-due', 'stopA', 'board')
+    const blockedId = 'id' in blocked ? blocked.id : -1
+    const data = gtfsData([{ id: 'stopA', lat: 0, lon: 0 }])
+    const { bridge } = fakeBridge()
+
+    // The first reservation the pass reaches throws; the second is due to expire.
+    const failing = { ...bridge }
+    const checker = createProximityChecker(
+      () => failing,
+      () => data,
+      rampDb,
+      // bus-blocked is at the stop, so the pass reaches the bridge for it.
+      // bus-due never reports a position, so it is due to expire as absent.
+      positions([{ vehicleId: 'bus-blocked', lat: 0, lng: 0 }]),
+      { vehicleGoneSeconds: -1 },
+    )
+    failing.isDeployInFlight = (vehicleId) => {
+      if (vehicleId === 'bus-blocked') throw new Error('bridge blew up on this reservation')
+      return false
+    }
+
+    await expect(checker.tick()).resolves.toBeUndefined()
+
+    const reservations = rampDb.getSessionReservations('sess-1')
+    expect(reservations.find((r) => r.id === blockedId)?.status).toBe('pending')
+    expect(reservations.find((r) => r.vehicle_id === 'bus-due')?.status).toBe('expired')
   })
 })

@@ -1,25 +1,94 @@
+import type { Static, TSchema } from '@sinclair/typebox'
+import { TypeCompiler } from '@sinclair/typebox/compiler'
 import { consola } from 'consola'
 import JSZip from 'jszip'
 import { config } from '../config'
-import type { CalendarDate, GtfsData, Route, ShapePoint, Stop, StopTime, Trip } from './types'
+import {
+  CalendarDateSchema,
+  type GtfsData,
+  type Route,
+  RouteSchema,
+  ShapePointSchema,
+  type Stop,
+  StopSchema,
+  type StopTime,
+  StopTimeSchema,
+  type Trip,
+  TripSchema,
+} from './types'
 
 /**
- * Parses a CSV string and maps each data row to a value using header fields as object keys.
- *
- * @param raw - CSV content as a string; the first line is treated as the header row
- * @param transform - Callback that receives a `Record<string, string>` where keys are header names and values are the corresponding cell text for a row
- * @returns An array of `T` values produced by applying `transform` to each CSV data row
+ * Splits one CSV line, honouring RFC 4180 quoting: a comma inside a quoted
+ * field is data, and a doubled quote inside one is a literal quote. Sofia's
+ * feed relies on this — 234 rows of trips.txt and 6 of stops.txt carry a
+ * comma inside a quoted name, and splitting on bare commas shifts every
+ * column after it.
  */
+export function splitCsvLine(line: string): string[] {
+  const values: string[] = []
+  let field = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]
+    if (inQuotes) {
+      if (c === '"') {
+        if (line[i + 1] === '"') {
+          field += '"'
+          i++
+        } else {
+          inQuotes = false
+        }
+      } else {
+        field += c
+      }
+    } else if (c === '"') {
+      inQuotes = true
+    } else if (c === ',') {
+      values.push(field.trim())
+      field = ''
+    } else {
+      field += c
+    }
+  }
+  values.push(field.trim())
+  return values
+}
+
+/**
+ * Parses a CSV file into rows that match `schema`. The feed is third-party, so
+ * a row that does not match is dropped and counted rather than thrown on: one
+ * malformed row must not cost the whole feed, and a row that silently kept its
+ * mis-parsed values used to reach clients as NaN coordinates.
+ */
+function parseRows<S extends TSchema>(
+  file: string,
+  raw: string,
+  schema: S,
+  transform: (row: Record<string, string>) => unknown,
+): Static<S>[] {
+  const check = TypeCompiler.Compile(schema)
+  const rows: Static<S>[] = []
+  let dropped = 0
+
+  for (const row of parseCsv(raw, transform)) {
+    if (check.Check(row)) rows.push(row)
+    else dropped++
+  }
+
+  if (dropped > 0) {
+    consola.warn(`${file}: dropped ${dropped} row(s) that did not match the expected shape`)
+  }
+  return rows
+}
+
 function parseCsv<T>(raw: string, transform: (row: Record<string, string>) => T): T[] {
   const lines = raw.trim().split('\n')
-  const header = lines[0]
-    .replace(/^\uFEFF/, '')
-    .split(',')
-    .map((h) => h.trim())
+  const header = splitCsvLine(lines[0].replace(/^\uFEFF/, ''))
   const results: T[] = []
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map((v) => v.trim().replace(/^"|"$/g, ''))
+    const values = splitCsvLine(lines[i])
     const row: Record<string, string> = {}
     for (let j = 0; j < header.length; j++) {
       row[header[j]] = values[j] ?? ''
@@ -57,13 +126,12 @@ export async function parseGtfsZip(buf: ArrayBuffer): Promise<GtfsData> {
 
   const stops = new Map<string, Stop>()
   const stopsByCode = new Map<string, string[]>()
-  for (const s of parseCsv(await readFile('stops.txt'), (r) => ({
+  for (const s of parseRows('stops.txt', await readFile('stops.txt'), StopSchema, (r) => ({
     stop_id: r.stop_id,
     stop_code: r.stop_code ?? '',
     stop_name: r.stop_name,
     stop_lat: parseFloat(r.stop_lat),
     stop_lon: parseFloat(r.stop_lon),
-    wheelchair_boarding: Number(r.wheelchair_boarding || '0') as 0 | 1 | 2,
   }))) {
     stops.set(s.stop_id, s)
     if (s.stop_code) {
@@ -74,7 +142,7 @@ export async function parseGtfsZip(buf: ArrayBuffer): Promise<GtfsData> {
   }
 
   const routes = new Map<string, Route>()
-  for (const r of parseCsv(await readFile('routes.txt'), (r) => ({
+  for (const r of parseRows('routes.txt', await readFile('routes.txt'), RouteSchema, (r) => ({
     route_id: r.route_id,
     route_short_name: r.route_short_name,
     route_long_name: r.route_long_name,
@@ -85,12 +153,11 @@ export async function parseGtfsZip(buf: ArrayBuffer): Promise<GtfsData> {
 
   const trips = new Map<string, Trip>()
   const tripsByRoute = new Map<string, Trip[]>()
-  for (const t of parseCsv(await readFile('trips.txt'), (r) => ({
+  for (const t of parseRows('trips.txt', await readFile('trips.txt'), TripSchema, (r) => ({
     trip_id: r.trip_id,
     route_id: r.route_id,
     service_id: r.service_id,
     trip_headsign: r.trip_headsign ?? '',
-    direction_id: Number(r.direction_id || '0'),
     shape_id: r.shape_id ?? '',
     wheelchair_accessible: Number(r.wheelchair_accessible || '0') as 0 | 1 | 2,
   }))) {
@@ -100,13 +167,17 @@ export async function parseGtfsZip(buf: ArrayBuffer): Promise<GtfsData> {
     else tripsByRoute.set(t.route_id, [t])
   }
 
-  const stopTimes = parseCsv(await readFile('stop_times.txt'), (r) => ({
-    trip_id: r.trip_id,
-    arrival_time: r.arrival_time,
-    departure_time: r.departure_time,
-    stop_id: r.stop_id,
-    stop_sequence: Number(r.stop_sequence),
-  }))
+  const stopTimes = parseRows(
+    'stop_times.txt',
+    await readFile('stop_times.txt'),
+    StopTimeSchema,
+    (r) => ({
+      trip_id: r.trip_id,
+      arrival_time: r.arrival_time,
+      stop_id: r.stop_id,
+      stop_sequence: Number(r.stop_sequence),
+    }),
+  )
 
   // Index stop_times by stop_id for fast lookup
   const stopTimesByStop = new Map<string, StopTime[]>()
@@ -140,22 +211,32 @@ export async function parseGtfsZip(buf: ArrayBuffer): Promise<GtfsData> {
   }
 
   // Parse calendar_dates.txt
-  const calendarDates = parseCsv<CalendarDate>(await readFile('calendar_dates.txt'), (r) => ({
-    service_id: r.service_id,
-    date: r.date,
-    exception_type: Number(r.exception_type),
-  }))
+  const calendarDates = parseRows(
+    'calendar_dates.txt',
+    await readFile('calendar_dates.txt'),
+    CalendarDateSchema,
+    (r) => ({
+      service_id: r.service_id,
+      date: r.date,
+      exception_type: Number(r.exception_type),
+    }),
+  )
 
   // Parse shapes.txt (optional — some feeds may not include it)
   const shapes = new Map<string, [number, number][]>()
   const shapesFile = zip.file('shapes.txt')
   if (shapesFile) {
-    const rawShapes = parseCsv<ShapePoint>(await shapesFile.async('string'), (r) => ({
-      shape_id: r.shape_id,
-      lat: parseFloat(r.shape_pt_lat),
-      lng: parseFloat(r.shape_pt_lon),
-      sequence: Number(r.shape_pt_sequence),
-    }))
+    const rawShapes = parseRows(
+      'shapes.txt',
+      await shapesFile.async('string'),
+      ShapePointSchema,
+      (r) => ({
+        shape_id: r.shape_id,
+        lat: parseFloat(r.shape_pt_lat),
+        lng: parseFloat(r.shape_pt_lon),
+        sequence: Number(r.shape_pt_sequence),
+      }),
+    )
     // Group by shape_id
     for (const sp of rawShapes) {
       const arr = shapes.get(sp.shape_id)
@@ -191,12 +272,10 @@ export async function parseGtfsZip(buf: ArrayBuffer): Promise<GtfsData> {
     routes,
     trips,
     tripsByRoute,
-    stopTimes,
     stopTimesByStop,
     stopTimesByTrip,
     stopIdsByRoute,
     calendarDates,
-    shapes,
     shapesByRoute,
   }
 }

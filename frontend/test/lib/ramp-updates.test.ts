@@ -1,17 +1,16 @@
 import { describe, expect, test } from 'bun:test'
+import type { ReservationResponse as RampReservation } from '@backend/schemas'
 import { computeRampUpdate } from '../../lib/ramp-updates'
-import type { RampReservation } from '../../lib/types'
 
 function reservation(overrides: Partial<RampReservation> = {}): RampReservation {
   return {
     id: 1,
-    session_id: 'sess-1',
-    vehicle_id: 'bus1',
-    stop_id: 'stopA',
+    vehicleId: 'bus1',
+    stopId: 'stopA',
     type: 'board',
     status: 'pending',
-    created_at: 0,
-    resolved_at: null,
+    createdAt: 0,
+    resolvedAt: null,
     ...overrides,
   }
 }
@@ -47,7 +46,7 @@ describe('computeRampUpdate', () => {
   })
 
   test('a pending/active board reservation locks its vehicle', () => {
-    const curr = [reservation({ vehicle_id: 'bus2', status: 'pending' })]
+    const curr = [reservation({ vehicleId: 'bus2', status: 'pending' })]
     expect(computeRampUpdate([], curr).lockedVehicleId).toBe('bus2')
   })
 
@@ -63,7 +62,7 @@ describe('computeRampUpdate', () => {
 
   test('unrelated fields changing without a status change produce no logs', () => {
     const prev = [reservation({ status: 'pending' })]
-    const curr = [reservation({ status: 'pending', resolved_at: 123 })]
+    const curr = [reservation({ status: 'pending', resolvedAt: 123 })]
     expect(computeRampUpdate(prev, curr).logs).toEqual([])
   })
 })

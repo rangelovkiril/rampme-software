@@ -18,8 +18,8 @@ Reservation lifecycle processing SHALL evaluate every outstanding reservation on
 - **WHEN** one outstanding reservation cannot be advanced and another outstanding reservation is due to expire, in the same processing pass
 - **THEN** the due reservation is still recorded as `expired`
 
-### Requirement: Hardware-bridge behavior is unchanged when connected
-When a hardware bridge is available, proximity-triggered deployment SHALL continue to publish the deploy command to hardware and to apply the deploy-acknowledgement timeout, exactly as before this change.
+### Requirement: Proximity-triggered deployment is unchanged when a bridge is connected
+When a hardware bridge is available, proximity-triggered deployment SHALL continue to publish the deploy command to hardware and to apply the deploy-acknowledgement timeout, exactly as before this change. This is the proximity counterpart to the existing requirement covering reservation creation and cancellation, and does not replace it.
 
 #### Scenario: Proximity still triggers a deploy when a bridge is connected
 - **WHEN** a vehicle with a pending reservation reaches the reserved stop while a hardware bridge is connected

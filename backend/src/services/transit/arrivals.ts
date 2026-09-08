@@ -9,20 +9,7 @@ import {
   unixToHHMM,
 } from '../../gtfs/time'
 import type { GtfsData } from '../../gtfs/types'
-
-export interface ArrivalResult {
-  id: string
-  vehicle_id: string | null
-  route_short_name: string | null
-  route_type: number | null
-  headsign: string | null
-  route_id: string | null
-  scheduled_time: string | null
-  expected_time: string | null
-  eta_minutes: number
-  realtime: boolean
-  has_ramp: boolean
-}
+import type { ArrivalResult } from '../../schemas'
 
 interface ScheduledArrival {
   trip_id: string
@@ -61,12 +48,12 @@ export async function getUpcomingArrivals(
       const vehicleId = vehicleByTrip.get(sa.trip_id) ?? null
 
       const prediction = predictions.get(sa.trip_id)
-      let eta_minutes: number
-      let expected_time: string | null = null
+      let etaMinutes: number
+      let expectedTime: string | null = null
 
       if (prediction) {
-        eta_minutes = Math.max(0, Math.round((prediction - nowSec) / 60))
-        expected_time = unixToHHMM(prediction)
+        etaMinutes = Math.max(0, Math.round((prediction - nowSec) / 60))
+        expectedTime = unixToHHMM(prediction)
       } else {
         const { totalMinutes } = parseGtfsTime(sa.arrival_time)
         // Already filtered to totalMinutes >= currentMinutes + 1440 in collectScheduledArrivals,
@@ -75,22 +62,22 @@ export async function getUpcomingArrivals(
           ? totalMinutes - currentMinutes - 1440
           : computeScheduledEtaMinutes(totalMinutes, nowSec)
         if (diff === null) return null
-        eta_minutes = diff
-        expected_time = sa.arrival_time ? normalizeGtfsHour(sa.arrival_time) : null
+        etaMinutes = diff
+        expectedTime = sa.arrival_time ? normalizeGtfsHour(sa.arrival_time) : null
       }
 
       return {
         id: sa.trip_id,
-        vehicle_id: vehicleId,
-        route_short_name: route?.route_short_name ?? null,
-        route_type: route?.route_type ?? null,
+        vehicleId,
+        routeShortName: route?.route_short_name ?? null,
+        routeType: route?.route_type ?? null,
         headsign: trip?.trip_headsign ?? null,
-        route_id: routeId ?? null,
-        scheduled_time: sa.arrival_time ? normalizeGtfsHour(sa.arrival_time) : null,
-        expected_time,
-        eta_minutes,
+        routeId: routeId ?? null,
+        scheduledTime: sa.arrival_time ? normalizeGtfsHour(sa.arrival_time) : null,
+        expectedTime,
+        etaMinutes,
         realtime: Boolean(prediction),
-        has_ramp: trip?.wheelchair_accessible === 1,
+        hasRamp: trip?.wheelchair_accessible === 1,
       }
     })
     .filter((r): r is ArrivalResult => r !== null)
@@ -198,6 +185,6 @@ export function deduplicateAndSort(results: ArrivalResult[], limit: number): Arr
       seen.add(r.id)
       return true
     })
-    .sort((a, b) => a.eta_minutes - b.eta_minutes)
+    .sort((a, b) => a.etaMinutes - b.etaMinutes)
     .slice(0, limit)
 }

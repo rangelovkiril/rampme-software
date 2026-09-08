@@ -1,21 +1,7 @@
 import type { RampReservation } from '../db/ramp'
-import { getVehicleRampStatusFrom, type RampStatus } from '../services/ramp/status'
+import type { EnrichedVehicle } from '../schemas'
+import { getVehicleRampStatusFrom } from '../services/ramp/status'
 import type { GtfsData, GtfsRtFeedEntity, GtfsRtPosition, GtfsRtVehiclePosition } from './types'
-
-export interface EnrichedVehicle {
-  id: string
-  tripId: string
-  lat: number
-  lng: number
-  bearing: number | null
-  speed: number | null
-  route_id: string | null
-  route_short_name: string | null
-  route_type: number | null
-  headsign: string | null
-  label: string | null
-  ramp_status: RampStatus
-}
 
 type EntityWithPosition = GtfsRtFeedEntity & {
   vehicle: GtfsRtVehiclePosition & { position: GtfsRtPosition }
@@ -41,10 +27,7 @@ export function enrichVehicles(
     const route = routeId ? data.routes.get(routeId) : undefined
     const vehicleId = v.vehicle?.id ?? e.id
     const hasRamp = resolveAccessibility(vehicleId)
-    const ramp_status = getVehicleRampStatusFrom(
-      reservationsByVehicle.get(vehicleId) ?? [],
-      hasRamp,
-    )
+    const rampStatus = getVehicleRampStatusFrom(reservationsByVehicle.get(vehicleId) ?? [], hasRamp)
 
     return {
       id: vehicleId,
@@ -53,12 +36,12 @@ export function enrichVehicles(
       lng: pos.longitude,
       bearing: pos.bearing ?? null,
       speed: pos.speed ?? null,
-      route_id: routeId || null,
-      route_short_name: route?.route_short_name ?? null,
-      route_type: route?.route_type ?? null,
+      routeId: routeId || null,
+      routeShortName: route?.route_short_name ?? null,
+      routeType: route?.route_type ?? null,
       headsign: trip?.trip_headsign ?? null,
       label: v.vehicle?.label ?? null,
-      ramp_status,
+      rampStatus,
     }
   })
 }

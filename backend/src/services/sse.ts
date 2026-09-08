@@ -1,4 +1,9 @@
+import type { Static, TSchema } from '@sinclair/typebox'
+import { TypeCompiler } from '@sinclair/typebox/compiler'
+import { consola } from 'consola'
 import { sse } from 'elysia'
+
+const log = consola.withTag('sse')
 
 const HEARTBEAT_INTERVAL_MS = 20_000
 const RETRY_MS = 3_000
@@ -32,19 +37,27 @@ export interface SseUpdate<T> {
  * every `broadcaster` publish, emits a `health` event on freshness
  * transitions (never on the initial connect, since there is no prior state
  * to transition from), and heartbeats during quiet periods. Knows nothing
- * about what `T` is or what "healthy" means — both are supplied by the
- * domain-specific caller via `getData`.
+ * about what the payload means or what "healthy" means — both are supplied by
+ * the domain-specific caller via `getData`.
+ *
+ * `schema` declares the payload shape and is checked before every send. Elysia
+ * validates `response` schemas on HTTP routes but not on a stream, so this is
+ * what stops a stream drifting from the shape its consumers derive their types
+ * from. A payload that does not match is logged and dropped rather than sent,
+ * on the same reasoning as a failed response validation.
  */
-export async function* makeSseStream<T>(
+export async function* makeSseStream<S extends TSchema>(
   broadcaster: Subscribable,
-  getData: () => Promise<SseUpdate<T> | null>,
+  getData: () => Promise<SseUpdate<Static<S>> | null>,
+  schema: S,
   heartbeatIntervalMs = HEARTBEAT_INTERVAL_MS,
 ) {
+  const check = TypeCompiler.Compile(schema)
   let lastHealthy: boolean | undefined
   let healthInitialized = false
 
   async function* emit() {
-    let update: SseUpdate<T> | null
+    let update: SseUpdate<Static<S>> | null
     try {
       update = await getData()
     } catch {
@@ -58,6 +71,14 @@ export async function* makeSseStream<T>(
       }
       lastHealthy = update.healthy
       healthInitialized = true
+    }
+
+    if (!check.Check(update.data)) {
+      const [first] = [...check.Errors(update.data)]
+      log.error(
+        `stream payload did not match its schema, dropping: ${first?.path} ${first?.message}`,
+      )
+      return
     }
 
     yield sse({ data: update.data })

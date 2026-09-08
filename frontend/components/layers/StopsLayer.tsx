@@ -1,10 +1,10 @@
 'use client'
 
+import type { StopResponse as Stop } from '@backend/schemas'
 import L from 'leaflet'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
-import type { Stop } from '@/lib/types'
-import { apiPath } from '@/lib/config'
+import { useStops } from '@/hooks/useStops'
 
 const MIN_ZOOM_FOR_STOPS = 15
 
@@ -29,12 +29,7 @@ function createStopIcon(selected = false) {
 }
 
 function hasValidCoords(s: Stop) {
-  return (
-    Number.isFinite(s.stop_lat) &&
-    Number.isFinite(s.stop_lon) &&
-    s.stop_lat !== 0 &&
-    s.stop_lon !== 0
-  )
+  return Number.isFinite(s.lat) && Number.isFinite(s.lon) && s.lat !== 0 && s.lon !== 0
 }
 
 interface StopsLayerProps {
@@ -44,21 +39,18 @@ interface StopsLayerProps {
 
 export default function StopsLayer({ selectedStopId = null, onStopSelect }: StopsLayerProps) {
   const map = useMap()
-  const [stops, setStops] = useState<Stop[]>([])
   const groupRef = useRef<L.LayerGroup | null>(null)
   const [revision, setRevision] = useState(0)
   const iconRef = useRef<L.DivIcon | null>(null)
   const selectedIconRef = useRef<L.DivIcon | null>(null)
 
-  useEffect(() => {
-    fetch(apiPath('/stops'))
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: Stop[]) => setStops((Array.isArray(data) ? data : []).filter(hasValidCoords)))
-      .catch(() => {})
-  }, [])
+  const { stops: allStops } = useStops()
+  const stops = useMemo(() => allStops.filter(hasValidCoords), [allStops])
 
   useEffect(() => {
-    function update() { setRevision(r => r + 1) }
+    function update() {
+      setRevision((r) => r + 1)
+    }
     map.on('zoomend', update)
     map.on('moveend', update)
     return () => {
@@ -69,11 +61,18 @@ export default function StopsLayer({ selectedStopId = null, onStopSelect }: Stop
 
   useEffect(() => {
     if (!onStopSelect) return
-    function closeSelectedStop() { onStopSelect?.(null) }
+    function closeSelectedStop() {
+      onStopSelect?.(null)
+    }
     map.on('click', closeSelectedStop)
-    return () => { map.off('click', closeSelectedStop) }
+    return () => {
+      map.off('click', closeSelectedStop)
+    }
   }, [map, onStopSelect])
 
+  // Viewport culling reads map.getBounds() and map.getZoom(), which are not reactive.
+  // The revision counter bumped on zoomend/moveend is what re-runs this effect.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate.
   useEffect(() => {
     if (!groupRef.current) groupRef.current = L.layerGroup()
     const group = groupRef.current
@@ -91,13 +90,13 @@ export default function StopsLayer({ selectedStopId = null, onStopSelect }: Stop
     const bounds = map.getBounds()
 
     for (const stop of stops) {
-      const latlng = L.latLng(stop.stop_lat, stop.stop_lon)
+      const latlng = L.latLng(stop.lat, stop.lon)
       if (!bounds.contains(latlng)) continue
 
       const marker = L.marker(latlng, {
-        icon: selectedStopId === stop.stop_id ? selectedIconRef.current : iconRef.current,
+        icon: selectedStopId === stop.id ? selectedIconRef.current : iconRef.current,
         riseOnHover: true,
-        bubblingMouseEvents: false
+        bubblingMouseEvents: false,
       })
       marker.on('click', () => onStopSelect?.(stop))
       marker.addTo(group)

@@ -9,16 +9,18 @@ name: Frontend
 
 on:
   pull_request:
-    paths:
+    paths: &frontend-paths
       - 'frontend/**'
       - '!frontend/**/*.md'
+      # The frontend derives its types from the backend's routes through Eden,
+      # so a backend response change can fail the type-check here.
+      - 'backend/src/**'
+      - 'backend/package.json'
+      - 'backend/bun.lock'
       - '.github/workflows/frontend.yaml'
   push:
     branches: [main]
-    paths:
-      - 'frontend/**'
-      - '!frontend/**/*.md'
-      - '.github/workflows/frontend.yaml'
+    paths: *frontend-paths
 
 concurrency:
   group: frontend-${{ github.ref }}
@@ -43,6 +45,11 @@ jobs:
       - uses: ./.github/actions/setup-bun
         with:
           working-directory: frontend
+      # tsconfig.json maps `elysia` and `@backend/*` at ../backend, so the
+      # frontend type-check needs the backend's dependencies installed too.
+      - uses: ./.github/actions/setup-bun
+        with:
+          working-directory: backend
       - uses: ./.github/actions/bun-check-and-test
         with:
           working-directory: frontend
@@ -69,6 +76,9 @@ jobs:
       - uses: ./.github/actions/setup-bun
         with:
           working-directory: frontend
+      - uses: ./.github/actions/setup-bun
+        with:
+          working-directory: backend
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { CalendarDate, GtfsData, StopTime, Trip } from '../../../src/gtfs/types'
-import type { ArrivalResult } from '../../../src/services/transit/arrivals'
+import type { ArrivalResult } from '../../../src/schemas'
 import {
   collectScheduledArrivals,
   deduplicateAndSort,
@@ -45,14 +45,13 @@ function trip(trip_id: string, service_id: string): Trip {
     route_id: 'r1',
     service_id,
     trip_headsign: '',
-    direction_id: 0,
     shape_id: '',
     wheelchair_accessible: 0,
   }
 }
 
 function stopTime(trip_id: string, stop_id: string, arrival_time: string): StopTime {
-  return { trip_id, arrival_time, departure_time: arrival_time, stop_id, stop_sequence: 1 }
+  return { trip_id, arrival_time, stop_id, stop_sequence: 1 }
 }
 
 function gtfsData(opts: {
@@ -66,12 +65,10 @@ function gtfsData(opts: {
     routes: new Map(),
     trips: new Map((opts.trips ?? []).map((t) => [t.trip_id, t])),
     tripsByRoute: new Map(),
-    stopTimes: [],
     stopTimesByStop: opts.stopTimesByStop ?? new Map(),
     stopTimesByTrip: new Map(),
     stopIdsByRoute: new Map(),
     calendarDates: opts.calendarDates ?? [],
-    shapes: new Map(),
     shapesByRoute: new Map(),
   }
 }
@@ -130,19 +127,19 @@ describe('collectScheduledArrivals', () => {
   })
 })
 
-function arrival(id: string, eta_minutes: number): ArrivalResult {
+function arrival(id: string, etaMinutes: number): ArrivalResult {
   return {
     id,
-    vehicle_id: null,
-    route_short_name: null,
-    route_type: null,
+    vehicleId: null,
+    routeShortName: null,
+    routeType: null,
     headsign: null,
-    route_id: null,
-    scheduled_time: null,
-    expected_time: null,
-    eta_minutes,
+    routeId: null,
+    scheduledTime: null,
+    expectedTime: null,
+    etaMinutes,
     realtime: false,
-    has_ramp: false,
+    hasRamp: false,
   }
 }
 

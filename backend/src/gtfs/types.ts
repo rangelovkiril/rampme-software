@@ -1,112 +1,145 @@
-export interface Stop {
-  stop_id: string
-  stop_code: string
-  stop_name: string
-  stop_lat: number
-  stop_lon: number
-  wheelchair_boarding: 0 | 1 | 2 // 0=no info, 1=accessible, 2=not accessible
-}
+import { type Static, Type } from '@sinclair/typebox'
 
-export interface Route {
-  route_id: string
-  route_short_name: string
-  route_long_name: string
-  route_type: number // 0=tram, 1=metro, 3=bus, 11=trolleybus
-}
+// GTFS static rows, parsed from a third-party ZIP. Declared as TypeBox so the
+// parse can reject a row that does not match instead of returning it: a
+// mis-parsed stop used to reach clients with NaN coordinates. Field names keep
+// GTFS's own snake_case; the wire shapes in schemas/ are what map them.
 
-export interface Trip {
-  trip_id: string
-  route_id: string
-  service_id: string
-  trip_headsign: string
-  direction_id: number
-  shape_id: string
-  wheelchair_accessible: 0 | 1 | 2
-}
+export const StopSchema = Type.Object({
+  stop_id: Type.String({ minLength: 1 }),
+  stop_code: Type.String(),
+  stop_name: Type.String(),
+  stop_lat: Type.Number({ minimum: -90, maximum: 90 }),
+  stop_lon: Type.Number({ minimum: -180, maximum: 180 }),
+})
 
-export interface ShapePoint {
-  shape_id: string
-  lat: number
-  lng: number
-  sequence: number
-}
+export const RouteSchema = Type.Object({
+  route_id: Type.String({ minLength: 1 }),
+  route_short_name: Type.String(),
+  route_long_name: Type.String(),
+  /** Already normalized to the base types Sofia uses: 0=tram, 1=metro, 3=bus, 11=trolleybus. */
+  route_type: Type.Number(),
+})
 
-export interface StopTime {
-  trip_id: string
-  arrival_time: string
-  departure_time: string
-  stop_id: string
-  stop_sequence: number
-}
+export const TripSchema = Type.Object({
+  trip_id: Type.String({ minLength: 1 }),
+  route_id: Type.String({ minLength: 1 }),
+  service_id: Type.String({ minLength: 1 }),
+  trip_headsign: Type.String(),
+  shape_id: Type.String(),
+  wheelchair_accessible: Type.Union([Type.Literal(0), Type.Literal(1), Type.Literal(2)]),
+})
 
-export interface CalendarDate {
-  service_id: string
-  date: string // YYYYMMDD
-  exception_type: number // 1=added, 2=removed
-}
+export const ShapePointSchema = Type.Object({
+  shape_id: Type.String({ minLength: 1 }),
+  lat: Type.Number({ minimum: -90, maximum: 90 }),
+  lng: Type.Number({ minimum: -180, maximum: 180 }),
+  sequence: Type.Number(),
+})
+
+export const StopTimeSchema = Type.Object({
+  trip_id: Type.String({ minLength: 1 }),
+  /** May exceed 24:00 for a trip continuing past midnight on the same service day. */
+  arrival_time: Type.String({ pattern: '^\\d{1,2}:\\d{2}:\\d{2}$' }),
+  stop_id: Type.String({ minLength: 1 }),
+  stop_sequence: Type.Number(),
+})
+
+export const CalendarDateSchema = Type.Object({
+  service_id: Type.String({ minLength: 1 }),
+  date: Type.String({ pattern: '^\\d{8}$' }),
+  /** 1=added, 2=removed. */
+  exception_type: Type.Union([Type.Literal(1), Type.Literal(2)]),
+})
+
+export type Stop = Static<typeof StopSchema>
+export type Route = Static<typeof RouteSchema>
+export type Trip = Static<typeof TripSchema>
+export type ShapePoint = Static<typeof ShapePointSchema>
+export type StopTime = Static<typeof StopTimeSchema>
+export type CalendarDate = Static<typeof CalendarDateSchema>
 
 // Decoded GTFS-RT protobuf JSON shapes (protobufjs .toJSON() output — field
 // names are camelCase, 64-bit int/timestamp fields may come back as strings).
 // Only the fields this codebase actually reads are declared; `header` and
 // `alert` are part of the wire format but unused here, so omitted.
+//
+// Declared as TypeBox rather than interfaces because /realtime/trip-updates
+// passes the decoded feed through verbatim and needs a response schema for it.
+// The types below are derived, so the shape has one definition. Nothing
+// validates these per tick: protobuf decoding already guarantees the shape,
+// and the feed is on a hot path.
 
-export interface GtfsRtPosition {
-  latitude: number
-  longitude: number
-  bearing?: number
-  speed?: number
-}
+export const GtfsRtPositionSchema = Type.Object({
+  latitude: Type.Number(),
+  longitude: Type.Number(),
+  bearing: Type.Optional(Type.Number()),
+  speed: Type.Optional(Type.Number()),
+})
 
-export interface GtfsRtTripDescriptor {
-  tripId?: string
-  routeId?: string
-  startTime?: string
-  startDate?: string
-  directionId?: number
-}
+export const GtfsRtTripDescriptorSchema = Type.Object({
+  tripId: Type.Optional(Type.String()),
+  routeId: Type.Optional(Type.String()),
+  startTime: Type.Optional(Type.String()),
+  startDate: Type.Optional(Type.String()),
+  directionId: Type.Optional(Type.Number()),
+})
 
-export interface GtfsRtVehicleDescriptor {
-  id?: string
-  label?: string
-  licensePlate?: string
-}
+export const GtfsRtVehicleDescriptorSchema = Type.Object({
+  id: Type.Optional(Type.String()),
+  label: Type.Optional(Type.String()),
+  licensePlate: Type.Optional(Type.String()),
+})
 
-export interface GtfsRtStopTimeEvent {
-  delay?: number
-  time?: string | number
-}
+/** protobufjs widens 64-bit fields to strings, so both forms are accepted. */
+const Int64 = Type.Union([Type.String(), Type.Number()])
 
-export interface GtfsRtStopTimeUpdate {
-  stopSequence?: number
-  stopId?: string
-  arrival?: GtfsRtStopTimeEvent
-  departure?: GtfsRtStopTimeEvent
-}
+export const GtfsRtStopTimeEventSchema = Type.Object({
+  delay: Type.Optional(Type.Number()),
+  time: Type.Optional(Int64),
+})
 
-export interface GtfsRtTripUpdate {
-  trip?: GtfsRtTripDescriptor
-  vehicle?: GtfsRtVehicleDescriptor
-  stopTimeUpdate?: GtfsRtStopTimeUpdate[]
-  timestamp?: string | number
-}
+export const GtfsRtStopTimeUpdateSchema = Type.Object({
+  stopSequence: Type.Optional(Type.Number()),
+  stopId: Type.Optional(Type.String()),
+  arrival: Type.Optional(GtfsRtStopTimeEventSchema),
+  departure: Type.Optional(GtfsRtStopTimeEventSchema),
+})
 
-export interface GtfsRtVehiclePosition {
-  trip?: GtfsRtTripDescriptor
-  vehicle?: GtfsRtVehicleDescriptor
-  position?: GtfsRtPosition
-  currentStopSequence?: number
-  timestamp?: string | number
-}
+export const GtfsRtTripUpdateSchema = Type.Object({
+  trip: Type.Optional(GtfsRtTripDescriptorSchema),
+  vehicle: Type.Optional(GtfsRtVehicleDescriptorSchema),
+  stopTimeUpdate: Type.Optional(Type.Array(GtfsRtStopTimeUpdateSchema)),
+  timestamp: Type.Optional(Int64),
+})
 
-export interface GtfsRtFeedEntity {
-  id: string
-  tripUpdate?: GtfsRtTripUpdate
-  vehicle?: GtfsRtVehiclePosition
-}
+export const GtfsRtVehiclePositionSchema = Type.Object({
+  trip: Type.Optional(GtfsRtTripDescriptorSchema),
+  vehicle: Type.Optional(GtfsRtVehicleDescriptorSchema),
+  position: Type.Optional(GtfsRtPositionSchema),
+  currentStopSequence: Type.Optional(Type.Number()),
+  timestamp: Type.Optional(Int64),
+})
 
-export interface GtfsRtFeedMessage {
-  entity?: GtfsRtFeedEntity[]
-}
+export const GtfsRtFeedEntitySchema = Type.Object({
+  id: Type.String(),
+  tripUpdate: Type.Optional(GtfsRtTripUpdateSchema),
+  vehicle: Type.Optional(GtfsRtVehiclePositionSchema),
+})
+
+export const GtfsRtFeedMessageSchema = Type.Object({
+  entity: Type.Optional(Type.Array(GtfsRtFeedEntitySchema)),
+})
+
+export type GtfsRtPosition = Static<typeof GtfsRtPositionSchema>
+export type GtfsRtTripDescriptor = Static<typeof GtfsRtTripDescriptorSchema>
+export type GtfsRtVehicleDescriptor = Static<typeof GtfsRtVehicleDescriptorSchema>
+export type GtfsRtStopTimeEvent = Static<typeof GtfsRtStopTimeEventSchema>
+export type GtfsRtStopTimeUpdate = Static<typeof GtfsRtStopTimeUpdateSchema>
+export type GtfsRtTripUpdate = Static<typeof GtfsRtTripUpdateSchema>
+export type GtfsRtVehiclePosition = Static<typeof GtfsRtVehiclePositionSchema>
+export type GtfsRtFeedEntity = Static<typeof GtfsRtFeedEntitySchema>
+export type GtfsRtFeedMessage = Static<typeof GtfsRtFeedMessageSchema>
 
 export interface GtfsData {
   stops: Map<string, Stop>
@@ -114,24 +147,35 @@ export interface GtfsData {
   routes: Map<string, Route>
   trips: Map<string, Trip>
   tripsByRoute: Map<string, Trip[]> // route_id → trips
-  stopTimes: StopTime[]
   stopTimesByStop: Map<string, StopTime[]> // stop_id → stop_times (indexed)
   stopTimesByTrip: Map<string, StopTime[]> // trip_id → stop_times sorted by sequence
   stopIdsByRoute: Map<string, Set<string>> // route_id → stop_ids served
   calendarDates: CalendarDate[]
-  shapes: Map<string, [number, number][]> // shape_id → sorted [[lat, lng], ...]
   shapesByRoute: Map<string, [number, number][][]> // route_id → array of polylines
 }
 
-// Vehicle wheelchair-ramp accessibility (see openspec/changes/ramp-vehicle-accessibility).
-// Produced offline by `scripts/refresh-accessibility.ts` from trinmo.org's fleet
-// registry, keyed by the GTFS route-type prefix scheme (A=bus, TM=tram, TB=trolleybus)
+// Vehicle wheelchair-ramp accessibility (see openspec/specs/ramp/vehicle-accessibility).
+// Produced out-of-band from trinmo.org's fleet registry by a script scheduled in the
+// fleet repo, keyed by the GTFS route-type prefix scheme (A=bus, TM=tram, TB=trolleybus)
 // and the vehicle's inventory number; consumed at runtime by `gtfs/accessibility.ts`.
 // A vehicle type/inventory pair present here is always resolved (true/false); a
 // missing pair means unresolved, reported as unknown — never a stand-in for "false".
-export type VehicleAccessibilityType = 'BUS' | 'TRAM' | 'TROLLEY'
+//
+// This file is written by a script in another repository and applied as a
+// ConfigMap, so its shape is external input: it gets a schema and a runtime
+// check, not a cast. Without one, a table missing a vehicle type made
+// resolve() throw per vehicle, which took /realtime/vehicles down with it.
+export const VehicleAccessibilityTypeSchema = Type.Union([
+  Type.Literal('BUS'),
+  Type.Literal('TRAM'),
+  Type.Literal('TROLLEY'),
+])
 
-export type VehicleAccessibilityTable = Record<
-  VehicleAccessibilityType,
-  Record<string, boolean> // inventory number → ramp-equipped
->
+export const VehicleAccessibilityTableSchema = Type.Object({
+  BUS: Type.Record(Type.String(), Type.Boolean()),
+  TRAM: Type.Record(Type.String(), Type.Boolean()),
+  TROLLEY: Type.Record(Type.String(), Type.Boolean()),
+})
+
+export type VehicleAccessibilityType = Static<typeof VehicleAccessibilityTypeSchema>
+export type VehicleAccessibilityTable = Static<typeof VehicleAccessibilityTableSchema>

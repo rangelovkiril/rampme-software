@@ -1,18 +1,18 @@
 'use client'
 
+import type { ReservationResponse as RampReservation } from '@backend/schemas'
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useRef,
   useState,
-  type ReactNode,
 } from 'react'
 import { useSSE } from '@/hooks/useSSE'
-import { apiPath } from '@/lib/config'
+import { api } from '@/lib/api'
 import { computeRampUpdate } from '@/lib/ramp-updates'
-import type { RampReservation } from '@/lib/types'
 
 export type { RampReservation }
 
@@ -25,7 +25,11 @@ interface RampCtx {
   lockedRouteShortName: string | null
   missedBusAlert: { message: string; nonce: number } | null
   dismissMissedBusAlert: () => void
-  reserveBoard: (vehicleId: string, stopId: string, routeShortName?: string | null) => Promise<RampReservation | null>
+  reserveBoard: (
+    vehicleId: string,
+    stopId: string,
+    routeShortName?: string | null,
+  ) => Promise<RampReservation | null>
   reserveAlight: (vehicleId: string, stopId: string) => Promise<RampReservation | null>
   cancel: (id: number) => Promise<boolean>
   isReserved: (vehicleId: string, stopId: string) => boolean
@@ -51,37 +55,44 @@ function getSessionId(): string {
 
 // ── api helpers ──────────────────────────────────────────────────────────
 
-const hdrs = (sid: string) => ({ 'Content-Type': 'application/json', 'X-Session-Id': sid })
-
 async function apiReserve(
-  sid: string, vehicleId: string, stopId: string, type: 'board' | 'alight',
+  sid: string,
+  vehicleId: string,
+  stopId: string,
+  type: 'board' | 'alight',
 ): Promise<RampReservation | null> {
   try {
-    // This request shape is also hand-written in backend/src/routes/ramp.ts's
-    // t.Object schema and asserted in frontend/e2e/fixtures/transit.ts's
-    // reserveRequests mock — keep all three in sync when it changes.
-    const r = await fetch(apiPath('/ramp/reserve'), {
-      method: 'POST', headers: hdrs(sid),
-      body: JSON.stringify({ vehicle_id: vehicleId, stop_id: stopId, type }),
-    })
-    return r.ok ? await r.json() : null
-  } catch { return null }
+    // The body shape comes from the backend's ReserveBody model, so a rename
+    // there fails tsc here. e2e/fixtures/transit.ts's reserveRequests mock
+    // asserts on it too and still has to be updated by hand.
+    const { data } = await api.ramp.reserve.post(
+      { vehicleId: vehicleId, stopId: stopId, type },
+      { headers: { 'x-session-id': sid } },
+    )
+    return data ?? null
+  } catch {
+    return null
+  }
 }
 
 async function apiCancel(sid: string, id: number): Promise<boolean> {
   try {
-    const r = await fetch(apiPath(`/ramp/reserve/${id}`), {
-      method: 'DELETE', headers: { 'X-Session-Id': sid },
+    const { data } = await api.ramp.reserve({ id }).delete(null, {
+      headers: { 'x-session-id': sid },
     })
-    return r.ok
-  } catch { return false }
+    return data?.ok === true
+  } catch {
+    return false
+  }
 }
 
 async function apiFetch(sid: string): Promise<RampReservation[]> {
   try {
-    const r = await fetch(apiPath('/ramp/session'), { headers: { 'X-Session-Id': sid } })
-    return r.ok ? await r.json() : []
-  } catch { return [] }
+    const { data } = await api.ramp.session.get({ headers: { 'x-session-id': sid } })
+    return data ?? []
+  } catch {
+    return []
+  }
 }
 
 // ── provider ─────────────────────────────────────────────────────────────
@@ -91,7 +102,9 @@ export function RampProvider({ children }: { children: ReactNode }) {
   const [reservations, setReservations] = useState<RampReservation[]>([])
   const [lockedVehicleId, setLockedVehicleId] = useState<string | null>(null)
   const [lockedRouteShortName, setLockedRouteShortName] = useState<string | null>(null)
-  const [missedBusAlert, setMissedBusAlert] = useState<{ message: string; nonce: number } | null>(null)
+  const [missedBusAlert, setMissedBusAlert] = useState<{ message: string; nonce: number } | null>(
+    null,
+  )
   const prevReservations = useRef<RampReservation[]>([])
 
   // Applies a fresh reservation list from the server (SSE push or manual
@@ -118,7 +131,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
   // so this reflects server-side status transitions within milliseconds
   // instead of waiting on a poll interval.
   const sseReservations = useSSE<RampReservation[]>(
-    `/ramp/session/stream?session_id=${encodeURIComponent(sid)}`,
+    `/ramp/session/stream?sessionId=${encodeURIComponent(sid)}`,
   )
 
   useEffect(() => {
@@ -129,38 +142,51 @@ export function RampProvider({ children }: { children: ReactNode }) {
     applyReservations(await apiFetch(sid))
   }, [sid, applyReservations])
 
-  const reserveBoard = useCallback(async (vid: string, stopId: string, routeShortName?: string | null) => {
-    const r = await apiReserve(sid, vid, stopId, 'board')
-    if (r) {
-      console.log(`[ramp] board reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
-      if (routeShortName != null) setLockedRouteShortName(routeShortName)
-      setLockedVehicleId(vid)
-      setReservations(prev => [...prev.filter(p => p.id !== r.id), r])
-    }
-    return r
-  }, [sid])
+  const reserveBoard = useCallback(
+    async (vid: string, stopId: string, routeShortName?: string | null) => {
+      const r = await apiReserve(sid, vid, stopId, 'board')
+      if (r) {
+        console.log(`[ramp] board reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
+        if (routeShortName != null) setLockedRouteShortName(routeShortName)
+        setLockedVehicleId(vid)
+        setReservations((prev) => [...prev.filter((p) => p.id !== r.id), r])
+      }
+      return r
+    },
+    [sid],
+  )
 
-  const reserveAlight = useCallback(async (vid: string, stopId: string) => {
-    const r = await apiReserve(sid, vid, stopId, 'alight')
-    if (r) {
-      console.log(`[ramp] alight reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
-      setReservations(prev => [...prev.filter(p => p.id !== r.id), r])
-    }
-    return r
-  }, [sid])
+  const reserveAlight = useCallback(
+    async (vid: string, stopId: string) => {
+      const r = await apiReserve(sid, vid, stopId, 'alight')
+      if (r) {
+        console.log(`[ramp] alight reserved — vehicle ${vid}, stop ${stopId}, reservation #${r.id}`)
+        setReservations((prev) => [...prev.filter((p) => p.id !== r.id), r])
+      }
+      return r
+    },
+    [sid],
+  )
 
-  const cancel = useCallback(async (id: number) => {
-    const ok = await apiCancel(sid, id)
-    if (ok) {
-      setReservations(prev => prev.map(r => (r.id === id ? { ...r, status: 'cancelled' as const } : r)))
-    }
-    return ok
-  }, [sid])
+  const cancel = useCallback(
+    async (id: number) => {
+      const ok = await apiCancel(sid, id)
+      if (ok) {
+        setReservations((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, status: 'cancelled' as const } : r)),
+        )
+      }
+      return ok
+    },
+    [sid],
+  )
 
   const isReserved = useCallback(
     (vid: string, stopId: string) =>
       reservations.some(
-        (r) => r.vehicle_id === vid && r.stop_id === stopId &&
+        (r) =>
+          r.vehicleId === vid &&
+          r.stopId === stopId &&
           (r.status === 'pending' || r.status === 'active'),
       ),
     [reservations],
@@ -169,11 +195,21 @@ export function RampProvider({ children }: { children: ReactNode }) {
   const dismissMissedBusAlert = useCallback(() => setMissedBusAlert(null), [])
 
   return (
-    <Ctx.Provider value={{
-      sessionId: sid, reservations, lockedVehicleId, lockedRouteShortName,
-      missedBusAlert, dismissMissedBusAlert,
-      reserveBoard, reserveAlight, cancel, isReserved, refresh,
-    }}>
+    <Ctx.Provider
+      value={{
+        sessionId: sid,
+        reservations,
+        lockedVehicleId,
+        lockedRouteShortName,
+        missedBusAlert,
+        dismissMissedBusAlert,
+        reserveBoard,
+        reserveAlight,
+        cancel,
+        isReserved,
+        refresh,
+      }}
+    >
       {children}
     </Ctx.Provider>
   )

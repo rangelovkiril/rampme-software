@@ -7,8 +7,18 @@ Elysia on Bun. REST + SSE API. Read the root [`AGENTS.md`](../AGENTS.md) first f
 ```
 src/
   index.ts                    Entry point - wires plugins/routes, starts server, boots MQTT + proximity checker
-  config/index.ts             All env-based configuration in one place
+  config/index.ts             All env-based configuration in one place, as one TypeBox schema:
+                              defaults, bounds, and coercion live with the variable
   config/swagger.ts           OpenAPI/Swagger plugin setup
+
+  schemas/shapes.ts           Every request/response/stream shape as plain TypeBox; the TS types are
+                              derived from these. No Elysia or db import, so it stays framework-free
+  schemas/index.ts            Registers those shapes as Elysia models and holds the GTFS/SQLite -> wire
+                              mapping functions; re-exports shapes.ts
+
+  plugins/
+    gtfs-ready.ts             Macro resolving loaded GtfsData into a handler, or short-circuiting with 503
+    errors.ts                 NotFoundError/UpstreamError + the single onError that turns them into responses
 
   routes/                     HTTP handlers - thin, no business logic
     stops.ts                  /stops, /stops/:id, /stops/:id/vehicles(/stream)
@@ -17,7 +27,7 @@ src/
     ramp.ts                   /ramp/reserve, /ramp/reserve/:id, /ramp/session(/stream), /ramp/vehicle/:id
 
   services/
-    state.ts                  Shared GTFS data holder (getGtfs/setGtfs) + jsonError helper
+    state.ts                  Shared GTFS data holder (getGtfs/setGtfs)
     broadcaster.ts            Broadcaster<T> - domain-agnostic publish/subscribe over an async iterable
     sse.ts                    makeSseStream() - generic SSE transport: takes a Broadcaster + getData, handles retry hint, heartbeat, health-transition events, cleanup
     mqtt.ts                   MQTTHub - pattern-based subscriptions with per-handler parsers, publish helper
@@ -31,7 +41,10 @@ src/
       status.ts               Ramp status derivation for enrichment (getReservationsByVehicle, getVehicleRampStatusFrom)
 
   gtfs/                       GTFS data layer
-    types.ts                  All GTFS + GTFS-RT data interfaces (Stop, Route, Trip, GtfsData, GtfsRt*)
+    types.ts                  All GTFS + GTFS-RT shapes as TypeBox, with the types derived from them
+                              (Stop, Route, Trip, GtfsRt*). These keep GTFS's own snake_case; the wire
+                              shapes live in schemas/. GtfsData itself is an in-memory index, not a wire
+                              shape, so it stays a plain interface
     static.ts                 Fetches & parses the GTFS ZIP into in-memory Maps + precomputed indexes
     realtime.ts               Fetches/decodes GTFS-RT protobuf feeds; tracks per-feed staleness; publishes ticks on its own Broadcaster
     feed-health.ts            FeedTracker - tracks time since a feed's last successful fetch, reports staleness against a threshold
@@ -55,7 +68,10 @@ test/                          bun:test suite, mirrors src/ (test/gtfs/, test/se
 
 ## Key concepts
 
-- **GTFS static data** is fetched once on startup (and refreshed on `GTFS_REFRESH_INTERVAL`) as a ZIP, parsed into `GtfsData`: Maps for fast lookup by ID, plus precomputed `tripsByRoute` / `stopIdsByRoute` indexes.
+- **GTFS static data** is fetched once on startup (and refreshed on `GTFS_REFRESH_INTERVAL`) as a ZIP, parsed into `GtfsData`: Maps for fast lookup by ID, plus precomputed `tripsByRoute` / `stopIdsByRoute` / `stopTimesByStop` / `stopTimesByTrip` / `shapesByRoute` indexes. Only the indexes are kept — the flat `stopTimes` and `shapes` lists are local build inputs. `parseCsv` honours RFC 4180 quoting; Sofia's feed has rows whose quoted names contain a comma, and splitting on bare commas shifts every later column.
+- **The schema is the type.** Every request and response shape is declared once in `schemas/index.ts`, registered with `.model()`, and its TypeScript type derived with `typeof Schema.static`. Routes reference models by name in their `response`, so responses are validated and appear in `/docs`, and the frontend derives its own types from the same models through Elysia Eden — never write a parallel interface. `Stop`/`Route`/`Trip`/`StopTime`/`CalendarDate` (GTFS columns) and `RampReservation` (SQLite columns) keep their source spelling; `toStopResponse`/`toRouteResponse`/`toReservationResponse` are the one boundary where that becomes the API's camelCase.
+- **Errors** go through `plugins/errors.ts`: throw `NotFoundError` or `UpstreamError` (or wrap an upstream call in `upstream()`), and the single `onError` maps them to 404/502. Anything unexpected becomes a typed 500. Routes never build a raw `Response`; use the `status()` context helper so Elysia can validate and document the result.
+- **Routes that need loaded GTFS** opt in with `gtfsReady: true` (`plugins/gtfs-ready.ts`), which resolves `gtfs` into the handler already narrowed, or answers 503. SSE handlers deliberately do not use it — they return `null` for a dataless tick rather than failing the stream.
 - **GTFS-RT** (vehicle-positions, trip-updates) is fetched on a single background tick (`REFRESH_INTERVAL_MS` in `gtfs/realtime.ts`), independently of a *separate* fixed-cadence push loop that publishes to `gtfsRealtimeBroadcaster` unconditionally, even if the fetch fails (an upstream stall must never freeze the UI). Each feed's staleness is tracked independently via `FeedTracker` (`gtfs/feed-health.ts`) against `GTFS_RT_STALE_THRESHOLD_MS`. The broadcaster tick also drives a per-tick enriched-vehicle cache in `routes/realtime.ts` (memoized so N clients do not each recompute enrichment).
 - **GTFS-RT typing**: decoded protobuf JSON is typed via `GtfsRt*` interfaces in `gtfs/types.ts` (camelCase, matching `proto/gtfs-realtime.proto`); a single type assertion at the `FeedMessage.decode().toJSON()` boundary is the only place the wire format is untyped.
 - **Sibling stops**: Sofia's GTFS has separate stop_ids for bus/tram/trolley at the same physical stop (e.g. `A2795`, `TB2795`), sharing a `stop_code`. Arrivals are queried across all siblings together.
@@ -64,7 +80,8 @@ test/                          bun:test suite, mirrors src/ (test/gtfs/, test/se
 - **SSE** (`services/sse.ts`) is a generic transport: `makeSseStream(broadcaster, getData)` sends a `retry: 3000` hint and the current data on connect, re-sends on every `Broadcaster` publish, and heartbeats (`: hb`) every 20s during quiet periods so Cloudflare's edge and the tunnel do not reap idle streams (100s idle cutoff). It knows nothing about GTFS or ramp - each domain owns and publishes to its own `Broadcaster<T>` (`gtfsRealtimeBroadcaster` in `gtfs/realtime.ts`, `rampBroadcaster` in `services/ramp/broadcaster.ts`), so one domain's signal never has to be faked to push another's stream (e.g. `/ramp/session/stream`). GTFS-derived streams also get a distinct `health` SSE event on staleness transitions (healthy<->degraded), separate from the regular data event.
 - **Vehicle accessibility** has two datasets with very different volatility, deliberately kept separate, and neither is imported by any `.ts` module anymore — both live in `data/` as plain checked-in files, not code. `data/model-accessibility.json` is hand-curated (model -> low_floor), reviewed like any other source change, and barely ever changes; it's fetched over HTTP (`raw.githubusercontent.com`) by a small dependency-free Node script published as a GitHub gist, run weekly by the `fleet` repo's own `accessibility-refresh` workflow, which joins it against a live trinmo.org crawl and commits the result there as a `ConfigMap` — no code in this repo runs that crawl, since it's simple enough (fetch, filter, join, write) that it doesn't need this codebase's TypeScript/TypeBox/test machinery, and living outside both repos means it can be edited without a PR in either. Flux applies fleet's commit like any other change, no in-cluster CronJob or RBAC. `gtfs/accessibility.ts`'s loader just reads `RAMP_ACCESSIBILITY_DATA_PATH` and reloads on an interval — it has no idea the file's origin is a Git-committed ConfigMap rather than a local edit. `data/vehicle-accessibility.seed.json` (baked into the Docker image, see `Dockerfile`) is only a fallback default for the image outside this specific fleet topology.
 - **Accessibility coverage gaps stay `unknown` on purpose — close them by improving trinmo's public data, not by adding a private one.** A never-photographed vehicle has no entry in the reference dataset and reports `unknown`, which is correct, not a bug to work around. RampMe does not run its own crowdsourced vehicle-sighting pipeline to fill gaps faster (an explicit non-goal, revisit only if trinmo access degrades): that would duplicate an established community's work and add reporting/moderation infrastructure this repo doesn't need. To close a specific gap sooner, contribute the photo/tag to trinmo.org directly — the weekly crawl picks up any public improvement there automatically, no code change here.
-- **MQTT payload validation** uses TypeBox (`@sinclair/typebox` + `Value.Check`) at the point untrusted hardware input enters the system (`HardwareStateSchema` in `bridge.ts`). This is the pattern for any new untrusted-input parsing. Internally decoded, structurally guaranteed data (GTFS-RT) uses plain TS interfaces instead; do not add TypeBox validation to hot per-tick paths.
+- **Every boundary the system does not control is a schema plus a runtime check**, and the TypeScript type is derived from that schema rather than written beside it. There are four: hardware MQTT payloads (`HardwareStateSchema` in `bridge.ts`), the environment (`EnvSchema` in `config/index.ts`), the GTFS static ZIP (`StopSchema` and friends in `gtfs/types.ts`, checked row by row in `static.ts`'s `parseRows`), and the accessibility dataset written by the `fleet` repo (`VehicleAccessibilityTableSchema`). A GTFS row that fails its schema is dropped and counted rather than thrown on, since one malformed row in a third-party feed must not cost the whole feed. Decoded GTFS-RT is the one exception: protobuf already guarantees its shape, and it is a hot per-tick path, so its schemas exist only to derive the types and to describe `/realtime/trip-updates`, and nothing checks them per tick.
+- **SSE payloads are validated on send** (`makeSseStream`'s `schema` argument). Elysia validates `response` schemas on HTTP routes but not on a stream, so without this the four streams could drift from the shapes their consumers derive types from. A payload that fails is logged and dropped rather than sent.
 - **Logging** goes through `consola`, tagged per subsystem via `consola.withTag('mqtt' | 'ramp-mqtt' | 'proximity')`. No bare `console.*` calls.
 
 ## Rules
@@ -73,7 +90,7 @@ test/                          bun:test suite, mirrors src/ (test/gtfs/, test/se
 - **Business logic goes in `services/`.** Pure-ish functions that take `GtfsData` (+ params) and return results, testable without HTTP.
 - **Shared types go in `gtfs/types.ts`.** Do not define GTFS or GTFS-RT interfaces elsewhere.
 - **Time helpers go in `gtfs/time.ts`.** Do not inline `split(':').map(Number)` or `h % 24`; use `parseGtfsTime()`, `normalizeGtfsHour()`, `computeScheduledEtaMinutes()`.
-- **Config goes in `config/index.ts`.** No hardcoded env-driven flags in handler files.
+- **Config goes in `config/index.ts`.** No hardcoded env-driven flags in handler files, and no `process.env` reads outside it. Every variable is a field on one TypeBox `EnvSchema` carrying its own default and bounds; `Value.Convert` coerces the string the environment gives us and `Value.Errors` reports every problem at once, so a malformed value names itself and stops startup rather than becoming `NaN`. `config.mqtt` is `null` when `MQTT_URL` is unset, so "no broker" is a branch the type system enforces rather than a truthiness check on a URL.
 - **Logging goes through `consola`**, tagged per subsystem; pick the level that matches severity (`.error` for failures, `.warn` for degraded-but-running, `.info`/`.success` for routine events).
 - **Reach for extraction when a module resists testing, not as a blanket rule.** Two shapes come up often enough to name, but apply either only where it actually buys testability — not to every stateful module or every side effect:
   - State held across calls (timers, in-flight tracking, connections) → a `createX(dependency, config)` factory returning an instance that owns its own private state, with production wiring a single instance behind `initX()`/`getX()` (mirroring `getGtfs()`/`getMqtt()`). `services/ramp/bridge.ts`'s `createRampBridge(mqtt, timeoutMs)` / `initRampBridge()` / `getRampBridge()` is the worked example; a test calls `createRampBridge()` directly with a fake `mqtt` and a short timeout, no module-level state to reset between tests.
@@ -101,11 +118,12 @@ Starts without a broker: with no `MQTT_URL` set, MQTT and the ramp hardware path
 | `GTFS_RT_BASE_URL` | Sofia Traffic API | GTFS-RT base URL |
 | `GTFS_REFRESH_INTERVAL` | 86400000 (24h) | Static data refresh interval (ms) |
 | `GTFS_RT_STALE_THRESHOLD_MS` | `15000` | How long since a GTFS-RT feed's last successful fetch before it's considered degraded |
-| `PROTO_PATH` | `proto/gtfs-realtime.proto` | Protobuf definition path |
 | `RAMP_DB_PATH` | `./data/ramp.db` | SQLite path for ramp reservations |
 | `RAMP_ACCESSIBILITY_DATA_PATH` | `./data/vehicle-accessibility.json` | Path to the vehicle wheelchair-ramp accessibility reference dataset, rebuilt out-of-band by a `fleet`-scheduled script (see `openspec/specs/ramp/vehicle-accessibility`); missing file means every vehicle resolves as unknown |
 | `RAMP_ACCESSIBILITY_REFRESH_MS` | `3600000` (1h) | How often the backend reloads the accessibility dataset from disk to pick up a scheduled refresh |
+| `RAMP_CLEANUP_INTERVAL_MS` | `3600000` (1h) | How often resolved reservations older than 24h are swept from the SQLite table |
+| `TZ` | `Europe/Sofia` | IANA zone every GTFS wall-clock time is interpreted in. Read through `config/index.ts`, so a container that leaves it unset still reads GTFS times as Sofia local time rather than UTC |
 | `MQTT_URL` | _(unset)_ | MQTT broker URL; if unset, MQTT/ramp hardware integration is skipped entirely |
 | `MQTT_USERNAME` / `MQTT_PASSWORD` | _(unset)_ | MQTT broker credentials |
 | `MQTT_CLIENT_ID` | `rampme-backend` | MQTT client ID |
-| `DEPLOY_TIMEOUT_MS` | `20000` | How long to wait for hardware "deploying" ack before expiring a reservation |
+| `DEPLOY_TIMEOUT_MS` | `20000` | How long to wait for hardware "deploying" ack before expiring a reservation. Read through `config/index.ts`, not `process.env`, like everything in this table |

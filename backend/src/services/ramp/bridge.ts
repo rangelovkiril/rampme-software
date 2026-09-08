@@ -1,23 +1,7 @@
 /**
- * bridge.ts — Bridges reservations ↔ hardware over MQTT.
- *
- * Topic design (payload-based, no info duplicated in topic):
- *
- *   ramp/{vehicle_id}/cmd        (backend → hw, QoS 1)
- *     { action: "new_reservation",    id: <int> }
- *     { action: "cancel_reservation", id: <int> }
- *     { action: "deploy" }
- *
- *   ramp/{vehicle_id}/state      (hw → backend, retained, QoS 1)
- *     { state: "idle" | "deploying" | "deployed" | "retracting" | "done" | "error",
- *       reason?: string }
- *
- * Lifecycle:
- *   1. createReservation() → publish new_reservation cmd
- *   2. cancelReservation() → publish cancel_reservation cmd
- *   3. proximity detects bus at stop with pending reservations → publish deploy cmd
- *   4. hardware publishes state transitions; on "done" we mark reservations as done
- *   5. if no "deploying" within DEPLOY_TIMEOUT_MS after deploy cmd → expire reservations
+ * Bridges reservations ↔ hardware over MQTT. The topics and payloads are the
+ * ramp MQTT protocol, documented in the wiki:
+ * https://github.com/rangelovkiril/rampme-software/wiki/Ramp-MQTT-Protocol
  *
  * Deploy-tracking state (which vehicle is mid-deploy, pending ack timeouts) is
  * scoped per RampBridge instance via createRampBridge() rather than module-level,
@@ -28,14 +12,13 @@
 import { type Static, Type } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import { consola } from 'consola'
+import { config } from '../../config'
 import { getRampDb, type RampReservation } from '../../db/ramp'
 import type { Parser } from '../mqtt'
 import { jsonParse } from '../mqtt'
 import { rampBroadcaster } from './broadcaster'
 
 const log = consola.withTag('ramp-mqtt')
-
-const DEPLOY_TIMEOUT_MS = parseInt(process.env.DEPLOY_TIMEOUT_MS ?? '20000', 10)
 
 function cmdTopic(vehicleId: string): string {
   return `ramp/${vehicleId}/cmd`
@@ -85,9 +68,12 @@ export interface RampBridge {
  * Builds an independent RampBridge over the given MQTT client. Production
  * wires a single instance via initRampBridge()/getRampBridge(); tests call
  * this directly with a fake RampMqtt and a short timeoutMs for isolated,
- * fast tests instead of the real DEPLOY_TIMEOUT_MS and a shared MQTT hub.
+ * fast tests instead of the real deploy timeout and a shared MQTT hub.
  */
-export function createRampBridge(mqtt: RampMqtt, timeoutMs = DEPLOY_TIMEOUT_MS): RampBridge {
+export function createRampBridge(
+  mqtt: RampMqtt,
+  timeoutMs = config.ramp.deployTimeoutMs,
+): RampBridge {
   /** Tracks which vehicles we've already asked to deploy for a given stop. */
   const deployedFor = new Map<string, string>() // vehicleId → stopId
   const deployTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
@@ -245,7 +231,10 @@ export function createRampBridge(mqtt: RampMqtt, timeoutMs = DEPLOY_TIMEOUT_MS):
 let bridge: RampBridge | null = null
 
 /** Wires the singleton RampBridge used in production over the real MQTT hub. */
-export function initRampBridge(mqtt: RampMqtt, timeoutMs = DEPLOY_TIMEOUT_MS): RampBridge {
+export function initRampBridge(
+  mqtt: RampMqtt,
+  timeoutMs = config.ramp.deployTimeoutMs,
+): RampBridge {
   bridge = createRampBridge(mqtt, timeoutMs)
   return bridge
 }

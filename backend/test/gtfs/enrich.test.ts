@@ -9,12 +9,10 @@ function emptyGtfsData(overrides: Partial<GtfsData> = {}): GtfsData {
     routes: new Map(),
     trips: new Map(),
     tripsByRoute: new Map(),
-    stopTimes: [],
     stopTimesByStop: new Map(),
     stopTimesByTrip: new Map(),
     stopIdsByRoute: new Map(),
     calendarDates: [],
-    shapes: new Map(),
     shapesByRoute: new Map(),
     ...overrides,
   }
@@ -36,7 +34,6 @@ const trip: Trip = {
   route_id: 'route-1',
   service_id: 'svc',
   trip_headsign: 'Center',
-  direction_id: 0,
   shape_id: 'shape-1',
   wheelchair_accessible: 0,
 }
@@ -55,7 +52,7 @@ describe('enrichVehicles', () => {
       routes: new Map([['route-1', route]]),
     })
     const [vehicle] = enrichVehicles([positionEntity('A2053')], data, new Map(), () => true)
-    expect(vehicle?.ramp_status).toBe('working')
+    expect(vehicle?.rampStatus).toBe('working')
   })
 
   test('a vehicle resolveAccessibility confirms not equipped reports no_ramp', () => {
@@ -64,7 +61,7 @@ describe('enrichVehicles', () => {
       routes: new Map([['route-1', route]]),
     })
     const [vehicle] = enrichVehicles([positionEntity('A9999')], data, new Map(), () => false)
-    expect(vehicle?.ramp_status).toBe('no_ramp')
+    expect(vehicle?.rampStatus).toBe('no_ramp')
   })
 
   test('an unresolved vehicle reports unknown, not a guess', () => {
@@ -73,7 +70,7 @@ describe('enrichVehicles', () => {
       routes: new Map([['route-1', route]]),
     })
     const [vehicle] = enrichVehicles([positionEntity('A0000')], data, new Map(), () => null)
-    expect(vehicle?.ramp_status).toBe('unknown')
+    expect(vehicle?.rampStatus).toBe('unknown')
   })
 
   test('resolveAccessibility is called with the live vehicle id, not the trip id', () => {

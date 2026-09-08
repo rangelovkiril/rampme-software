@@ -1,8 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Stop } from '@/lib/types'
-import { apiPath } from '@/lib/config'
+import type { StopResponse as Stop } from '@backend/schemas'
+import { useCallback, useMemo, useState } from 'react'
+import { useStops } from '@/hooks/useStops'
 
 interface StopsPanelProps {
   onSelectStop?: (stop: Stop) => void
@@ -10,33 +10,16 @@ interface StopsPanelProps {
 }
 
 export default function StopsPanel({ onSelectStop, onClose }: StopsPanelProps) {
-  const [stops, setStops] = useState<Stop[]>([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    let active = true
-    async function load() {
-      try {
-        const res = await fetch(apiPath('/stops'))
-        if (!res.ok || !active) return
-        const data = await res.json()
-        if (active && Array.isArray(data)) setStops(data)
-      } catch { /* ignore */ }
-      finally { if (active) setLoading(false) }
-    }
-    load()
-    return () => { active = false }
-  }, [])
+  const { stops, loading } = useStops()
 
   const filtered = useMemo(() => {
     if (!search.trim()) return stops.slice(0, 100)
     const q = search.trim().toLowerCase()
-    return stops.filter(
-      (s) =>
-        s.stop_name.toLowerCase().includes(q) ||
-        s.stop_id.toLowerCase().includes(q),
-    ).slice(0, 100)
+    return stops
+      .filter((s) => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q))
+      .slice(0, 100)
   }, [stops, search])
 
   const handleSelect = useCallback(
@@ -48,7 +31,11 @@ export default function StopsPanel({ onSelectStop, onClose }: StopsPanelProps) {
   )
 
   if (loading) {
-    return <p className="side-panel-text py-3" style={{ color: 'var(--text-muted)' }}>Зареждане...</p>
+    return (
+      <p className="side-panel-text py-3" style={{ color: 'var(--text-muted)' }}>
+        Зареждане...
+      </p>
+    )
   }
 
   return (
@@ -74,11 +61,13 @@ export default function StopsPanel({ onSelectStop, onClose }: StopsPanelProps) {
 
       <div className="space-y-1.5">
         {filtered.length === 0 && (
-          <p className="side-panel-text py-2" style={{ color: 'var(--text-muted)' }}>Няма намерени спирки.</p>
+          <p className="side-panel-text py-2" style={{ color: 'var(--text-muted)' }}>
+            Няма намерени спирки.
+          </p>
         )}
         {filtered.map((s) => (
           <button
-            key={s.stop_id}
+            key={s.id}
             type="button"
             onClick={() => handleSelect(s)}
             className="flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors"
@@ -93,14 +82,28 @@ export default function StopsPanel({ onSelectStop, onClose }: StopsPanelProps) {
               className="inline-flex h-7 w-7 items-center justify-center rounded-full"
               style={{ background: 'var(--control-bg)', color: 'var(--text-secondary)' }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                aria-hidden="true"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium" style={{ color: 'var(--text)' }}>{s.stop_name}</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.stop_id}</p>
+              <p className="truncate text-sm font-medium" style={{ color: 'var(--text)' }}>
+                {s.name}
+              </p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {s.id}
+              </p>
             </div>
           </button>
         ))}
