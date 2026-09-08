@@ -25,8 +25,8 @@ async function initGtfs() {
   }
 }
 
-initRampDb(config.rampDbPath)
-initAccessibility(config.rampAccessibility.dataPath, config.rampAccessibility.refreshMs)
+initRampDb(config.ramp.dbPath)
+initAccessibility(config.ramp.accessibility.dataPath, config.ramp.accessibility.refreshMs)
 
 createProximityChecker(
   () => (isRampBridgeAvailable() ? getRampBridge() : null),
@@ -71,9 +71,9 @@ setInterval(initGtfs, config.gtfs.refreshInterval)
 setInterval(() => {
   const removed = getRampDb().cleanupOldReservations()
   if (removed > 0) consola.info(`swept ${removed} reservation(s) older than 24h`)
-}, config.rampCleanupIntervalMs)
+}, config.ramp.cleanupIntervalMs)
 
-if (!config.mqtt.url) {
+if (!config.mqtt) {
   consola.warn('MQTT_URL not set — skipping MQTT')
 } else {
   initMqtt(config.mqtt.url, {

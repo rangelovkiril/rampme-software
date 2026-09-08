@@ -72,7 +72,7 @@ export interface RampBridge {
  */
 export function createRampBridge(
   mqtt: RampMqtt,
-  timeoutMs = config.mqtt.deployTimeoutMs,
+  timeoutMs = config.ramp.deployTimeoutMs,
 ): RampBridge {
   /** Tracks which vehicles we've already asked to deploy for a given stop. */
   const deployedFor = new Map<string, string>() // vehicleId → stopId
@@ -233,7 +233,7 @@ let bridge: RampBridge | null = null
 /** Wires the singleton RampBridge used in production over the real MQTT hub. */
 export function initRampBridge(
   mqtt: RampMqtt,
-  timeoutMs = config.mqtt.deployTimeoutMs,
+  timeoutMs = config.ramp.deployTimeoutMs,
 ): RampBridge {
   bridge = createRampBridge(mqtt, timeoutMs)
   return bridge

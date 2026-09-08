@@ -7,7 +7,8 @@ Elysia on Bun. REST + SSE API. Read the root [`AGENTS.md`](../AGENTS.md) first f
 ```
 src/
   index.ts                    Entry point - wires plugins/routes, starts server, boots MQTT + proximity checker
-  config/index.ts             All env-based configuration in one place, parsed through validating helpers
+  config/index.ts             All env-based configuration in one place, as one TypeBox schema:
+                              defaults, bounds, and coercion live with the variable
   config/swagger.ts           OpenAPI/Swagger plugin setup
 
   schemas/index.ts            Every request/response shape as a TypeBox model, registered with .model();
@@ -84,7 +85,7 @@ test/                          bun:test suite, mirrors src/ (test/gtfs/, test/se
 - **Business logic goes in `services/`.** Pure-ish functions that take `GtfsData` (+ params) and return results, testable without HTTP.
 - **Shared types go in `gtfs/types.ts`.** Do not define GTFS or GTFS-RT interfaces elsewhere.
 - **Time helpers go in `gtfs/time.ts`.** Do not inline `split(':').map(Number)` or `h % 24`; use `parseGtfsTime()`, `normalizeGtfsHour()`, `computeScheduledEtaMinutes()`.
-- **Config goes in `config/index.ts`.** No hardcoded env-driven flags in handler files.
+- **Config goes in `config/index.ts`.** No hardcoded env-driven flags in handler files, and no `process.env` reads outside it. Every variable is a field on one TypeBox `EnvSchema` carrying its own default and bounds; `Value.Convert` coerces the string the environment gives us and `Value.Errors` reports every problem at once, so a malformed value names itself and stops startup rather than becoming `NaN`. `config.mqtt` is `null` when `MQTT_URL` is unset, so "no broker" is a branch the type system enforces rather than a truthiness check on a URL.
 - **Logging goes through `consola`**, tagged per subsystem; pick the level that matches severity (`.error` for failures, `.warn` for degraded-but-running, `.info`/`.success` for routine events).
 - **Reach for extraction when a module resists testing, not as a blanket rule.** Two shapes come up often enough to name, but apply either only where it actually buys testability — not to every stateful module or every side effect:
   - State held across calls (timers, in-flight tracking, connections) → a `createX(dependency, config)` factory returning an instance that owns its own private state, with production wiring a single instance behind `initX()`/`getX()` (mirroring `getGtfs()`/`getMqtt()`). `services/ramp/bridge.ts`'s `createRampBridge(mqtt, timeoutMs)` / `initRampBridge()` / `getRampBridge()` is the worked example; a test calls `createRampBridge()` directly with a fake `mqtt` and a short timeout, no module-level state to reset between tests.
