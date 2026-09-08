@@ -126,4 +126,7 @@ The 78 findings fall into three classes with different risk. `organizeImports` a
 2. This change is implemented in the task-group order below, committing per group.
 3. Backend and frontend deploy together for the camelCase rename, rather than on their usual independent cadence. This is a hard requirement, not a precaution: every response field changes spelling, so a stale frontend against a new backend renders nothing.
 
+> [!WARNING]
+> Step 3 was not followed. The frontend reached `rampme.site` while `api.rampme.site` was still on `main`, and the resulting skew is [#112](https://github.com/rangelovkiril/rampme-software/issues/112): opening "Линии" threw on `a.shortName` and took the whole app down to Next.js's default error page, "Спирки" rendered a list of blank rows, and `/ramp/session/stream` answered 422 on every attempt because the backend still required `session_id`. The failure direction observed in production was the mirror of the one anticipated here — a new frontend against a stale backend — and it is the more damaging one, because a crash in a `useMemo` sort is not a degraded render but a blank page.
+
 **Rollback** is a plain revert for everything except the deploy ordering. Nothing here writes a migration, changes a SQLite schema, alters an MQTT topic, or touches a Cloudflare or cluster resource. The one caveat is that reverting the backend alone after both have shipped reintroduces the naming mismatch in the opposite direction, so a rollback that crosses the rename reverts both apps together.

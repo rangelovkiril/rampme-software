@@ -256,7 +256,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
               background: 'var(--control-bg)',
               color: 'var(--text-secondary)',
             }}
-            aria-label="Close"
+            aria-label="Затвори"
           >
             x
           </button>
@@ -453,7 +453,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                                     color: '#fff',
                                   }}
                                 >
-                                  {isReservingThis ? '...' : 'Рампа'}
+                                  {isReservingThis ? '...' : 'Слизане'}
                                 </button>
                               ) : canBoard ? (
                                 <button

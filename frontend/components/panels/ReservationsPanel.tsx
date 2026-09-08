@@ -3,11 +3,11 @@
 import { type RampReservation, useRamp } from '@/contexts/RampContext'
 
 const STATUS_LABEL: Record<RampReservation['status'], string> = {
-  pending: 'Изчакване',
+  pending: 'Чакаща',
   active: 'Активна',
   done: 'Приключена',
   cancelled: 'Отказана',
-  expired: 'Замина',
+  expired: 'Изтекла',
 }
 
 const STATUS_COLOR: Record<RampReservation['status'], string> = {
