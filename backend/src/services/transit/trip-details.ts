@@ -7,6 +7,7 @@ import {
   unixToHHMM,
 } from '../../gtfs/time'
 import type { GtfsData } from '../../gtfs/types'
+import type { TripDetailResult, TripEtaUpdate, TripStopResult } from '../../schemas'
 
 interface TripPrediction {
   arrival: number
@@ -17,37 +18,6 @@ interface TripPredictions {
   byStopId: Map<string, TripPrediction>
   byStopSequence: Map<number, TripPrediction>
   nextUpcomingSequence: number | null
-}
-
-export interface TripStopResult {
-  stop_id: string
-  stop_name: string
-  stop_sequence: number
-  scheduled_time: string
-  expected_time: string | null
-  eta_minutes: number | null
-  status: 'departed' | 'delay' | 'on_time' | 'scheduled'
-  delay_minutes: number
-  realtime: boolean
-}
-
-export interface TripDetailResult {
-  vehicle_id: string
-  trip_id: string
-  route_id: string
-  route_short_name: string | null
-  route_type: number | null
-  headsign: string | null
-  stops: TripStopResult[]
-}
-
-export interface TripEtaUpdate {
-  stop_id: string
-  eta_minutes: number | null
-  status: TripStopResult['status']
-  expected_time: string | null
-  delay_minutes: number
-  realtime: boolean
 }
 
 /** Returns only the dynamic ETA fields for each stop — used by the SSE stream. */

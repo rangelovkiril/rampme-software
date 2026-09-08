@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { CalendarDate, GtfsData, StopTime, Trip } from '../../../src/gtfs/types'
-import type { ArrivalResult } from '../../../src/services/transit/arrivals'
+import type { ArrivalResult } from '../../../src/schemas'
 import {
   collectScheduledArrivals,
   deduplicateAndSort,

@@ -9,20 +9,7 @@ import {
   unixToHHMM,
 } from '../../gtfs/time'
 import type { GtfsData } from '../../gtfs/types'
-
-export interface ArrivalResult {
-  id: string
-  vehicle_id: string | null
-  route_short_name: string | null
-  route_type: number | null
-  headsign: string | null
-  route_id: string | null
-  scheduled_time: string | null
-  expected_time: string | null
-  eta_minutes: number
-  realtime: boolean
-  has_ramp: boolean
-}
+import type { ArrivalResult } from '../../schemas'
 
 interface ScheduledArrival {
   trip_id: string

@@ -4,9 +4,21 @@ import { activeServiceIds } from '../gtfs/services'
 import { todayDateStr } from '../gtfs/time'
 import type { GtfsData, Stop } from '../gtfs/types'
 import { gtfsReady } from '../plugins/gtfs-ready'
+import { models } from '../schemas'
 import { makeSseStream } from '../services/sse'
-import { getGtfs, jsonError } from '../services/state'
+import { getGtfs } from '../services/state'
 import { getUpcomingArrivals } from '../services/transit/arrivals'
+
+const DEFAULT_ARRIVAL_LIMIT = 20
+const MIN_ARRIVAL_LIMIT = 1
+const MAX_ARRIVAL_LIMIT = 50
+
+/** Clamps rather than rejects, so a stale client's out-of-range limit still renders. */
+function clampLimit(raw: string | undefined): number {
+  const n = Number(raw ?? DEFAULT_ARRIVAL_LIMIT)
+  if (!Number.isFinite(n)) return DEFAULT_ARRIVAL_LIMIT
+  return Math.min(Math.max(Math.trunc(n), MIN_ARRIVAL_LIMIT), MAX_ARRIVAL_LIMIT)
+}
 
 let stopsCache: { dateStr: string; data: GtfsData; result: Stop[] } | null = null
 
@@ -35,40 +47,44 @@ function getActiveStops(data: GtfsData): Stop[] {
 }
 
 export const stopsRoutes = new Elysia()
+  .use(models)
   .use(gtfsReady)
   .get('/stops', ({ gtfs: data }) => getActiveStops(data), {
     gtfsReady: true,
+    response: { 200: 'Stops', 503: 'Error' },
     detail: { tags: ['Stops'], summary: 'All stops (active today)' },
   })
 
   .get(
     '/stops/:id',
-    ({ params: { id }, gtfs: data }) => {
+    ({ params: { id }, gtfs: data, status }) => {
       const stop = data.stops.get(id)
-      if (!stop) return jsonError('Stop not found', 404)
+      if (!stop) return status(404, { error: 'Stop not found' })
       return stop
     },
-    { gtfsReady: true, detail: { tags: ['Stops'], summary: 'Stop by ID' } },
+    {
+      gtfsReady: true,
+      response: { 200: 'Stop', 404: 'Error', 503: 'Error' },
+      detail: { tags: ['Stops'], summary: 'Stop by ID' },
+    },
   )
 
   .get(
     '/stops/:id/vehicles',
-    async ({ params: { id }, query, gtfs: data }) => {
+    async ({ params: { id }, query, gtfs: data, status }) => {
       const stop = data.stops.get(id)
-      if (!stop) return jsonError('Stop not found', 404)
-
-      const rawLimit = Number(query.limit ?? '20')
-      const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 50) : 20
+      if (!stop) return status(404, { error: 'Stop not found' })
 
       try {
-        return await getUpcomingArrivals(data, id, limit)
+        return await getUpcomingArrivals(data, id, clampLimit(query.limit))
       } catch (e) {
-        return jsonError(`Arrivals unavailable: ${e}`, 502)
+        return status(502, { error: `Arrivals unavailable: ${e}` })
       }
     },
     {
       gtfsReady: true,
       query: t.Object({ limit: t.Optional(t.String()) }),
+      response: { 200: 'Arrivals', 404: 'Error', 502: 'Error', 503: 'Error' },
       detail: { tags: ['Stops'], summary: 'Upcoming arrivals at a stop' },
     },
   )
@@ -76,8 +92,7 @@ export const stopsRoutes = new Elysia()
   .get(
     '/stops/:id/vehicles/stream',
     ({ params: { id }, query }) => {
-      const rawLimit = Number(query.limit ?? '20')
-      const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 50) : 20
+      const limit = clampLimit(query.limit)
       return makeSseStream(gtfsRealtimeBroadcaster, async () => {
         const data = getGtfs()
         if (!data) return null

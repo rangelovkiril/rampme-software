@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { parseGtfsZip } from '../../src/gtfs/static'
+import { parseGtfsZip, splitCsvLine } from '../../src/gtfs/static'
 
 const fixturePath = `${import.meta.dir}/../fixtures/gtfs-static.zip`
 
@@ -40,5 +40,40 @@ describe('parseGtfsZip', () => {
     expect(gtfs.stopTimesByStop.get('S1')).toHaveLength(2) // T1's first stop + T2's stop
     expect(gtfs.stopTimesByTrip.get('T1')).toHaveLength(2)
     expect(gtfs.stopIdsByRoute.get('R1')).toEqual(new Set(['S1', 'S2']))
+  })
+})
+
+describe('splitCsvLine', () => {
+  it('splits a plain line on commas', () => {
+    expect(splitCsvLine('A0328,0328,BUL,42.7,23.3')).toEqual([
+      'A0328',
+      '0328',
+      'BUL',
+      '42.7',
+      '23.3',
+    ])
+  })
+
+  it('keeps a comma inside a quoted field, so later columns do not shift', () => {
+    // Real shape from Sofia's stops.txt: a quoted stop_name containing a comma.
+    expect(splitCsvLine('A0650,0650,"Ж.К. ЛЮЛИН-1, бл. 5",42.729,23.245')).toEqual([
+      'A0650',
+      '0650',
+      'Ж.К. ЛЮЛИН-1, бл. 5',
+      '42.729',
+      '23.245',
+    ])
+  })
+
+  it('unescapes a doubled quote inside a quoted field', () => {
+    expect(splitCsvLine('a,"say ""hi""",b')).toEqual(['a', 'say "hi"', 'b'])
+  })
+
+  it('keeps empty fields in position', () => {
+    expect(splitCsvLine('a,,c,')).toEqual(['a', '', 'c', ''])
+  })
+
+  it('trims each field, matching how every other row was already parsed', () => {
+    expect(splitCsvLine('  a , " b " ')).toEqual(['a', 'b'])
   })
 })

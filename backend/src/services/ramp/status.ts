@@ -7,7 +7,9 @@ import { getRampDb, type RampReservation } from '../../db/ramp'
 // undo the accessibility feature's whole point — see
 // openspec/changes/ramp-vehicle-accessibility's "Three distinguishable
 // accessibility states" requirement.
-export type RampStatus = 'unknown' | 'no_ramp' | 'working' | 'in_use'
+export type { RampStatus } from '../../schemas'
+
+import type { RampStatus } from '../../schemas'
 
 export function getVehicleRampStatusFrom(
   reservations: RampReservation[],

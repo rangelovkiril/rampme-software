@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { getAccessibility } from '../gtfs/accessibility'
-import { type EnrichedVehicle, enrichVehicles } from '../gtfs/enrich'
+import { enrichVehicles } from '../gtfs/enrich'
 import {
   fetchTripUpdates,
   fetchVehiclePositions,
@@ -8,30 +8,12 @@ import {
   gtfsRealtimeBroadcaster,
 } from '../gtfs/realtime'
 import { gtfsReady } from '../plugins/gtfs-ready'
+import type { EnrichedVehicle } from '../schemas'
+import { models } from '../schemas'
 import { getReservationsByVehicle } from '../services/ramp/status'
 import { makeSseStream } from '../services/sse'
-import { getGtfs, jsonError } from '../services/state'
+import { getGtfs } from '../services/state'
 import { getTripEtas, getVehicleTripDetails } from '../services/transit/trip-details'
-
-const EnrichedVehicleSchema = t.Object({
-  id: t.String(),
-  tripId: t.String(),
-  lat: t.Number(),
-  lng: t.Number(),
-  bearing: t.Nullable(t.Number()),
-  speed: t.Nullable(t.Number()),
-  route_id: t.Nullable(t.String()),
-  route_short_name: t.Nullable(t.String()),
-  route_type: t.Nullable(t.Number()),
-  headsign: t.Nullable(t.String()),
-  label: t.Nullable(t.String()),
-  ramp_status: t.Union([
-    t.Literal('unknown'),
-    t.Literal('no_ramp'),
-    t.Literal('working'),
-    t.Literal('in_use'),
-  ]),
-})
 
 // Bumped on every realtime tick so the unfiltered enrichment below is
 // computed at most once per tick, regardless of how many clients ask for it.
@@ -77,25 +59,25 @@ async function buildEnrichedVehicles(filters: {
 }
 
 export const realtimeRoutes = new Elysia()
+  .use(models)
   .use(gtfsReady)
   .get(
     '/realtime/trip-updates',
-    async () => {
+    async ({ status }) => {
       try {
         return await fetchTripUpdates()
       } catch (e) {
-        return jsonError(`Trip updates unavailable: ${e}`, 502)
+        return status(502, { error: `Trip updates unavailable: ${e}` })
       }
     },
-    { detail: { tags: ['Realtime'], summary: 'Trip updates' } },
+    {
+      response: { 200: 'TripUpdates', 502: 'Error' },
+      detail: { tags: ['Realtime'], summary: 'Trip updates' },
+    },
   )
 
   .get(
     '/realtime/vehicles',
-    // Uses the `status()` context helper instead of the shared jsonError()
-    // for its error paths — unlike every other route here, this one declares
-    // a per-status `response` schema, and Elysia can only type-check a
-    // status-tagged return against it, not a raw Response.
     async ({ query, status }) => {
       try {
         const vehicles = await buildEnrichedVehicles(query)
@@ -112,14 +94,7 @@ export const realtimeRoutes = new Elysia()
         route_type: t.Optional(t.String()),
         has_ramp: t.Optional(t.String()),
       }),
-      response: {
-        200: t.Object({
-          vehicles: t.Array(EnrichedVehicleSchema),
-          meta: t.Object({ stale: t.Boolean() }),
-        }),
-        502: t.Object({ error: t.String() }),
-        503: t.Object({ error: t.String() }),
-      },
+      response: { 200: 'Vehicles', 502: 'Error', 503: 'Error' },
       detail: { tags: ['Realtime'], summary: 'Vehicle positions with enrichment and filters' },
     },
   )
@@ -144,16 +119,20 @@ export const realtimeRoutes = new Elysia()
 
   .get(
     '/realtime/vehicles/:id/trip',
-    async ({ params: { id }, gtfs: data }) => {
+    async ({ params: { id }, gtfs: data, status }) => {
       try {
         const result = await getVehicleTripDetails(data, id)
-        if (!result) return jsonError('Vehicle or trip not found', 404)
+        if (!result) return status(404, { error: 'Vehicle or trip not found' })
         return result
       } catch (e) {
-        return jsonError(`Trip info unavailable: ${e}`, 502)
+        return status(502, { error: `Trip info unavailable: ${e}` })
       }
     },
-    { gtfsReady: true, detail: { tags: ['Realtime'], summary: 'Trip stops for a vehicle' } },
+    {
+      gtfsReady: true,
+      response: { 200: 'TripDetail', 404: 'Error', 502: 'Error', 503: 'Error' },
+      detail: { tags: ['Realtime'], summary: 'Trip stops for a vehicle' },
+    },
   )
 
   .get(

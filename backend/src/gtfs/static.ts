@@ -4,22 +4,50 @@ import { config } from '../config'
 import type { CalendarDate, GtfsData, Route, ShapePoint, Stop, StopTime, Trip } from './types'
 
 /**
- * Parses a CSV string and maps each data row to a value using header fields as object keys.
- *
- * @param raw - CSV content as a string; the first line is treated as the header row
- * @param transform - Callback that receives a `Record<string, string>` where keys are header names and values are the corresponding cell text for a row
- * @returns An array of `T` values produced by applying `transform` to each CSV data row
+ * Splits one CSV line, honouring RFC 4180 quoting: a comma inside a quoted
+ * field is data, and a doubled quote inside one is a literal quote. Sofia's
+ * feed relies on this — 234 rows of trips.txt and 6 of stops.txt carry a
+ * comma inside a quoted name, and splitting on bare commas shifts every
+ * column after it.
  */
+export function splitCsvLine(line: string): string[] {
+  const values: string[] = []
+  let field = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]
+    if (inQuotes) {
+      if (c === '"') {
+        if (line[i + 1] === '"') {
+          field += '"'
+          i++
+        } else {
+          inQuotes = false
+        }
+      } else {
+        field += c
+      }
+    } else if (c === '"') {
+      inQuotes = true
+    } else if (c === ',') {
+      values.push(field.trim())
+      field = ''
+    } else {
+      field += c
+    }
+  }
+  values.push(field.trim())
+  return values
+}
+
 function parseCsv<T>(raw: string, transform: (row: Record<string, string>) => T): T[] {
   const lines = raw.trim().split('\n')
-  const header = lines[0]
-    .replace(/^\uFEFF/, '')
-    .split(',')
-    .map((h) => h.trim())
+  const header = splitCsvLine(lines[0].replace(/^\uFEFF/, ''))
   const results: T[] = []
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map((v) => v.trim().replace(/^"|"$/g, ''))
+    const values = splitCsvLine(lines[i])
     const row: Record<string, string> = {}
     for (let j = 0; j < header.length; j++) {
       row[header[j]] = values[j] ?? ''

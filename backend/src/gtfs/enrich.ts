@@ -1,21 +1,7 @@
 import type { RampReservation } from '../db/ramp'
-import { getVehicleRampStatusFrom, type RampStatus } from '../services/ramp/status'
+import type { EnrichedVehicle } from '../schemas'
+import { getVehicleRampStatusFrom } from '../services/ramp/status'
 import type { GtfsData, GtfsRtFeedEntity, GtfsRtPosition, GtfsRtVehiclePosition } from './types'
-
-export interface EnrichedVehicle {
-  id: string
-  tripId: string
-  lat: number
-  lng: number
-  bearing: number | null
-  speed: number | null
-  route_id: string | null
-  route_short_name: string | null
-  route_type: number | null
-  headsign: string | null
-  label: string | null
-  ramp_status: RampStatus
-}
 
 type EntityWithPosition = GtfsRtFeedEntity & {
   vehicle: GtfsRtVehiclePosition & { position: GtfsRtPosition }
