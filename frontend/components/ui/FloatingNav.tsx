@@ -2,9 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRamp } from '@/contexts/RampContext'
-import { useSSE } from '@/hooks/useSSE'
-import { apiPath } from '@/lib/config'
-import type { TripEtaUpdate } from '@/lib/types'
+import { type TripStop, useVehicleTripInfo } from '@/hooks/useVehicleTripInfo'
 import { NavBtn } from './NavBtn'
 import { ResBanner } from './ResBanner'
 import { ResDetailCard } from './ResDetailCard'
@@ -15,18 +13,6 @@ interface Props {
   onOpenVehicle?: (vehicleId: string) => void
   onReservationsOpen?: () => void
   closeSignal?: number
-}
-
-interface StopMeta {
-  eta_minutes: number | null
-  stop_name: string | null
-  status: 'departed' | 'delay' | 'on_time' | 'scheduled' | null
-}
-
-interface TripInfo {
-  route_short_name: string | null
-  route_type: number | null
-  stops: Record<string, StopMeta>
 }
 
 export default function FloatingNav({
@@ -42,12 +28,6 @@ export default function FloatingNav({
   const [dragY, setDragY] = useState(0)
   const dragStartY = useRef(0)
   const navRef = useRef<HTMLDivElement>(null)
-
-  // ── trip info state: one per vehicle ────────────────────────────────────
-  const [primaryTripInfo, setPrimaryTripInfo] = useState<TripInfo | null>(null)
-  const [secondaryTripInfo, setSecondaryTripInfo] = useState<TripInfo | null>(null)
-  const primaryEtaRef = useRef<TripEtaUpdate[] | null>(null)
-  const secondaryEtaRef = useRef<TripEtaUpdate[] | null>(null)
 
   useEffect(() => {
     const el = navRef.current
@@ -88,153 +68,22 @@ export default function FloatingNav({
       ? alightingRes.vehicle_id
       : null
 
-  // ── fetch static trip structure for primary vehicle ──────────────────────
-  useEffect(() => {
-    if (!primaryVehicleId) {
-      setPrimaryTripInfo(null)
-      return
-    }
-    fetch(apiPath(`/realtime/vehicles/${encodeURIComponent(primaryVehicleId)}/trip`))
-      .then((r) => (r.ok ? r.json() : null))
-      .then((trip) => {
-        if (!trip) return
-        const stops: TripInfo['stops'] = {}
-        for (const s of trip.stops)
-          stops[s.stop_id] = {
-            eta_minutes: s.eta_minutes,
-            stop_name: s.stop_name,
-            status: s.status ?? null,
-          }
-        const base: TripInfo = {
-          route_short_name: trip.route_short_name,
-          route_type: trip.route_type,
-          stops,
-        }
-        const etas = primaryEtaRef.current
-        if (etas) {
-          const newStops = { ...base.stops }
-          for (const e of etas) {
-            if (newStops[e.stop_id])
-              newStops[e.stop_id] = {
-                ...newStops[e.stop_id],
-                eta_minutes: e.eta_minutes,
-                status: e.status,
-              }
-          }
-          setPrimaryTripInfo({ ...base, stops: newStops })
-        } else {
-          setPrimaryTripInfo(base)
-        }
-      })
-      .catch(() => {})
-  }, [primaryVehicleId])
-
-  // ── fetch static trip structure for secondary vehicle ────────────────────
-  useEffect(() => {
-    if (!secondaryVehicleId) {
-      setSecondaryTripInfo(null)
-      return
-    }
-    fetch(apiPath(`/realtime/vehicles/${encodeURIComponent(secondaryVehicleId)}/trip`))
-      .then((r) => (r.ok ? r.json() : null))
-      .then((trip) => {
-        if (!trip) return
-        const stops: TripInfo['stops'] = {}
-        for (const s of trip.stops)
-          stops[s.stop_id] = {
-            eta_minutes: s.eta_minutes,
-            stop_name: s.stop_name,
-            status: s.status ?? null,
-          }
-        const base: TripInfo = {
-          route_short_name: trip.route_short_name,
-          route_type: trip.route_type,
-          stops,
-        }
-        const etas = secondaryEtaRef.current
-        if (etas) {
-          const newStops = { ...base.stops }
-          for (const e of etas) {
-            if (newStops[e.stop_id])
-              newStops[e.stop_id] = {
-                ...newStops[e.stop_id],
-                eta_minutes: e.eta_minutes,
-                status: e.status,
-              }
-          }
-          setSecondaryTripInfo({ ...base, stops: newStops })
-        } else {
-          setSecondaryTripInfo(base)
-        }
-      })
-      .catch(() => {})
-  }, [secondaryVehicleId])
-
-  // ── SSE ETA updates for primary vehicle ─────────────────────────────────
-  const primaryEtaUpdates = useSSE<TripEtaUpdate[]>(
-    primaryVehicleId
-      ? `/realtime/vehicles/${encodeURIComponent(primaryVehicleId)}/trip/etas`
-      : null,
-  )
-
-  useEffect(() => {
-    primaryEtaRef.current = primaryEtaUpdates
-    if (!primaryEtaUpdates) return
-    setPrimaryTripInfo((prev) => {
-      if (!prev) return prev
-      const newStops = { ...prev.stops }
-      for (const e of primaryEtaUpdates) {
-        if (newStops[e.stop_id])
-          newStops[e.stop_id] = {
-            ...newStops[e.stop_id],
-            eta_minutes: e.eta_minutes,
-            status: e.status,
-          }
-      }
-      return { ...prev, stops: newStops }
-    })
-  }, [primaryEtaUpdates])
-
-  // ── SSE ETA updates for secondary vehicle ────────────────────────────────
-  const secondaryEtaUpdates = useSSE<TripEtaUpdate[]>(
-    secondaryVehicleId
-      ? `/realtime/vehicles/${encodeURIComponent(secondaryVehicleId)}/trip/etas`
-      : null,
-  )
-
-  useEffect(() => {
-    secondaryEtaRef.current = secondaryEtaUpdates
-    if (!secondaryEtaUpdates) return
-    setSecondaryTripInfo((prev) => {
-      if (!prev) return prev
-      const newStops = { ...prev.stops }
-      for (const e of secondaryEtaUpdates) {
-        if (newStops[e.stop_id])
-          newStops[e.stop_id] = {
-            ...newStops[e.stop_id],
-            eta_minutes: e.eta_minutes,
-            status: e.status,
-          }
-      }
-      return { ...prev, stops: newStops }
-    })
-  }, [secondaryEtaUpdates])
+  // ── trip info: one subscription per vehicle ──────────────────────────────
+  const primary = useVehicleTripInfo(primaryVehicleId)
+  const secondary = useVehicleTripInfo(secondaryVehicleId)
 
   // ── stop meta helpers ────────────────────────────────────────────────────
-  const getBoardingMeta = (stopId: string): StopMeta | null =>
-    primaryTripInfo?.stops[stopId] ?? null
+  const getBoardingMeta = (stopId: string): TripStop | null => primary.stopsById[stopId] ?? null
 
-  const getAlightingMeta = (stopId: string): StopMeta | null =>
-    secondaryTripInfo
-      ? (secondaryTripInfo.stops[stopId] ?? null)
-      : (primaryTripInfo?.stops[stopId] ?? null)
+  const getAlightingMeta = (stopId: string): TripStop | null =>
+    secondary.trip ? (secondary.stopsById[stopId] ?? null) : (primary.stopsById[stopId] ?? null)
 
   // Route name for alighting (use secondary info if separate vehicle, else primary)
   const alightingRouteName =
-    secondaryTripInfo?.route_short_name ??
+    secondary.trip?.route_short_name ??
     (boardingRes && alightingRes && boardingRes.vehicle_id !== alightingRes.vehicle_id
       ? null
-      : (primaryTripInfo?.route_short_name ?? lockedRouteShortName))
+      : (primary.trip?.route_short_name ?? lockedRouteShortName))
 
   // ── banner display order ─────────────────────────────────────────────────
   // Active boarding always first; otherwise sort ascending by ETA (null = last)
@@ -292,9 +141,7 @@ export default function FloatingNav({
                     <ResBanner
                       type="alight"
                       routeName={alightingRouteName}
-                      routeType={
-                        secondaryTripInfo?.route_type ?? primaryTripInfo?.route_type ?? null
-                      }
+                      routeType={secondary.trip?.route_type ?? primary.trip?.route_type ?? null}
                       stopName={getAlightingMeta(alightingRes.stop_id)?.stop_name ?? null}
                       eta={alightingEta}
                       status={getAlightingMeta(alightingRes.stop_id)?.status ?? null}
@@ -316,8 +163,8 @@ export default function FloatingNav({
                   >
                     <ResBanner
                       type="board"
-                      routeName={primaryTripInfo?.route_short_name ?? lockedRouteShortName}
-                      routeType={primaryTripInfo?.route_type ?? null}
+                      routeName={primary.trip?.route_short_name ?? lockedRouteShortName}
+                      routeType={primary.trip?.route_type ?? null}
                       stopName={getBoardingMeta(boardingRes.stop_id)?.stop_name ?? null}
                       eta={boardingEta}
                       status={getBoardingMeta(boardingRes.stop_id)?.status ?? null}
@@ -343,8 +190,8 @@ export default function FloatingNav({
                     >
                       <ResBanner
                         type="board"
-                        routeName={primaryTripInfo?.route_short_name ?? lockedRouteShortName}
-                        routeType={primaryTripInfo?.route_type ?? null}
+                        routeName={primary.trip?.route_short_name ?? lockedRouteShortName}
+                        routeType={primary.trip?.route_type ?? null}
                         stopName={getBoardingMeta(boardingRes.stop_id)?.stop_name ?? null}
                         eta={boardingEta}
                         status={getBoardingMeta(boardingRes.stop_id)?.status ?? null}
@@ -369,9 +216,7 @@ export default function FloatingNav({
                       <ResBanner
                         type="alight"
                         routeName={alightingRouteName}
-                        routeType={
-                          secondaryTripInfo?.route_type ?? primaryTripInfo?.route_type ?? null
-                        }
+                        routeType={secondary.trip?.route_type ?? primary.trip?.route_type ?? null}
                         stopName={getAlightingMeta(alightingRes.stop_id)?.stop_name ?? null}
                         eta={alightingEta}
                         status={getAlightingMeta(alightingRes.stop_id)?.status ?? null}
@@ -513,7 +358,7 @@ export default function FloatingNav({
                   <ResDetailCard
                     res={boardingRes}
                     meta={getBoardingMeta(boardingRes.stop_id)}
-                    routeName={primaryTripInfo?.route_short_name ?? null}
+                    routeName={primary.trip?.route_short_name ?? null}
                     type="board"
                     onCancel={async (id) => {
                       await cancel(id)

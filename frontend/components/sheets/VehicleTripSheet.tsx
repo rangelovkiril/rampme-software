@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRamp } from '@/contexts/RampContext'
-import { useSSE } from '@/hooks/useSSE'
-import { apiPath } from '@/lib/config'
+import { type TripStop, useVehicleTripInfo } from '@/hooks/useVehicleTripInfo'
 import { getRouteColor, getRouteLabel } from '@/lib/transit'
-import type { TripData, TripEtaUpdate, Vehicle } from '@/lib/types'
+import type { Vehicle } from '@/lib/types'
 
-function StopStatusLabel({ stop }: { stop: TripData['stops'][number] }) {
+function StopStatusLabel({ stop }: { stop: TripStop }) {
   if (stop.status === 'departed')
     return <span>Замина{stop.expected_time ? ` ${stop.expected_time}` : ''}</span>
   if (stop.realtime && stop.expected_time) {
@@ -43,9 +42,9 @@ const TOP_GAP = 12
 const MAX_FALLBACK_RATIO = 0.85
 
 export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Props) {
-  const [trip, setTrip] = useState<TripData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { trip, loading, failed } = useVehicleTripInfo(vehicle?.id ?? null, onTripLoaded)
+  const error = failed ? 'Неуспешно зареждане на маршрут.' : null
+
   const [reservingStopId, setReservingStopId] = useState<string | null>(null)
   const [boardingStopId, setBoardingStopId] = useState<string | null>(null)
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
@@ -134,79 +133,6 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
       (r.status === 'pending' || r.status === 'active'),
   )
   const isLocked = lockedVehicleId === vehicle?.id
-
-  const etaUpdatesRef = useRef<TripEtaUpdate[] | null>(null)
-  const onTripLoadedRef = useRef(onTripLoaded)
-  useEffect(() => {
-    onTripLoadedRef.current = onTripLoaded
-  }, [onTripLoaded])
-
-  const fetchTrip = useCallback(async (vehicleId: string, signal: AbortSignal) => {
-    setLoading(true)
-    try {
-      const r = await fetch(apiPath(`/realtime/vehicles/${encodeURIComponent(vehicleId)}/trip`), {
-        signal,
-      })
-      if (signal.aborted) return
-      if (!r.ok) {
-        setError('Неуспешно зареждане на маршрут.')
-        return
-      }
-      const data: TripData = await r.json()
-      if (signal.aborted) return
-      const etas = etaUpdatesRef.current
-      if (etas) {
-        const map = new Map(etas.map((e) => [e.stop_id, e]))
-        setTrip({
-          ...data,
-          stops: data.stops.map((s) => {
-            const u = map.get(s.stop_id)
-            return u ? { ...s, ...u } : s
-          }),
-        })
-      } else {
-        setTrip(data)
-      }
-      setError(null)
-      onTripLoadedRef.current?.(data.route_id ?? null, data.route_type ?? null)
-    } catch (e) {
-      if ((e as Error)?.name === 'AbortError') return
-      setError('Неуспешно зареждане на маршрут.')
-    } finally {
-      if (!signal.aborted) setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!vehicle) {
-      setTrip(null)
-      return
-    }
-    setError(null)
-    const controller = new AbortController()
-    fetchTrip(vehicle.id, controller.signal)
-    return () => controller.abort()
-  }, [vehicle, fetchTrip])
-
-  const etaUpdates = useSSE<TripEtaUpdate[]>(
-    vehicle ? `/realtime/vehicles/${encodeURIComponent(vehicle.id)}/trip/etas` : null,
-  )
-
-  useEffect(() => {
-    etaUpdatesRef.current = etaUpdates
-    if (!etaUpdates) return
-    setTrip((prev) => {
-      if (!prev) return prev
-      const map = new Map(etaUpdates.map((e) => [e.stop_id, e]))
-      return {
-        ...prev,
-        stops: prev.stops.map((s) => {
-          const u = map.get(s.stop_id)
-          return u ? { ...s, ...u } : s
-        }),
-      }
-    })
-  }, [etaUpdates])
 
   // ─── Drag handlers (handle bar only) ───────────────────────────────────
   const onTouchStart = (e: React.TouchEvent) => {

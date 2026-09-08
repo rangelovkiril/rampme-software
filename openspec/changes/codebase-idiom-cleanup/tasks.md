@@ -39,8 +39,8 @@
 
 ## 4. Frontend
 
-- [ ] 4.1 Extract the duplicated primary/secondary trip-info logic in `components/ui/FloatingNav.tsx` into one reusable hook covering the trip fetch, the ETA-merge loop, and the SSE subscription; verify the file shrinks by roughly 110 lines and that both boarding and alighting ETAs still update live in Playwright.
-- [ ] 4.2 Reuse that hook in `components/sheets/VehicleTripSheet.tsx` for its own copy of the ETA-merge loop, and verify the vehicle trip sheet still updates ETAs live.
+- [x] 4.1 Extract the duplicated primary/secondary trip-info logic in `components/ui/FloatingNav.tsx` into one reusable hook covering the trip fetch, the ETA-merge loop, and the SSE subscription; verify the file shrinks by roughly 110 lines and that both boarding and alighting ETAs still update live in Playwright.
+- [x] 4.2 Reuse that hook in `components/sheets/VehicleTripSheet.tsx` for its own copy of the ETA-merge loop, and verify the vehicle trip sheet still updates ETAs live.
 - [ ] 4.3 Export `type App = typeof app` from `backend/src/index.ts`, add `@elysiajs/eden` to `frontend/package.json`, and map `@backend/*` plus `elysia` and `elysia/*` to the backend's copy in `frontend/tsconfig.json` `paths` with a comment stating the mapping exists to give Eden a single Elysia instance; verify `bunx tsc --noEmit` passes in `frontend/`.
 - [ ] 4.4 Verify the derived types are real and not `any` by temporarily assigning a response field to a wrong type, reading a nonexistent field, and narrowing `ramp_status` outside its union, confirming `tsc` reports all three, then remove the probe.
 - [ ] 4.5 Replace the thirteen endpoint literals with an Eden `treaty<App>` client beside `lib/config.ts`, deduplicating the independent `/stops` fetches in `components/layers/StopsLayer.tsx` and `components/panels/StopsPanel.tsx`; verify with Playwright network inspection that `/stops` is requested once per load and that the app still functions against a running backend.
