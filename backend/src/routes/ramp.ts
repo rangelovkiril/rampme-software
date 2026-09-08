@@ -1,6 +1,7 @@
 import { consola } from 'consola'
 import { Elysia, t } from 'elysia'
 import { getRampDb } from '../db/ramp'
+import { NotFoundError } from '../plugins/errors'
 import { models } from '../schemas'
 import { getRampBridge, isRampBridgeAvailable } from '../services/ramp/bridge'
 import { rampBroadcaster } from '../services/ramp/broadcaster'
@@ -57,9 +58,9 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
         )
         .delete(
           '/reserve/:id',
-          ({ params, sessionId, status }) => {
+          ({ params, sessionId }) => {
             const cancelled = getRampDb().cancelReservation(params.id, sessionId)
-            if (!cancelled) return status(404, { error: 'Not found or resolved' })
+            if (!cancelled) throw new NotFoundError('Not found or resolved')
             if (isRampBridgeAvailable()) {
               getRampBridge().publishCancelReservation(cancelled)
             } else {

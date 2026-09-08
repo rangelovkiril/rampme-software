@@ -3,6 +3,7 @@ import { getFeedHealth, gtfsRealtimeBroadcaster } from '../gtfs/realtime'
 import { activeServiceIds } from '../gtfs/services'
 import { todayDateStr } from '../gtfs/time'
 import type { GtfsData, Stop } from '../gtfs/types'
+import { NotFoundError, upstream } from '../plugins/errors'
 import { gtfsReady } from '../plugins/gtfs-ready'
 import { models } from '../schemas'
 import { makeSseStream } from '../services/sse'
@@ -57,9 +58,9 @@ export const stopsRoutes = new Elysia()
 
   .get(
     '/stops/:id',
-    ({ params: { id }, gtfs: data, status }) => {
+    ({ params: { id }, gtfs: data }) => {
       const stop = data.stops.get(id)
-      if (!stop) return status(404, { error: 'Stop not found' })
+      if (!stop) throw new NotFoundError('Stop not found')
       return stop
     },
     {
@@ -71,15 +72,11 @@ export const stopsRoutes = new Elysia()
 
   .get(
     '/stops/:id/vehicles',
-    async ({ params: { id }, query, gtfs: data, status }) => {
+    async ({ params: { id }, query, gtfs: data }) => {
       const stop = data.stops.get(id)
-      if (!stop) return status(404, { error: 'Stop not found' })
+      if (!stop) throw new NotFoundError('Stop not found')
 
-      try {
-        return await getUpcomingArrivals(data, id, clampLimit(query.limit))
-      } catch (e) {
-        return status(502, { error: `Arrivals unavailable: ${e}` })
-      }
+      return upstream('Arrivals', () => getUpcomingArrivals(data, id, clampLimit(query.limit)))
     },
     {
       gtfsReady: true,

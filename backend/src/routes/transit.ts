@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia'
 import type { Route } from '../gtfs/types'
+import { NotFoundError } from '../plugins/errors'
 import { gtfsReady } from '../plugins/gtfs-ready'
 import { models, type RouteShapesResponse } from '../schemas'
 
@@ -29,9 +30,9 @@ export const transitRoutes = new Elysia()
 
   .get(
     '/routes/:id',
-    ({ params: { id }, gtfs: data, status }) => {
+    ({ params: { id }, gtfs: data }) => {
       const route = data.routes.get(id)
-      if (!route) return status(404, { error: 'Route not found' })
+      if (!route) throw new NotFoundError('Route not found')
 
       const routeTrips = data.tripsByRoute.get(id) ?? []
       const stopIds = data.stopIdsByRoute.get(id) ?? new Set<string>()

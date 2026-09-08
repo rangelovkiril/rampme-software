@@ -5,7 +5,7 @@ import { getRampDb, type RampReservation } from '../../db/ramp'
 // 'no_ramp' means the vehicle is confirmed not equipped, 'unknown' means its
 // equipment couldn't be resolved. Collapsing them back into one value would
 // undo the accessibility feature's whole point — see
-// openspec/changes/ramp-vehicle-accessibility's "Three distinguishable
+// openspec/specs/ramp/vehicle-accessibility's "Three distinguishable
 // accessibility states" requirement.
 export type { RampStatus } from '../../schemas'
 

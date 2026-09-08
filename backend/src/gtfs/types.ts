@@ -118,9 +118,9 @@ export interface GtfsData {
   shapesByRoute: Map<string, [number, number][][]> // route_id → array of polylines
 }
 
-// Vehicle wheelchair-ramp accessibility (see openspec/changes/ramp-vehicle-accessibility).
-// Produced offline by `scripts/refresh-accessibility.ts` from trinmo.org's fleet
-// registry, keyed by the GTFS route-type prefix scheme (A=bus, TM=tram, TB=trolleybus)
+// Vehicle wheelchair-ramp accessibility (see openspec/specs/ramp/vehicle-accessibility).
+// Produced out-of-band from trinmo.org's fleet registry by a script scheduled in the
+// fleet repo, keyed by the GTFS route-type prefix scheme (A=bus, TM=tram, TB=trolleybus)
 // and the vehicle's inventory number; consumed at runtime by `gtfs/accessibility.ts`.
 // A vehicle type/inventory pair present here is always resolved (true/false); a
 // missing pair means unresolved, reported as unknown — never a stand-in for "false".

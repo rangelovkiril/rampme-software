@@ -7,6 +7,7 @@ import { getRampDb, initRampDb } from './db/ramp'
 import { initAccessibility } from './gtfs/accessibility'
 import { fetchVehiclePositions } from './gtfs/realtime'
 import { fetchStaticGtfs } from './gtfs/static'
+import { errorHandling } from './plugins/errors'
 import { rampRoutes } from './routes/ramp'
 import { realtimeRoutes } from './routes/realtime'
 import { stopsRoutes } from './routes/stops'
@@ -35,6 +36,7 @@ createProximityChecker(
 ).start()
 
 const app = new Elysia()
+  .use(errorHandling)
   .use(swaggerPlugin)
   .use(
     cors({

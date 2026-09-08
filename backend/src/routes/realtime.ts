@@ -7,6 +7,7 @@ import {
   getFeedHealth,
   gtfsRealtimeBroadcaster,
 } from '../gtfs/realtime'
+import { NotFoundError, upstream } from '../plugins/errors'
 import { gtfsReady } from '../plugins/gtfs-ready'
 import type { EnrichedVehicle } from '../schemas'
 import { models, type VehicleFilterQuery } from '../schemas'
@@ -57,31 +58,17 @@ async function buildEnrichedVehicles(filters: VehicleFilterQuery) {
 export const realtimeRoutes = new Elysia()
   .use(models)
   .use(gtfsReady)
-  .get(
-    '/realtime/trip-updates',
-    async ({ status }) => {
-      try {
-        return await fetchTripUpdates()
-      } catch (e) {
-        return status(502, { error: `Trip updates unavailable: ${e}` })
-      }
-    },
-    {
-      response: { 200: 'TripUpdates', 502: 'Error' },
-      detail: { tags: ['Realtime'], summary: 'Trip updates' },
-    },
-  )
+  .get('/realtime/trip-updates', () => upstream('Trip updates', fetchTripUpdates), {
+    response: { 200: 'TripUpdates', 502: 'Error' },
+    detail: { tags: ['Realtime'], summary: 'Trip updates' },
+  })
 
   .get(
     '/realtime/vehicles',
     async ({ query, status }) => {
-      try {
-        const vehicles = await buildEnrichedVehicles(query)
-        if (!vehicles) return status(503, { error: 'GTFS data not yet loaded' })
-        return { vehicles, meta: { stale: getFeedHealth().vehiclePositions.stale } }
-      } catch (e) {
-        return status(502, { error: `Vehicle positions unavailable: ${e}` })
-      }
+      const vehicles = await upstream('Vehicle positions', () => buildEnrichedVehicles(query))
+      if (!vehicles) return status(503, { error: 'GTFS data not yet loaded' })
+      return { vehicles, meta: { stale: getFeedHealth().vehiclePositions.stale } }
     },
     {
       gtfsReady: true,
@@ -107,14 +94,10 @@ export const realtimeRoutes = new Elysia()
 
   .get(
     '/realtime/vehicles/:id/trip',
-    async ({ params: { id }, gtfs: data, status }) => {
-      try {
-        const result = await getVehicleTripDetails(data, id)
-        if (!result) return status(404, { error: 'Vehicle or trip not found' })
-        return result
-      } catch (e) {
-        return status(502, { error: `Trip info unavailable: ${e}` })
-      }
+    async ({ params: { id }, gtfs: data }) => {
+      const result = await upstream('Trip info', () => getVehicleTripDetails(data, id))
+      if (!result) throw new NotFoundError('Vehicle or trip not found')
+      return result
     },
     {
       gtfsReady: true,

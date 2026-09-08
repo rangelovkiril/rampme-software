@@ -1,23 +1,7 @@
 /**
- * bridge.ts — Bridges reservations ↔ hardware over MQTT.
- *
- * Topic design (payload-based, no info duplicated in topic):
- *
- *   ramp/{vehicle_id}/cmd        (backend → hw, QoS 1)
- *     { action: "new_reservation",    id: <int> }
- *     { action: "cancel_reservation", id: <int> }
- *     { action: "deploy" }
- *
- *   ramp/{vehicle_id}/state      (hw → backend, retained, QoS 1)
- *     { state: "idle" | "deploying" | "deployed" | "retracting" | "done" | "error",
- *       reason?: string }
- *
- * Lifecycle:
- *   1. createReservation() → publish new_reservation cmd
- *   2. cancelReservation() → publish cancel_reservation cmd
- *   3. proximity detects bus at stop with pending reservations → publish deploy cmd
- *   4. hardware publishes state transitions; on "done" we mark reservations as done
- *   5. if no "deploying" within DEPLOY_TIMEOUT_MS after deploy cmd → expire reservations
+ * Bridges reservations ↔ hardware over MQTT. The topics and payloads are the
+ * ramp MQTT protocol, documented in the wiki:
+ * https://github.com/rangelovkiril/rampme-software/wiki/Ramp-MQTT-Protocol
  *
  * Deploy-tracking state (which vehicle is mid-deploy, pending ack timeouts) is
  * scoped per RampBridge instance via createRampBridge() rather than module-level,
