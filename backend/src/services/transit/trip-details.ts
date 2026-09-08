@@ -2,6 +2,7 @@ import { fetchTripUpdates, fetchVehiclePositions } from '../../gtfs/realtime'
 import {
   computeScheduledEtaMinutes,
   normalizeGtfsHour,
+  nowTotalMinutes,
   parseGtfsTime,
   unixToHHMM,
 } from '../../gtfs/time'
@@ -196,12 +197,7 @@ function buildTripStop(
       eta_minutes = 0
     } else {
       eta_minutes = Math.max(0, Math.round((pred.arrival - nowSec) / 60))
-      const predDate = new Date(pred.arrival * 1000)
-      const expectedTotalMin = predDate.getHours() * 60 + predDate.getMinutes()
-      const scheduledProjected = projectGtfsMinutesNear(totalMinutes, expectedTotalMin)
-      delay_minutes = expectedTotalMin - scheduledProjected
-      if (delay_minutes > 720) delay_minutes -= 24 * 60
-      if (delay_minutes < -720) delay_minutes += 24 * 60
+      delay_minutes = computeDelayMinutes(pred.arrival, totalMinutes)
       status = delay_minutes > 0 ? 'delay' : 'on_time'
     }
   } else {
@@ -244,6 +240,21 @@ function parseStopSequence(raw: unknown): number | null {
   const n = Number(raw)
   if (!Number.isFinite(n) || n <= 0) return null
   return Math.trunc(n)
+}
+
+/**
+ * Minutes a realtime prediction runs behind its scheduled arrival. Both sides are
+ * expressed as minutes since midnight in the configured timezone; reading the
+ * prediction with Date.getHours() would use the process's local zone instead,
+ * which only agrees when the container's zone already matches config.tz.
+ */
+export function computeDelayMinutes(predArrivalSec: number, scheduledTotalMinutes: number): number {
+  const expectedTotalMin = nowTotalMinutes(new Date(predArrivalSec * 1000))
+  const scheduledProjected = projectGtfsMinutesNear(scheduledTotalMinutes, expectedTotalMin)
+  let delay = expectedTotalMin - scheduledProjected
+  if (delay > 720) delay -= 24 * 60
+  if (delay < -720) delay += 24 * 60
+  return delay
 }
 
 function projectGtfsMinutesNear(totalGtfsMinutes: number, targetMinutes: number): number {

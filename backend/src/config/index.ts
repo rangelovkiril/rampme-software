@@ -1,20 +1,50 @@
+function positiveInt(name: string, envValue: string | undefined, fallback: number): number {
+  if (envValue === undefined) return fallback
+  const n = Number(envValue)
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error(`${name} must be a positive integer, got ${JSON.stringify(envValue)}`)
+  }
+  return n
+}
+
+function port(name: string, envValue: string | undefined, fallback: number): number {
+  const n = positiveInt(name, envValue, fallback)
+  if (n > 65535) {
+    throw new Error(`${name} must be a valid TCP port (1-65535), got ${JSON.stringify(envValue)}`)
+  }
+  return n
+}
+
 export const config = {
-  port: Number(process.env.PORT ?? 3000),
+  port: port('PORT', process.env.PORT, 3000),
+
+  /** IANA zone every GTFS wall-clock time is interpreted in. */
+  tz: process.env.TZ ?? 'Europe/Sofia',
 
   gtfs: {
     staticUrl: process.env.GTFS_STATIC_URL ?? 'https://gtfs.sofiatraffic.bg/api/v1/static',
     realtimeBaseUrl: process.env.GTFS_RT_BASE_URL ?? 'https://gtfs.sofiatraffic.bg/api/v1',
-    refreshInterval: Number(process.env.GTFS_REFRESH_INTERVAL ?? 24 * 60 * 60 * 1000),
-    staleThresholdMs: Number(process.env.GTFS_RT_STALE_THRESHOLD_MS ?? 15_000),
+    refreshInterval: positiveInt(
+      'GTFS_REFRESH_INTERVAL',
+      process.env.GTFS_REFRESH_INTERVAL,
+      24 * 60 * 60 * 1000,
+    ),
+    staleThresholdMs: positiveInt(
+      'GTFS_RT_STALE_THRESHOLD_MS',
+      process.env.GTFS_RT_STALE_THRESHOLD_MS,
+      15_000,
+    ),
   },
-
-  protoPath: process.env.PROTO_PATH ?? 'proto/gtfs-realtime.proto',
 
   rampDbPath: process.env.RAMP_DB_PATH ?? './data/ramp.db',
 
   rampAccessibility: {
     dataPath: process.env.RAMP_ACCESSIBILITY_DATA_PATH ?? './data/vehicle-accessibility.json',
-    refreshMs: Number(process.env.RAMP_ACCESSIBILITY_REFRESH_MS ?? 60 * 60 * 1000),
+    refreshMs: positiveInt(
+      'RAMP_ACCESSIBILITY_REFRESH_MS',
+      process.env.RAMP_ACCESSIBILITY_REFRESH_MS,
+      60 * 60 * 1000,
+    ),
   },
 
   mqtt: {
@@ -22,5 +52,7 @@ export const config = {
     username: process.env.MQTT_USERNAME,
     password: process.env.MQTT_PASSWORD,
     clientId: process.env.MQTT_CLIENT_ID ?? 'rampme-backend',
+    /** How long the bridge waits for a `deploying` state before giving up. */
+    deployTimeoutMs: positiveInt('DEPLOY_TIMEOUT_MS', process.env.DEPLOY_TIMEOUT_MS, 20_000),
   },
 } as const

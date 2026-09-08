@@ -1,8 +1,8 @@
-const TZ = process.env.TZ ?? 'Europe/Sofia'
+import { config } from '../config'
 
 function localParts(now: Date) {
   const parts = new Intl.DateTimeFormat('en', {
-    timeZone: TZ,
+    timeZone: config.tz,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

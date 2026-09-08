@@ -28,14 +28,13 @@
 import { type Static, Type } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import { consola } from 'consola'
+import { config } from '../../config'
 import { getRampDb, type RampReservation } from '../../db/ramp'
 import type { Parser } from '../mqtt'
 import { jsonParse } from '../mqtt'
 import { rampBroadcaster } from './broadcaster'
 
 const log = consola.withTag('ramp-mqtt')
-
-const DEPLOY_TIMEOUT_MS = parseInt(process.env.DEPLOY_TIMEOUT_MS ?? '20000', 10)
 
 function cmdTopic(vehicleId: string): string {
   return `ramp/${vehicleId}/cmd`
@@ -85,9 +84,12 @@ export interface RampBridge {
  * Builds an independent RampBridge over the given MQTT client. Production
  * wires a single instance via initRampBridge()/getRampBridge(); tests call
  * this directly with a fake RampMqtt and a short timeoutMs for isolated,
- * fast tests instead of the real DEPLOY_TIMEOUT_MS and a shared MQTT hub.
+ * fast tests instead of the real deploy timeout and a shared MQTT hub.
  */
-export function createRampBridge(mqtt: RampMqtt, timeoutMs = DEPLOY_TIMEOUT_MS): RampBridge {
+export function createRampBridge(
+  mqtt: RampMqtt,
+  timeoutMs = config.mqtt.deployTimeoutMs,
+): RampBridge {
   /** Tracks which vehicles we've already asked to deploy for a given stop. */
   const deployedFor = new Map<string, string>() // vehicleId → stopId
   const deployTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
@@ -245,7 +247,10 @@ export function createRampBridge(mqtt: RampMqtt, timeoutMs = DEPLOY_TIMEOUT_MS):
 let bridge: RampBridge | null = null
 
 /** Wires the singleton RampBridge used in production over the real MQTT hub. */
-export function initRampBridge(mqtt: RampMqtt, timeoutMs = DEPLOY_TIMEOUT_MS): RampBridge {
+export function initRampBridge(
+  mqtt: RampMqtt,
+  timeoutMs = config.mqtt.deployTimeoutMs,
+): RampBridge {
   bridge = createRampBridge(mqtt, timeoutMs)
   return bridge
 }
