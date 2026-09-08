@@ -53,7 +53,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
   const isNearStop = true
 
   const sseArrivals = useSSE<StopArrival[]>(
-    stop ? `/stops/${encodeURIComponent(stop.stop_id)}/vehicles/stream?limit=20` : null,
+    stop ? `/stops/${encodeURIComponent(stop.id)}/vehicles/stream?limit=20` : null,
   )
 
   // ─── Measure bounds relative to FloatingNav ──────────────────────────
@@ -120,7 +120,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
 
     const loadArrivals = async () => {
       try {
-        const { data, error: requestError } = await api.stops({ id: stop.stop_id }).vehicles.get({
+        const { data, error: requestError } = await api.stops({ id: stop.id }).vehicles.get({
           query: { limit: String(ARRIVALS_LIMIT) },
           fetch: { signal: controller.signal },
         })
@@ -158,16 +158,16 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
   }, [sseArrivals])
 
   const sortedArrivals = useMemo(() => {
-    const list = rampOnly ? arrivals.filter((a) => a.has_ramp) : arrivals
+    const list = rampOnly ? arrivals.filter((a) => a.hasRamp) : arrivals
     return [...list].sort((a, b) => {
-      const etaDiff = a.eta_minutes - b.eta_minutes
+      const etaDiff = a.etaMinutes - b.etaMinutes
       if (etaDiff !== 0) return etaDiff
-      if (a.has_ramp === b.has_ramp) return 0
-      return a.has_ramp ? -1 : 1
+      if (a.hasRamp === b.hasRamp) return 0
+      return a.hasRamp ? -1 : 1
     })
   }, [arrivals, rampOnly])
 
-  const rampCount = arrivals.filter((a) => a.has_ramp).length
+  const rampCount = arrivals.filter((a) => a.hasRamp).length
 
   const handleDragStart = (e: React.TouchEvent) => {
     dragging.current = true
@@ -203,9 +203,8 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
     setReservingId(vehicleId)
     setReserveError(null)
     try {
-      const routeShortName =
-        arrivals.find((a) => a.vehicle_id === vehicleId)?.route_short_name ?? null
-      const res = await reserveBoard(vehicleId, stop.stop_id, routeShortName)
+      const routeShortName = arrivals.find((a) => a.vehicleId === vehicleId)?.routeShortName ?? null
+      const res = await reserveBoard(vehicleId, stop.id, routeShortName)
       if (res) {
         if (onVehicleLock) onVehicleLock(vehicleId)
       } else {
@@ -257,9 +256,9 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
         {/* Header */}
         <div ref={headerRef} className="flex items-start justify-between gap-3 px-4 pt-1 pb-3">
           <div className="min-w-0 flex-1">
-            <p className="stop-sheet-title truncate font-semibold">{stop.stop_name}</p>
+            <p className="stop-sheet-title truncate font-semibold">{stop.name}</p>
             <p className="stop-sheet-text" style={{ color: 'var(--text-secondary)' }}>
-              {stop.stop_id}
+              {stop.id}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -340,13 +339,13 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
           {!loading && !error && sortedArrivals.length > 0 && (
             <div className="space-y-2">
               {sortedArrivals.map((item) => {
-                const routeColor = getRouteColor(item.route_type)
-                const scheduled = item.scheduled_time ?? null
-                const expected = item.expected_time ?? null
+                const routeColor = getRouteColor(item.routeType)
+                const scheduled = item.scheduledTime ?? null
+                const expected = item.expectedTime ?? null
                 const isDelayed = item.realtime && scheduled && expected && expected !== scheduled
-                const vehicleId = item.vehicle_id
+                const vehicleId = item.vehicleId
                 const canRequest = isNearStop && Boolean(vehicleId)
-                const reserved = vehicleId ? isReserved(vehicleId, stop.stop_id) : false
+                const reserved = vehicleId ? isReserved(vehicleId, stop.id) : false
                 const isReserving = reservingId === vehicleId
 
                 return (
@@ -366,7 +365,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                       className="inline-flex h-9 min-w-12 items-center justify-center rounded-md px-2.5 text-base font-bold text-white shrink-0"
                       style={{ background: routeColor }}
                     >
-                      {item.route_short_name ?? '?'}
+                      {item.routeShortName ?? '?'}
                     </span>
 
                     {/* Middle: headsign + status + vehicle id */}
@@ -416,7 +415,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                           color: item.realtime ? '#22c55e' : 'var(--text-secondary)',
                         }}
                       >
-                        {formatEta(item.eta_minutes)}
+                        {formatEta(item.etaMinutes)}
                       </span>
 
                       <button

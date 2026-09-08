@@ -3,8 +3,8 @@
 import type { RampReservation } from '@/contexts/RampContext'
 
 interface StopMeta {
-  eta_minutes: number | null
-  stop_name: string | null
+  etaMinutes: number | null
+  stopName: string | null
   status: 'departed' | 'delay' | 'on_time' | 'scheduled' | null
 }
 
@@ -36,7 +36,7 @@ export function ResDetailCard({
     >
       <button
         type="button"
-        onClick={() => onOpenVehicle?.(res.vehicle_id)}
+        onClick={() => onOpenVehicle?.(res.vehicleId)}
         className="flex-shrink-0 rounded-lg px-3 py-1.5 text-lg font-black text-white cursor-pointer"
         style={{ background: typeColor }}
       >
@@ -46,7 +46,7 @@ export function ResDetailCard({
         className="flex-1 truncate text-sm font-semibold"
         style={{ color: 'var(--text-muted)' }}
       >
-        {meta?.stop_name ?? ''}
+        {meta?.stopName ?? ''}
       </span>
       <button
         type="button"

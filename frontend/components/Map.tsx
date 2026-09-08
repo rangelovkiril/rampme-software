@@ -66,8 +66,8 @@ export default function MapView() {
     setSelectedStop(null)
     setActivePanel(null)
     setNavCloseSignal((s) => s + 1)
-    if (v.route_id && v.route_type != null)
-      setSelectedRoute({ routeId: v.route_id, routeType: v.route_type })
+    if (v.routeId && v.routeType != null)
+      setSelectedRoute({ routeId: v.routeId, routeType: v.routeType })
   }, [])
 
   const handleTripLoaded = useCallback((routeId: string | null, routeType: number | null) => {
@@ -101,7 +101,7 @@ export default function MapView() {
     setActivePanel(null)
     setNavCloseSignal((n) => n + 1)
     if (s) {
-      mapRef.current?.panTo([s.stop_lat, s.stop_lon], {
+      mapRef.current?.panTo([s.lat, s.lon], {
         animate: true,
         duration: 0.6,
       })
@@ -139,10 +139,7 @@ export default function MapView() {
             if (code === 1) setTracking(false)
           }}
         />
-        <StopsLayer
-          selectedStopId={selectedStop?.stop_id ?? null}
-          onStopSelect={handleStopSelect}
-        />
+        <StopsLayer selectedStopId={selectedStop?.id ?? null} onStopSelect={handleStopSelect} />
         <VehiclesLayer
           onVehicleSelect={handleVehicleSelect}
           selectedVehicleId={selectedVehicle?.id ?? null}

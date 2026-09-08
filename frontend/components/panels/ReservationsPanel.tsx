@@ -47,7 +47,7 @@ export default function ReservationsPanel({ onOpenVehicle }: Props) {
               key={r.id}
               r={r}
               onCancel={() => cancel(r.id)}
-              onOpen={r.vehicle_id ? () => onOpenVehicle?.(r.vehicle_id) : undefined}
+              onOpen={r.vehicleId ? () => onOpenVehicle?.(r.vehicleId) : undefined}
             />
           ))}
         </div>
@@ -97,10 +97,10 @@ function ReservationCard({
         </span>
       </div>
       <p className="mt-1 text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>
-        {r.vehicle_id}
+        {r.vehicleId}
       </p>
       <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-        Спирка {r.stop_id}
+        Спирка {r.stopId}
       </p>
     </>
   )

@@ -10,11 +10,11 @@ export const sessionId = 'e2e-session-id'
 
 export function createStop(overrides: Partial<Stop> = {}): Stop {
   return {
-    stop_id: 'STOP-E2E',
-    stop_code: '1000',
-    stop_name: 'Тестова спирка',
-    stop_lat: 42.6977,
-    stop_lon: 23.3219,
+    id: 'STOP-E2E',
+    code: '1000',
+    name: 'Тестова спирка',
+    lat: 42.6977,
+    lon: 23.3219,
     ...overrides,
   }
 }
@@ -27,12 +27,12 @@ export function createVehicle(overrides: Partial<Vehicle> = {}): Vehicle {
     lng: 23.322,
     bearing: 90,
     speed: 18,
-    route_id: 'route-e2e',
-    route_short_name: '84',
-    route_type: 3,
+    routeId: 'route-e2e',
+    routeShortName: '84',
+    routeType: 3,
     headsign: 'Орлов мост',
     label: 'E2E bus',
-    ramp_status: 'working',
+    rampStatus: 'working',
     ...overrides,
   }
 }
@@ -42,16 +42,16 @@ export function createArrivals(overrides: Partial<StopArrival> = {}): StopArriva
   return [
     {
       id: 'arrival-e2e',
-      vehicle_id: vehicle.id,
-      route_short_name: vehicle.route_short_name,
-      route_type: vehicle.route_type,
+      vehicleId: vehicle.id,
+      routeShortName: vehicle.routeShortName,
+      routeType: vehicle.routeType,
       headsign: vehicle.headsign,
-      route_id: vehicle.route_id,
-      scheduled_time: '12:05',
-      expected_time: '12:04',
-      eta_minutes: 4,
+      routeId: vehicle.routeId,
+      scheduledTime: '12:05',
+      expectedTime: '12:04',
+      etaMinutes: 4,
       realtime: true,
-      has_ramp: true,
+      hasRamp: true,
       ...overrides,
     },
   ]
@@ -61,33 +61,33 @@ export function createTrip(overrides: Partial<TripData> = {}): TripData {
   const vehicle = createVehicle()
   const stop = createStop()
   return {
-    vehicle_id: vehicle.id,
-    trip_id: vehicle.tripId,
-    route_id: vehicle.route_id ?? '',
-    route_short_name: vehicle.route_short_name,
-    route_type: vehicle.route_type,
+    vehicleId: vehicle.id,
+    tripId: vehicle.tripId,
+    routeId: vehicle.routeId ?? '',
+    routeShortName: vehicle.routeShortName,
+    routeType: vehicle.routeType,
     headsign: vehicle.headsign,
     stops: [
       {
-        stop_id: stop.stop_id,
-        stop_name: stop.stop_name,
-        stop_sequence: 1,
+        stopId: stop.id,
+        stopName: stop.name,
+        stopSequence: 1,
         status: 'on_time',
-        scheduled_time: '12:05',
-        expected_time: '12:04',
-        eta_minutes: 4,
-        delay_minutes: -1,
+        scheduledTime: '12:05',
+        expectedTime: '12:04',
+        etaMinutes: 4,
+        delayMinutes: -1,
         realtime: true,
       },
       {
-        stop_id: 'STOP-NEXT',
-        stop_name: 'Следваща спирка',
-        stop_sequence: 2,
+        stopId: 'STOP-NEXT',
+        stopName: 'Следваща спирка',
+        stopSequence: 2,
         status: 'scheduled',
-        scheduled_time: '12:12',
-        expected_time: '12:12',
-        eta_minutes: 12,
-        delay_minutes: 0,
+        scheduledTime: '12:12',
+        expectedTime: '12:12',
+        etaMinutes: 12,
+        delayMinutes: 0,
         realtime: false,
       },
     ],
@@ -97,21 +97,20 @@ export function createTrip(overrides: Partial<TripData> = {}): TripData {
 
 interface Reservation {
   id: number
-  session_id: string
-  vehicle_id: string
-  stop_id: string
+  vehicleId: string
+  stopId: string
   type: 'board' | 'alight'
   status: 'pending'
-  created_at: number
-  resolved_at: null
+  createdAt: number
+  resolvedAt: null
 }
 
 export interface ApiMockState {
   reservations: Reservation[]
   reserveRequests: Array<{
     sessionId: string | undefined
-    vehicle_id: string
-    stop_id: string
+    vehicleId: string
+    stopId: string
     type: 'board' | 'alight'
   }>
   cancelledIds: number[]
@@ -149,11 +148,11 @@ function createStopsRoutes(stop: Stop, arrivals: StopArrival[], fulfillSse: Fulf
       await fulfillJson(route, [stop])
       return true
     }
-    if (method === 'GET' && pathname === `/api/stops/${stop.stop_id}/vehicles`) {
+    if (method === 'GET' && pathname === `/api/stops/${stop.id}/vehicles`) {
       await fulfillJson(route, arrivals)
       return true
     }
-    if (method === 'GET' && pathname === `/api/stops/${stop.stop_id}/vehicles/stream`) {
+    if (method === 'GET' && pathname === `/api/stops/${stop.id}/vehicles/stream`) {
       await fulfillSse(route, arrivals)
       return true
     }
@@ -207,10 +206,9 @@ interface RampRouteState {
 }
 
 // `/api/ramp/session(/stream)` and `/api/ramp/reserve(/:id)` - mirrors
-// backend/src/routes/ramp.ts, including the x-session-id/session_id
-// validation guard that applies to every ramp path except the SSE stream
-// (which takes it as a query param instead, since EventSource can't set
-// custom headers).
+// backend/src/routes/ramp.ts, including the session-id guard that applies to
+// every ramp path except the SSE stream (which takes it as a `sessionId` query
+// param instead, since EventSource can't set custom headers).
 function createRampRoutes(sessionId: string, fulfillSse: Fulfiller) {
   const state: RampRouteState = {
     reservations: [],
@@ -238,7 +236,7 @@ function createRampRoutes(sessionId: string, fulfillSse: Fulfiller) {
       return true
     }
     if (method === 'GET' && pathname === '/api/ramp/session/stream') {
-      const requestSessionId = url.searchParams.get('session_id') ?? undefined
+      const requestSessionId = url.searchParams.get('sessionId') ?? undefined
       state.rampSessionIds.push(requestSessionId)
       if (requestSessionId !== sessionId) {
         await fulfillJson(route, { error: 'Invalid E2E session' }, 400)
@@ -248,12 +246,11 @@ function createRampRoutes(sessionId: string, fulfillSse: Fulfiller) {
       return true
     }
     if (method === 'POST' && pathname === '/api/ramp/reserve') {
-      // This request shape is also hand-written in backend/src/routes/ramp.ts's
-      // t.Object schema and frontend/contexts/RampContext.tsx's apiReserve() fetch
-      // body — keep all three in sync when it changes.
+      // The real shape comes from the backend's ReserveBody model; this mock is
+      // the one copy tsc cannot check, so keep it in step with that model.
       const body = request.postDataJSON() as {
-        vehicle_id: string
-        stop_id: string
+        vehicleId: string
+        stopId: string
         type: 'board' | 'alight'
       }
       state.reserveRequests.push({
@@ -262,11 +259,10 @@ function createRampRoutes(sessionId: string, fulfillSse: Fulfiller) {
       })
       const reservation: Reservation = {
         id: nextReservationId++,
-        session_id: sessionId,
         ...body,
         status: 'pending',
-        created_at: 1_722_000_000,
-        resolved_at: null,
+        createdAt: 1_722_000_000,
+        resolvedAt: null,
       }
       state.reservations.push(reservation)
       await fulfillJson(route, reservation)

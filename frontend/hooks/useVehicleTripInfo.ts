@@ -60,7 +60,7 @@ export function useVehicleTripInfo(
         const etas = etaUpdatesRef.current
         setTrip(etas ? { ...data, stops: applyEtaUpdates(data.stops, etas) } : data)
         setFailed(false)
-        onLoadedRef.current?.(data.route_id ?? null, data.route_type ?? null)
+        onLoadedRef.current?.(data.routeId ?? null, data.routeType ?? null)
       })
       .catch(() => {
         if (!controller.signal.aborted) setFailed(true)
@@ -84,7 +84,7 @@ export function useVehicleTripInfo(
 
   const stopsById = useMemo(() => {
     const byId: Record<string, TripStop> = {}
-    for (const s of trip?.stops ?? []) byId[s.stop_id] = s
+    for (const s of trip?.stops ?? []) byId[s.stopId] = s
     return byId
   }, [trip])
 

@@ -22,19 +22,19 @@ test('vehicle markers distinguish ramp-equipped, not-equipped, and unknown', asy
     id: 'vehicle-equipped',
     lat: 42.6978,
     lng: 23.322,
-    ramp_status: 'working',
+    rampStatus: 'working',
   })
   const notEquipped = createVehicle({
     id: 'vehicle-not-equipped',
     lat: 42.699,
     lng: 23.323,
-    ramp_status: 'no_ramp',
+    rampStatus: 'no_ramp',
   })
   const unknown = createVehicle({
     id: 'vehicle-unknown',
     lat: 42.696,
     lng: 23.321,
-    ramp_status: 'unknown',
+    rampStatus: 'unknown',
   })
   await mockTransitApi(page, { vehicles: [equipped, notEquipped, unknown] })
 
@@ -61,17 +61,17 @@ test('round-trips a ramp reservation through the session UI', async ({ page }) =
 
   await page.goto('/')
   await page.getByRole('button', { name: 'Спирки' }).click()
-  await page.getByRole('button', { name: new RegExp(stop.stop_name) }).click()
+  await page.getByRole('button', { name: new RegExp(stop.name) }).click()
 
-  const stopSheet = new StopSheet(page, stop.stop_name)
+  const stopSheet = new StopSheet(page, stop.name)
   await expect(stopSheet.root).toBeVisible()
   await stopSheet.root.getByRole('button', { name: 'Качване' }).click()
 
   await expect.poll(() => api.reserveRequests).toHaveLength(1)
   expect(api.reserveRequests[0]).toEqual({
     sessionId,
-    vehicle_id: vehicle.id,
-    stop_id: stop.stop_id,
+    vehicleId: vehicle.id,
+    stopId: stop.id,
     type: 'board',
   })
 

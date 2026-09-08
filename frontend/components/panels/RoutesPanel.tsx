@@ -40,29 +40,27 @@ export default function RoutesPanel({ onSelectRoute, onClose }: RoutesPanelProps
 
   const filtered = useMemo(() => {
     let list = routes
-    if (filterType !== null) list = list.filter((r) => r.route_type === filterType)
+    if (filterType !== null) list = list.filter((r) => r.type === filterType)
     if (search.trim()) {
       const q = search.trim().toLowerCase()
       list = list.filter(
-        (r) =>
-          r.route_short_name.toLowerCase().includes(q) ||
-          r.route_long_name.toLowerCase().includes(q),
+        (r) => r.shortName.toLowerCase().includes(q) || r.longName.toLowerCase().includes(q),
       )
     }
     return list.sort((a, b) => {
-      const ta = TYPE_ORDER_INDICES.get(a.route_type) ?? 999
-      const tb = TYPE_ORDER_INDICES.get(b.route_type) ?? 999
+      const ta = TYPE_ORDER_INDICES.get(a.type) ?? 999
+      const tb = TYPE_ORDER_INDICES.get(b.type) ?? 999
       if (ta !== tb) return ta - tb
-      const na = parseInt(a.route_short_name, 10)
-      const nb = parseInt(b.route_short_name, 10)
+      const na = parseInt(a.shortName, 10)
+      const nb = parseInt(b.shortName, 10)
       if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb
-      return a.route_short_name.localeCompare(b.route_short_name)
+      return a.shortName.localeCompare(b.shortName)
     })
   }, [routes, search, filterType])
 
   const handleSelect = useCallback(
     (r: Route) => {
-      onSelectRoute?.(r.route_id, r.route_type)
+      onSelectRoute?.(r.id, r.type)
       onClose()
     },
     [onSelectRoute, onClose],
@@ -121,10 +119,10 @@ export default function RoutesPanel({ onSelectRoute, onClose }: RoutesPanelProps
           </p>
         )}
         {filtered.map((r) => {
-          const meta = ROUTE_TYPE_CONFIG[r.route_type]
+          const meta = ROUTE_TYPE_CONFIG[r.type]
           return (
             <button
-              key={r.route_id}
+              key={r.id}
               type="button"
               onClick={() => handleSelect(r)}
               className="flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors"
@@ -139,11 +137,11 @@ export default function RoutesPanel({ onSelectRoute, onClose }: RoutesPanelProps
                 className="inline-flex h-7 min-w-[3rem] items-center justify-center rounded-md px-2 text-sm font-bold text-white"
                 style={{ background: meta?.color ?? '#BE1E2D' }}
               >
-                {r.route_short_name}
+                {r.shortName}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium" style={{ color: 'var(--text)' }}>
-                  {r.route_long_name || r.route_short_name}
+                  {r.longName || r.shortName}
                 </p>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                   {meta?.label ?? 'Друго'}

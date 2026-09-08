@@ -10,9 +10,9 @@ test('resizes and dismisses the stop bottom sheet', async ({ page }) => {
 
   await page.goto('/')
   await page.getByRole('button', { name: 'Спирки' }).click()
-  await page.getByRole('button', { name: new RegExp(stop.stop_name) }).click()
+  await page.getByRole('button', { name: new RegExp(stop.name) }).click()
 
-  const sheet = new StopSheet(page, stop.stop_name)
+  const sheet = new StopSheet(page, stop.name)
   await expect(sheet.root).toBeVisible()
 
   const initialHeight = await sheet.height()

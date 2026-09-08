@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import { getRouteColor } from '@/lib/transit'
 
 interface RouteShape {
-  route_type: number
+  routeType: number
   polylines: [number, number][][]
 }
 
@@ -77,7 +77,7 @@ export default function RouteLinesLayer({
       return
     }
 
-    const color = getRouteColor(routeType ?? shape.route_type)
+    const color = getRouteColor(routeType ?? shape.routeType)
 
     for (const polyline of shape.polylines) {
       if (polyline.length < 2) continue

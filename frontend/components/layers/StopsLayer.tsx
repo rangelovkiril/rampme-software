@@ -29,12 +29,7 @@ function createStopIcon(selected = false) {
 }
 
 function hasValidCoords(s: Stop) {
-  return (
-    Number.isFinite(s.stop_lat) &&
-    Number.isFinite(s.stop_lon) &&
-    s.stop_lat !== 0 &&
-    s.stop_lon !== 0
-  )
+  return Number.isFinite(s.lat) && Number.isFinite(s.lon) && s.lat !== 0 && s.lon !== 0
 }
 
 interface StopsLayerProps {
@@ -95,11 +90,11 @@ export default function StopsLayer({ selectedStopId = null, onStopSelect }: Stop
     const bounds = map.getBounds()
 
     for (const stop of stops) {
-      const latlng = L.latLng(stop.stop_lat, stop.stop_lon)
+      const latlng = L.latLng(stop.lat, stop.lon)
       if (!bounds.contains(latlng)) continue
 
       const marker = L.marker(latlng, {
-        icon: selectedStopId === stop.stop_id ? selectedIconRef.current : iconRef.current,
+        icon: selectedStopId === stop.id ? selectedIconRef.current : iconRef.current,
         riseOnHover: true,
         bubblingMouseEvents: false,
       })

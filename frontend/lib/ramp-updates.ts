@@ -25,11 +25,11 @@ export function computeRampUpdate(prev: RampReservation[], curr: RampReservation
     if (c && c.status !== p.status) {
       if (c.status === 'active') {
         logs.push(
-          `[ramp] bus arrived at stop — ${p.type} reservation #${p.id} is now ACTIVE (vehicle ${p.vehicle_id}, stop ${p.stop_id})`,
+          `[ramp] bus arrived at stop — ${p.type} reservation #${p.id} is now ACTIVE (vehicle ${p.vehicleId}, stop ${p.stopId})`,
         )
       } else if (c.status === 'done') {
         logs.push(
-          `[ramp] ramp used — ${p.type} reservation #${p.id} DONE (vehicle ${p.vehicle_id}, stop ${p.stop_id})`,
+          `[ramp] ramp used — ${p.type} reservation #${p.id} DONE (vehicle ${p.vehicleId}, stop ${p.stopId})`,
         )
       } else if (c.status === 'expired') {
         missedBusMessage = 'Автобусът замина без да разгъне рампата.'
@@ -37,7 +37,7 @@ export function computeRampUpdate(prev: RampReservation[], curr: RampReservation
     }
     // Reservation disappeared from active list (removed server-side)
     if (!c && (p.status === 'pending' || p.status === 'active')) {
-      logs.push(`[ramp] reservation #${p.id} removed (${p.type}, vehicle ${p.vehicle_id})`)
+      logs.push(`[ramp] reservation #${p.id} removed (${p.type}, vehicle ${p.vehicleId})`)
     }
   }
 
@@ -50,7 +50,7 @@ export function computeRampUpdate(prev: RampReservation[], curr: RampReservation
 
   return {
     reservations: curr,
-    lockedVehicleId: board?.vehicle_id ?? null,
+    lockedVehicleId: board?.vehicleId ?? null,
     clearLockedRoute: !board && !hasActiveAlight,
     missedBusMessage,
     logs,

@@ -61,11 +61,11 @@ export default function FloatingNav({
 
   // ── vehicle IDs ──────────────────────────────────────────────────────────
   // Primary: boarding vehicle (if boarding exists), otherwise alighting vehicle
-  const primaryVehicleId = boardingRes?.vehicle_id ?? alightingRes?.vehicle_id ?? null
+  const primaryVehicleId = boardingRes?.vehicleId ?? alightingRes?.vehicleId ?? null
   // Secondary: alighting vehicle only when it differs from the boarding vehicle
   const secondaryVehicleId =
-    boardingRes && alightingRes && boardingRes.vehicle_id !== alightingRes.vehicle_id
-      ? alightingRes.vehicle_id
+    boardingRes && alightingRes && boardingRes.vehicleId !== alightingRes.vehicleId
+      ? alightingRes.vehicleId
       : null
 
   // ── trip info: one subscription per vehicle ──────────────────────────────
@@ -80,18 +80,16 @@ export default function FloatingNav({
 
   // Route name for alighting (use secondary info if separate vehicle, else primary)
   const alightingRouteName =
-    secondary.trip?.route_short_name ??
-    (boardingRes && alightingRes && boardingRes.vehicle_id !== alightingRes.vehicle_id
+    secondary.trip?.routeShortName ??
+    (boardingRes && alightingRes && boardingRes.vehicleId !== alightingRes.vehicleId
       ? null
-      : (primary.trip?.route_short_name ?? lockedRouteShortName))
+      : (primary.trip?.routeShortName ?? lockedRouteShortName))
 
   // ── banner display order ─────────────────────────────────────────────────
   // Active boarding always first; otherwise sort ascending by ETA (null = last)
-  const boardingEta = boardingRes
-    ? (getBoardingMeta(boardingRes.stop_id)?.eta_minutes ?? null)
-    : null
+  const boardingEta = boardingRes ? (getBoardingMeta(boardingRes.stopId)?.etaMinutes ?? null) : null
   const alightingEta = alightingRes
-    ? (getAlightingMeta(alightingRes.stop_id)?.eta_minutes ?? null)
+    ? (getAlightingMeta(alightingRes.stopId)?.etaMinutes ?? null)
     : null
   const showAlightingFirst =
     boardingRes &&
@@ -141,10 +139,10 @@ export default function FloatingNav({
                     <ResBanner
                       type="alight"
                       routeName={alightingRouteName}
-                      routeType={secondary.trip?.route_type ?? primary.trip?.route_type ?? null}
-                      stopName={getAlightingMeta(alightingRes.stop_id)?.stop_name ?? null}
+                      routeType={secondary.trip?.routeType ?? primary.trip?.routeType ?? null}
+                      stopName={getAlightingMeta(alightingRes.stopId)?.stopName ?? null}
                       eta={alightingEta}
-                      status={getAlightingMeta(alightingRes.stop_id)?.status ?? null}
+                      status={getAlightingMeta(alightingRes.stopId)?.status ?? null}
                       resStatus={alightingRes.status as 'pending' | 'active'}
                     />
                   </button>
@@ -163,11 +161,11 @@ export default function FloatingNav({
                   >
                     <ResBanner
                       type="board"
-                      routeName={primary.trip?.route_short_name ?? lockedRouteShortName}
-                      routeType={primary.trip?.route_type ?? null}
-                      stopName={getBoardingMeta(boardingRes.stop_id)?.stop_name ?? null}
+                      routeName={primary.trip?.routeShortName ?? lockedRouteShortName}
+                      routeType={primary.trip?.routeType ?? null}
+                      stopName={getBoardingMeta(boardingRes.stopId)?.stopName ?? null}
                       eta={boardingEta}
-                      status={getBoardingMeta(boardingRes.stop_id)?.status ?? null}
+                      status={getBoardingMeta(boardingRes.stopId)?.status ?? null}
                       resStatus={boardingRes.status as 'pending' | 'active'}
                     />
                   </button>
@@ -190,11 +188,11 @@ export default function FloatingNav({
                     >
                       <ResBanner
                         type="board"
-                        routeName={primary.trip?.route_short_name ?? lockedRouteShortName}
-                        routeType={primary.trip?.route_type ?? null}
-                        stopName={getBoardingMeta(boardingRes.stop_id)?.stop_name ?? null}
+                        routeName={primary.trip?.routeShortName ?? lockedRouteShortName}
+                        routeType={primary.trip?.routeType ?? null}
+                        stopName={getBoardingMeta(boardingRes.stopId)?.stopName ?? null}
                         eta={boardingEta}
-                        status={getBoardingMeta(boardingRes.stop_id)?.status ?? null}
+                        status={getBoardingMeta(boardingRes.stopId)?.status ?? null}
                         resStatus={boardingRes.status as 'pending' | 'active'}
                       />
                     </button>
@@ -216,10 +214,10 @@ export default function FloatingNav({
                       <ResBanner
                         type="alight"
                         routeName={alightingRouteName}
-                        routeType={secondary.trip?.route_type ?? primary.trip?.route_type ?? null}
-                        stopName={getAlightingMeta(alightingRes.stop_id)?.stop_name ?? null}
+                        routeType={secondary.trip?.routeType ?? primary.trip?.routeType ?? null}
+                        stopName={getAlightingMeta(alightingRes.stopId)?.stopName ?? null}
                         eta={alightingEta}
-                        status={getAlightingMeta(alightingRes.stop_id)?.status ?? null}
+                        status={getAlightingMeta(alightingRes.stopId)?.status ?? null}
                         resStatus={alightingRes.status as 'pending' | 'active'}
                       />
                     </button>
@@ -345,7 +343,7 @@ export default function FloatingNav({
                 {showAlightingFirst && alightingRes && (
                   <ResDetailCard
                     res={alightingRes}
-                    meta={getAlightingMeta(alightingRes.stop_id)}
+                    meta={getAlightingMeta(alightingRes.stopId)}
                     routeName={alightingRouteName}
                     type="alight"
                     onCancel={async (id) => {
@@ -357,15 +355,15 @@ export default function FloatingNav({
                 {boardingRes && (
                   <ResDetailCard
                     res={boardingRes}
-                    meta={getBoardingMeta(boardingRes.stop_id)}
-                    routeName={primary.trip?.route_short_name ?? null}
+                    meta={getBoardingMeta(boardingRes.stopId)}
+                    routeName={primary.trip?.routeShortName ?? null}
                     type="board"
                     onCancel={async (id) => {
                       await cancel(id)
                       if (
                         alightingRes &&
                         boardingRes.status !== 'active' &&
-                        boardingRes.vehicle_id === alightingRes.vehicle_id
+                        boardingRes.vehicleId === alightingRes.vehicleId
                       ) {
                         await cancel(alightingRes.id)
                       }
@@ -376,7 +374,7 @@ export default function FloatingNav({
                 {!showAlightingFirst && alightingRes && (
                   <ResDetailCard
                     res={alightingRes}
-                    meta={getAlightingMeta(alightingRes.stop_id)}
+                    meta={getAlightingMeta(alightingRes.stopId)}
                     routeName={alightingRouteName}
                     type="alight"
                     onCancel={async (id) => {

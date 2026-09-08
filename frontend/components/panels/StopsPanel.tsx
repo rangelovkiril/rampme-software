@@ -18,7 +18,7 @@ export default function StopsPanel({ onSelectStop, onClose }: StopsPanelProps) {
     if (!search.trim()) return stops.slice(0, 100)
     const q = search.trim().toLowerCase()
     return stops
-      .filter((s) => s.stop_name.toLowerCase().includes(q) || s.stop_id.toLowerCase().includes(q))
+      .filter((s) => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q))
       .slice(0, 100)
   }, [stops, search])
 
@@ -67,7 +67,7 @@ export default function StopsPanel({ onSelectStop, onClose }: StopsPanelProps) {
         )}
         {filtered.map((s) => (
           <button
-            key={s.stop_id}
+            key={s.id}
             type="button"
             onClick={() => handleSelect(s)}
             className="flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors"
@@ -99,10 +99,10 @@ export default function StopsPanel({ onSelectStop, onClose }: StopsPanelProps) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium" style={{ color: 'var(--text)' }}>
-                {s.stop_name}
+                {s.name}
               </p>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {s.stop_id}
+                {s.id}
               </p>
             </div>
           </button>

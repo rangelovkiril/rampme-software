@@ -66,7 +66,7 @@ async function apiReserve(
     // there fails tsc here. e2e/fixtures/transit.ts's reserveRequests mock
     // asserts on it too and still has to be updated by hand.
     const { data } = await api.ramp.reserve.post(
-      { vehicle_id: vehicleId, stop_id: stopId, type },
+      { vehicleId: vehicleId, stopId: stopId, type },
       { headers: { 'x-session-id': sid } },
     )
     return data ?? null
@@ -131,7 +131,7 @@ export function RampProvider({ children }: { children: ReactNode }) {
   // so this reflects server-side status transitions within milliseconds
   // instead of waiting on a poll interval.
   const sseReservations = useSSE<RampReservation[]>(
-    `/ramp/session/stream?session_id=${encodeURIComponent(sid)}`,
+    `/ramp/session/stream?sessionId=${encodeURIComponent(sid)}`,
   )
 
   useEffect(() => {
@@ -185,8 +185,8 @@ export function RampProvider({ children }: { children: ReactNode }) {
     (vid: string, stopId: string) =>
       reservations.some(
         (r) =>
-          r.vehicle_id === vid &&
-          r.stop_id === stopId &&
+          r.vehicleId === vid &&
+          r.stopId === stopId &&
           (r.status === 'pending' || r.status === 'active'),
       ),
     [reservations],

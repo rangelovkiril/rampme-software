@@ -14,13 +14,13 @@ const DETAIL_ZOOM = 16
 // not equipped, none (transparent) = unknown — so "we don't know" never
 // looks like either answer. See openspec/changes/ramp-vehicle-accessibility's
 // "Map shows accessibility at a glance" requirement.
-function accessibilityRingColor(rampStatus: Vehicle['ramp_status']): string {
+function accessibilityRingColor(rampStatus: Vehicle['rampStatus']): string {
   if (rampStatus === 'working' || rampStatus === 'in_use') return '#22c55e'
   if (rampStatus === 'no_ramp') return '#6b7280'
   return 'transparent'
 }
 
-function accessibilityLabel(rampStatus: Vehicle['ramp_status']): {
+function accessibilityLabel(rampStatus: Vehicle['rampStatus']): {
   text: string
   color: string
 } {
@@ -37,7 +37,7 @@ function vehicleIcon(
   _bearing: number,
   routeType: number,
   routeName: string,
-  rampStatus: Vehicle['ramp_status'],
+  rampStatus: Vehicle['rampStatus'],
 ) {
   const color = getRouteColor(routeType)
   const ring = accessibilityRingColor(rampStatus)
@@ -49,7 +49,7 @@ function vehicleIcon(
   })
 }
 
-function vehicleDotIcon(routeType: number, rampStatus: Vehicle['ramp_status']) {
+function vehicleDotIcon(routeType: number, rampStatus: Vehicle['rampStatus']) {
   const color = getRouteColor(routeType)
   const ring = accessibilityRingColor(rampStatus)
   return L.divIcon({
@@ -128,13 +128,13 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
       const latlng = L.latLng(v.lat, v.lng)
       if (!bounds.contains(latlng)) continue
 
-      const color = getRouteColor(v.route_type)
+      const color = getRouteColor(v.routeType)
       const label =
-        (v.route_type != null ? ROUTE_TYPE_CONFIG[v.route_type]?.label : undefined) ?? 'Автобус'
-      const displayName = v.route_short_name ?? v.label ?? v.id
-      const titleLabel = v.route_short_name ? `${label} ${v.route_short_name}` : displayName
+        (v.routeType != null ? ROUTE_TYPE_CONFIG[v.routeType]?.label : undefined) ?? 'Автобус'
+      const displayName = v.routeShortName ?? v.label ?? v.id
+      const titleLabel = v.routeShortName ? `${label} ${v.routeShortName}` : displayName
       const headsign = v.headsign ?? ''
-      const ramp = accessibilityLabel(v.ramp_status)
+      const ramp = accessibilityLabel(v.rampStatus)
 
       const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:13px">
         <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${titleLabel}</span>
@@ -144,8 +144,8 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
       </div>`
 
       const icon = useDetailed
-        ? vehicleIcon(v.bearing ?? 0, v.route_type ?? 3, displayName, v.ramp_status)
-        : vehicleDotIcon(v.route_type ?? 3, v.ramp_status)
+        ? vehicleIcon(v.bearing ?? 0, v.routeType ?? 3, displayName, v.rampStatus)
+        : vehicleDotIcon(v.routeType ?? 3, v.rampStatus)
       const marker = L.marker(latlng, { icon, zIndexOffset: 1000 })
       marker.bindPopup(popupHtml)
       if (onVehicleSelect) marker.on('click', () => onVehicleSelect(v))

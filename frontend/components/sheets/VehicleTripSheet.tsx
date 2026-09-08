@@ -8,24 +8,24 @@ import { getRouteColor, getRouteLabel } from '@/lib/transit'
 
 function StopStatusLabel({ stop }: { stop: TripStop }) {
   if (stop.status === 'departed')
-    return <span>Замина{stop.expected_time ? ` ${stop.expected_time}` : ''}</span>
-  if (stop.realtime && stop.expected_time) {
+    return <span>Замина{stop.expectedTime ? ` ${stop.expectedTime}` : ''}</span>
+  if (stop.realtime && stop.expectedTime) {
     return (
       <span>
         {stop.status === 'delay' && (
           <>
             <span style={{ textDecoration: 'line-through', opacity: 0.4 }}>
-              {stop.scheduled_time}
+              {stop.scheduledTime}
             </span>{' '}
           </>
         )}
         <span style={{ color: stop.status === 'delay' ? '#f59e0b' : '#22c55e' }}>
-          {stop.expected_time}
+          {stop.expectedTime}
         </span>
       </span>
     )
   }
-  return <span>{stop.scheduled_time ?? ''}</span>
+  return <span>{stop.scheduledTime ?? ''}</span>
 }
 
 interface Props {
@@ -122,13 +122,13 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
 
   const boardingRes = reservations.find(
     (r) =>
-      r.vehicle_id === vehicle?.id &&
+      r.vehicleId === vehicle?.id &&
       r.type === 'board' &&
       (r.status === 'pending' || r.status === 'active'),
   )
   const alightingRes = reservations.find(
     (r) =>
-      r.vehicle_id === vehicle?.id &&
+      r.vehicleId === vehicle?.id &&
       r.type === 'alight' &&
       (r.status === 'pending' || r.status === 'active'),
   )
@@ -178,8 +178,8 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
 
   if (!vehicle) return null
 
-  const routeShortName = vehicle.route_short_name ?? trip?.route_short_name ?? null
-  const routeType = vehicle.route_type ?? trip?.route_type ?? null
+  const routeShortName = vehicle.routeShortName ?? trip?.routeShortName ?? null
+  const routeType = vehicle.routeType ?? trip?.routeType ?? null
   const headsign = vehicle.headsign ?? trip?.headsign ?? null
   const routeColor = getRouteColor(routeType ?? undefined)
   const routeName = routeShortName
@@ -284,25 +284,24 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
             (() => {
               const nonDeparted = trip.stops.filter((s) => s.status !== 'departed')
               const lastZeroIdx = nonDeparted.reduce(
-                (acc, s, i) => (s.eta_minutes === 0 ? i : acc),
+                (acc, s, i) => (s.etaMinutes === 0 ? i : acc),
                 -1,
               )
               const visibleStops = lastZeroIdx > 0 ? nonDeparted.slice(lastZeroIdx) : nonDeparted
               const boardingSeq = boardingRes
-                ? (trip.stops.find((s) => s.stop_id === boardingRes.stop_id)?.stop_sequence ?? -1)
+                ? (trip.stops.find((s) => s.stopId === boardingRes.stopId)?.stopSequence ?? -1)
                 : -1
               return (
                 <div className="relative">
                   {visibleStops.map((stop, i, arr) => {
                     const isDeparted = stop.status === 'departed'
                     const isAtStop = false
-                    const boardingHere = boardingRes?.stop_id === stop.stop_id ? boardingRes : null
-                    const alightingHere =
-                      alightingRes?.stop_id === stop.stop_id ? alightingRes : null
+                    const boardingHere = boardingRes?.stopId === stop.stopId ? boardingRes : null
+                    const alightingHere = alightingRes?.stopId === stop.stopId ? alightingRes : null
                     const cancelableRes = boardingHere ?? alightingHere
                     const isBoarding = boardingHere !== null
                     const isAlighting = alightingHere !== null
-                    const isAfterBoarding = boardingSeq >= 0 && stop.stop_sequence > boardingSeq
+                    const isAfterBoarding = boardingSeq >= 0 && stop.stopSequence > boardingSeq
                     const canAlight =
                       isLocked &&
                       !alightingRes &&
@@ -313,8 +312,8 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                       isAfterBoarding
                     const canBoard =
                       !isLocked && !boardingRes && !alightingRes && !isDeparted && !isAtStop
-                    const isReservingThis = reservingStopId === stop.stop_id
-                    const isBoardingThis = boardingStopId === stop.stop_id
+                    const isReservingThis = reservingStopId === stop.stopId
+                    const isBoardingThis = boardingStopId === stop.stopId
                     const isLast = i === arr.length - 1
 
                     const leftBorder = isBoarding
@@ -327,7 +326,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
 
                     return (
                       <div
-                        key={`${stop.stop_id}-${stop.stop_sequence}`}
+                        key={`${stop.stopId}-${stop.stopSequence}`}
                         data-stop-row
                         className="relative flex gap-3 pb-3"
                       >
@@ -372,7 +371,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                             <div
                               className={`truncate text-sm ${isDeparted ? '' : 'font-semibold'}`}
                             >
-                              {stop.stop_name}
+                              {stop.stopName}
                             </div>
                             <div
                               className="text-sm whitespace-nowrap"
@@ -397,9 +396,9 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
 
                           {!isDeparted && (
                             <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
-                              {stop.eta_minutes !== null && stop.eta_minutes !== undefined && (
+                              {stop.etaMinutes !== null && stop.etaMinutes !== undefined && (
                                 <div className="text-right">
-                                  {stop.eta_minutes === 0 ? (
+                                  {stop.etaMinutes === 0 ? (
                                     <p
                                       className="text-xs font-bold leading-tight"
                                       style={{ color: '#22c55e' }}
@@ -410,7 +409,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                                     </p>
                                   ) : (
                                     <>
-                                      <p className="text-base font-bold">{stop.eta_minutes}</p>
+                                      <p className="text-base font-bold">{stop.etaMinutes}</p>
                                       <p
                                         className="text-[10px]"
                                         style={{ color: 'var(--text-muted)' }}
@@ -441,9 +440,9 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                                   disabled={isReservingThis}
                                   onClick={async () => {
                                     if (!vehicle || reservingStopId) return
-                                    setReservingStopId(stop.stop_id)
+                                    setReservingStopId(stop.stopId)
                                     try {
-                                      await reserveAlight(vehicle.id, stop.stop_id)
+                                      await reserveAlight(vehicle.id, stop.stopId)
                                     } finally {
                                       setReservingStopId(null)
                                     }
@@ -462,9 +461,9 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                                   disabled={isBoardingThis}
                                   onClick={async () => {
                                     if (!vehicle || boardingStopId) return
-                                    setBoardingStopId(stop.stop_id)
+                                    setBoardingStopId(stop.stopId)
                                     try {
-                                      await reserveBoard(vehicle.id, stop.stop_id)
+                                      await reserveBoard(vehicle.id, stop.stopId)
                                     } finally {
                                       setBoardingStopId(null)
                                     }
