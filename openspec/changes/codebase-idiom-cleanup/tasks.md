@@ -55,11 +55,11 @@
 
 ## 5. Documentation
 
-- [ ] 5.1 Update `backend/AGENTS.md`'s environment variable table: remove the `PROTO_PATH` row, add a `TZ` row (default `Europe/Sofia`), and note that `DEPLOY_TIMEOUT_MS` is now read through `config/index.ts`.
-- [ ] 5.2 Update `backend/AGENTS.md`'s file-tree and Key-concepts sections for the removed `GtfsData` members, the removed `jsonError()`, and the new GTFS-ready plugin, so the described structure matches the code.
-- [ ] 5.3 Add a second `.github/actions/setup-bun` invocation with `working-directory: backend` to both jobs in `.github/workflows/frontend.yaml`, since the frontend type-check now needs the backend's dependencies present; verify the frontend workflow passes in CI.
-- [ ] 5.4 Update the root `AGENTS.md` testing paragraph to state that frontend Biome now covers `.tsx`, so the next reader does not re-derive the gap.
-- [ ] 5.5 Add a third clause to the root `AGENTS.md`'s typing rule stating that outgoing response shapes are defined once as a TypeBox model and their TypeScript type derived with `Static<>`, never written as a parallel interface, and note in `backend/AGENTS.md` that the frontend derives its types from these models through Eden; this is what stops the duplication from returning.
+- [x] 5.1 Update `backend/AGENTS.md`'s environment variable table: remove the `PROTO_PATH` row, add a `TZ` row (default `Europe/Sofia`), and note that `DEPLOY_TIMEOUT_MS` is now read through `config/index.ts`.
+- [x] 5.2 Update `backend/AGENTS.md`'s file-tree and Key-concepts sections for the removed `GtfsData` members, the removed `jsonError()`, and the new GTFS-ready plugin, so the described structure matches the code.
+- [x] 5.3 Add a second `.github/actions/setup-bun` invocation with `working-directory: backend` to both jobs in `.github/workflows/frontend.yaml`, since the frontend type-check now needs the backend's dependencies present; verify the frontend workflow passes in CI.
+- [x] 5.4 Update the root `AGENTS.md` testing paragraph to state that frontend Biome now covers `.tsx`, so the next reader does not re-derive the gap.
+- [x] 5.5 Add a third clause to the root `AGENTS.md`'s typing rule stating that outgoing response shapes are defined once as a TypeBox model and their TypeScript type derived with `Static<>`, never written as a parallel interface, and note in `backend/AGENTS.md` that the frontend derives its types from these models through Eden; this is what stops the duplication from returning.
 - [ ] 5.6 Confirm no wiki page needs syncing: the ramp MQTT protocol, CORS origins, deployment path, and request path are unchanged by this change.
 
 ## 6. Verification

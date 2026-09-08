@@ -7,8 +7,15 @@ Elysia on Bun. REST + SSE API. Read the root [`AGENTS.md`](../AGENTS.md) first f
 ```
 src/
   index.ts                    Entry point - wires plugins/routes, starts server, boots MQTT + proximity checker
-  config/index.ts             All env-based configuration in one place
+  config/index.ts             All env-based configuration in one place, parsed through validating helpers
   config/swagger.ts           OpenAPI/Swagger plugin setup
+
+  schemas/index.ts            Every request/response shape as a TypeBox model, registered with .model();
+                              the TS types are derived from these, and the GTFS/SQLite -> wire mapping lives here
+
+  plugins/
+    gtfs-ready.ts             Macro resolving loaded GtfsData into a handler, or short-circuiting with 503
+    errors.ts                 NotFoundError/UpstreamError + the single onError that turns them into responses
 
   routes/                     HTTP handlers - thin, no business logic
     stops.ts                  /stops, /stops/:id, /stops/:id/vehicles(/stream)
@@ -17,7 +24,7 @@ src/
     ramp.ts                   /ramp/reserve, /ramp/reserve/:id, /ramp/session(/stream), /ramp/vehicle/:id
 
   services/
-    state.ts                  Shared GTFS data holder (getGtfs/setGtfs) + jsonError helper
+    state.ts                  Shared GTFS data holder (getGtfs/setGtfs)
     broadcaster.ts            Broadcaster<T> - domain-agnostic publish/subscribe over an async iterable
     sse.ts                    makeSseStream() - generic SSE transport: takes a Broadcaster + getData, handles retry hint, heartbeat, health-transition events, cleanup
     mqtt.ts                   MQTTHub - pattern-based subscriptions with per-handler parsers, publish helper
@@ -31,7 +38,8 @@ src/
       status.ts               Ramp status derivation for enrichment (getReservationsByVehicle, getVehicleRampStatusFrom)
 
   gtfs/                       GTFS data layer
-    types.ts                  All GTFS + GTFS-RT data interfaces (Stop, Route, Trip, GtfsData, GtfsRt*)
+    types.ts                  All GTFS + GTFS-RT data interfaces (Stop, Route, Trip, GtfsData, GtfsRt*).
+                              These keep GTFS's own snake_case; the wire shapes live in schemas/
     static.ts                 Fetches & parses the GTFS ZIP into in-memory Maps + precomputed indexes
     realtime.ts               Fetches/decodes GTFS-RT protobuf feeds; tracks per-feed staleness; publishes ticks on its own Broadcaster
     feed-health.ts            FeedTracker - tracks time since a feed's last successful fetch, reports staleness against a threshold
@@ -55,7 +63,10 @@ test/                          bun:test suite, mirrors src/ (test/gtfs/, test/se
 
 ## Key concepts
 
-- **GTFS static data** is fetched once on startup (and refreshed on `GTFS_REFRESH_INTERVAL`) as a ZIP, parsed into `GtfsData`: Maps for fast lookup by ID, plus precomputed `tripsByRoute` / `stopIdsByRoute` indexes.
+- **GTFS static data** is fetched once on startup (and refreshed on `GTFS_REFRESH_INTERVAL`) as a ZIP, parsed into `GtfsData`: Maps for fast lookup by ID, plus precomputed `tripsByRoute` / `stopIdsByRoute` / `stopTimesByStop` / `stopTimesByTrip` / `shapesByRoute` indexes. Only the indexes are kept — the flat `stopTimes` and `shapes` lists are local build inputs. `parseCsv` honours RFC 4180 quoting; Sofia's feed has rows whose quoted names contain a comma, and splitting on bare commas shifts every later column.
+- **The schema is the type.** Every request and response shape is declared once in `schemas/index.ts`, registered with `.model()`, and its TypeScript type derived with `typeof Schema.static`. Routes reference models by name in their `response`, so responses are validated and appear in `/docs`, and the frontend derives its own types from the same models through Elysia Eden — never write a parallel interface. `Stop`/`Route`/`Trip`/`StopTime`/`CalendarDate` (GTFS columns) and `RampReservation` (SQLite columns) keep their source spelling; `toStopResponse`/`toRouteResponse`/`toReservationResponse` are the one boundary where that becomes the API's camelCase.
+- **Errors** go through `plugins/errors.ts`: throw `NotFoundError` or `UpstreamError` (or wrap an upstream call in `upstream()`), and the single `onError` maps them to 404/502. Anything unexpected becomes a typed 500. Routes never build a raw `Response`; use the `status()` context helper so Elysia can validate and document the result.
+- **Routes that need loaded GTFS** opt in with `gtfsReady: true` (`plugins/gtfs-ready.ts`), which resolves `gtfs` into the handler already narrowed, or answers 503. SSE handlers deliberately do not use it — they return `null` for a dataless tick rather than failing the stream.
 - **GTFS-RT** (vehicle-positions, trip-updates) is fetched on a single background tick (`REFRESH_INTERVAL_MS` in `gtfs/realtime.ts`), independently of a *separate* fixed-cadence push loop that publishes to `gtfsRealtimeBroadcaster` unconditionally, even if the fetch fails (an upstream stall must never freeze the UI). Each feed's staleness is tracked independently via `FeedTracker` (`gtfs/feed-health.ts`) against `GTFS_RT_STALE_THRESHOLD_MS`. The broadcaster tick also drives a per-tick enriched-vehicle cache in `routes/realtime.ts` (memoized so N clients do not each recompute enrichment).
 - **GTFS-RT typing**: decoded protobuf JSON is typed via `GtfsRt*` interfaces in `gtfs/types.ts` (camelCase, matching `proto/gtfs-realtime.proto`); a single type assertion at the `FeedMessage.decode().toJSON()` boundary is the only place the wire format is untyped.
 - **Sibling stops**: Sofia's GTFS has separate stop_ids for bus/tram/trolley at the same physical stop (e.g. `A2795`, `TB2795`), sharing a `stop_code`. Arrivals are queried across all siblings together.
@@ -101,11 +112,12 @@ Starts without a broker: with no `MQTT_URL` set, MQTT and the ramp hardware path
 | `GTFS_RT_BASE_URL` | Sofia Traffic API | GTFS-RT base URL |
 | `GTFS_REFRESH_INTERVAL` | 86400000 (24h) | Static data refresh interval (ms) |
 | `GTFS_RT_STALE_THRESHOLD_MS` | `15000` | How long since a GTFS-RT feed's last successful fetch before it's considered degraded |
-| `PROTO_PATH` | `proto/gtfs-realtime.proto` | Protobuf definition path |
 | `RAMP_DB_PATH` | `./data/ramp.db` | SQLite path for ramp reservations |
 | `RAMP_ACCESSIBILITY_DATA_PATH` | `./data/vehicle-accessibility.json` | Path to the vehicle wheelchair-ramp accessibility reference dataset, rebuilt out-of-band by a `fleet`-scheduled script (see `openspec/specs/ramp/vehicle-accessibility`); missing file means every vehicle resolves as unknown |
 | `RAMP_ACCESSIBILITY_REFRESH_MS` | `3600000` (1h) | How often the backend reloads the accessibility dataset from disk to pick up a scheduled refresh |
+| `RAMP_CLEANUP_INTERVAL_MS` | `3600000` (1h) | How often resolved reservations older than 24h are swept from the SQLite table |
+| `TZ` | `Europe/Sofia` | IANA zone every GTFS wall-clock time is interpreted in. Read through `config/index.ts`, so a container that leaves it unset still reads GTFS times as Sofia local time rather than UTC |
 | `MQTT_URL` | _(unset)_ | MQTT broker URL; if unset, MQTT/ramp hardware integration is skipped entirely |
 | `MQTT_USERNAME` / `MQTT_PASSWORD` | _(unset)_ | MQTT broker credentials |
 | `MQTT_CLIENT_ID` | `rampme-backend` | MQTT client ID |
-| `DEPLOY_TIMEOUT_MS` | `20000` | How long to wait for hardware "deploying" ack before expiring a reservation |
+| `DEPLOY_TIMEOUT_MS` | `20000` | How long to wait for hardware "deploying" ack before expiring a reservation. Read through `config/index.ts`, not `process.env`, like everything in this table |

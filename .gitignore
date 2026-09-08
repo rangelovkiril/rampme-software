@@ -2,3 +2,6 @@ backend/data/ramp.db-shm
 backend/data/ramp.db-wal
 backend/data/ramp.db
 backend/data/
+
+# Playwright MCP session artifacts (snapshots, console logs)
+.playwright-mcp/
