@@ -12,7 +12,7 @@ import { realtimeRoutes } from './routes/realtime'
 import { stopsRoutes } from './routes/stops'
 import { transitRoutes } from './routes/transit'
 import { initMqtt } from './services/mqtt'
-import { getRampBridge, initRampBridge } from './services/ramp/bridge'
+import { getRampBridge, initRampBridge, isRampBridgeAvailable } from './services/ramp/bridge'
 import { createProximityChecker } from './services/ramp/proximity'
 import { getGtfs, setGtfs } from './services/state'
 
@@ -27,7 +27,12 @@ async function initGtfs() {
 initRampDb(config.rampDbPath)
 initAccessibility(config.rampAccessibility.dataPath, config.rampAccessibility.refreshMs)
 
-createProximityChecker(getRampBridge, getGtfs, getRampDb(), fetchVehiclePositions).start()
+createProximityChecker(
+  () => (isRampBridgeAvailable() ? getRampBridge() : null),
+  getGtfs,
+  getRampDb(),
+  fetchVehiclePositions,
+).start()
 
 const app = new Elysia()
   .use(swaggerPlugin)

@@ -10,7 +10,7 @@
  */
 
 import { consola } from 'consola'
-import type { RampDb } from '../../db/ramp'
+import type { RampDb, RampReservation } from '../../db/ramp'
 import type { GtfsData, GtfsRtFeedEntity, GtfsRtFeedMessage } from '../../gtfs/types'
 import type { RampBridge } from './bridge'
 
@@ -49,13 +49,14 @@ function distM(lat1: number, lon1: number, lat2: number, lon2: number): number {
  * `getBridge`/`getGtfs` are getters (not resolved instances) because the
  * ramp bridge may not exist yet when the checker is constructed (MQTT
  * connects asynchronously, or never) and GTFS data is refreshed
- * periodically — a snapshot would go stale. `rampDb`/`fetchPositions` are
- * resolved values since both are available synchronously at construction.
- * Production wires a single instance and calls start(); tests call
- * tick() directly, bypassing the interval.
+ * periodically — a snapshot would go stale. `getBridge` returns null while
+ * no bridge is available; the reservation lifecycle runs regardless.
+ * `rampDb`/`fetchPositions` are resolved values since both are available
+ * synchronously at construction. Production wires a single instance and
+ * calls start(); tests call tick() directly, bypassing the interval.
  */
 export function createProximityChecker(
-  getBridge: () => RampBridge,
+  getBridge: () => RampBridge | null,
   getGtfs: () => GtfsData | undefined,
   rampDb: RampDb,
   fetchPositions: () => Promise<GtfsRtFeedMessage>,
@@ -97,41 +98,59 @@ export function createProximityChecker(
     }
 
     for (const r of reservations) {
-      if (now - r.created_at > expirySeconds) {
+      // One reservation failing must not strand the rest of the pass.
+      try {
+        advance(r, now, vehicles, data)
+      } catch (e) {
+        log.error(`failed to advance reservation #${r.id}`, e)
+      }
+    }
+  }
+
+  function advance(
+    r: RampReservation,
+    now: number,
+    vehicles: Map<string, { lat: number; lng: number }>,
+    data: GtfsData,
+  ): void {
+    if (now - r.created_at > expirySeconds) {
+      rampDb.setReservationStatus(r.id, 'expired')
+      return
+    }
+
+    const veh = vehicles.get(r.vehicle_id)
+    if (!veh) {
+      const lastSeen = vehicleLastSeen.get(r.vehicle_id) ?? r.created_at
+      if (now - lastSeen > vehicleGoneSeconds) {
+        log.warn(`vehicle ${r.vehicle_id} absent ${vehicleGoneSeconds}s — expiring #${r.id}`)
         rampDb.setReservationStatus(r.id, 'expired')
-        continue
       }
+      return
+    }
 
-      const veh = vehicles.get(r.vehicle_id)
-      if (!veh) {
-        const lastSeen = vehicleLastSeen.get(r.vehicle_id) ?? r.created_at
-        if (now - lastSeen > vehicleGoneSeconds) {
-          log.warn(`vehicle ${r.vehicle_id} absent ${vehicleGoneSeconds}s — expiring #${r.id}`)
-          rampDb.setReservationStatus(r.id, 'expired')
-        }
-        continue
-      }
+    const stop = data.stops.get(r.stop_id)
+    if (!stop) return
 
-      const stop = data.stops.get(r.stop_id)
-      if (!stop) continue
+    // Publishing to hardware is best-effort. With no broker configured the
+    // bridge never initializes, and everything above still has to run.
+    const bridge = getBridge()
+    if (!bridge) return
 
-      const d = distM(veh.lat, veh.lng, stop.stop_lat, stop.stop_lon)
-      const atStop = d <= radiusM
-      const bridge = getBridge()
+    const d = distM(veh.lat, veh.lng, stop.stop_lat, stop.stop_lon)
+    const atStop = d <= radiusM
 
-      if (atStop && r.status === 'pending' && !bridge.isDeployInFlight(r.vehicle_id)) {
-        log.info(
-          `vehicle ${r.vehicle_id} at stop ${r.stop_id} (${d.toFixed(0)}m) — triggering deploy for #${r.id}`,
-        )
-        bridge.markDeployTriggered(r.vehicle_id, r.stop_id)
-        bridge.publishDeploy(r.vehicle_id)
-      }
+    if (atStop && r.status === 'pending' && !bridge.isDeployInFlight(r.vehicle_id)) {
+      log.info(
+        `vehicle ${r.vehicle_id} at stop ${r.stop_id} (${d.toFixed(0)}m) — triggering deploy for #${r.id}`,
+      )
+      bridge.markDeployTriggered(r.vehicle_id, r.stop_id)
+      bridge.publishDeploy(r.vehicle_id)
+    }
 
-      // If vehicle moved away from a previously-deployed stop, clear the flag
-      // so future reservations at other stops can trigger again.
-      if (!atStop && bridge.wasDeployTriggered(r.vehicle_id, r.stop_id) && d > radiusM * 2) {
-        bridge.clearDeployTrigger(r.vehicle_id)
-      }
+    // If vehicle moved away from a previously-deployed stop, clear the flag
+    // so future reservations at other stops can trigger again.
+    if (!atStop && bridge.wasDeployTriggered(r.vehicle_id, r.stop_id) && d > radiusM * 2) {
+      bridge.clearDeployTrigger(r.vehicle_id)
     }
   }
 
