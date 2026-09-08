@@ -147,9 +147,9 @@ describe('createRampDb', () => {
     const fresh = reserve(db, { vehicleId: 'bus-fresh' }) as RampReservation
 
     const raw = new Database(path)
-    raw.run('UPDATE ramp_reservations SET created_at = unixepoch() - 86401 WHERE id = $id', {
-      $id: stale.id,
-    })
+    raw.run('UPDATE ramp_reservations SET created_at = unixepoch() - 86401 WHERE id = ?', [
+      stale.id,
+    ])
     raw.close()
 
     expect(db.cleanupOldReservations()).toBe(1)
