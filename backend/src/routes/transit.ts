@@ -1,16 +1,13 @@
 import { Elysia, t } from 'elysia'
 import type { Route } from '../gtfs/types'
-import { getGtfs, jsonError } from '../services/state'
-
-const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
+import { gtfsReady } from '../plugins/gtfs-ready'
+import { jsonError } from '../services/state'
 
 export const transitRoutes = new Elysia()
+  .use(gtfsReady)
   .get(
     '/routes',
-    () => {
-      const data = getGtfs()
-      if (!data) return GTFS_NOT_READY()
-
+    ({ gtfs: data }) => {
       // Deduplicate routes with the same short name and type (e.g. "11Tm" / "11TM")
       const seen = new Map<string, Route>()
       for (const r of data.routes.values()) {
@@ -19,14 +16,12 @@ export const transitRoutes = new Elysia()
       }
       return [...seen.values()]
     },
-    { detail: { tags: ['Routes'], summary: 'All routes (deduplicated)' } },
+    { gtfsReady: true, detail: { tags: ['Routes'], summary: 'All routes (deduplicated)' } },
   )
 
   .get(
     '/routes/:id',
-    ({ params: { id } }) => {
-      const data = getGtfs()
-      if (!data) return GTFS_NOT_READY()
+    ({ params: { id }, gtfs: data }) => {
       try {
         const route = data.routes.get(id)
         if (!route) return jsonError('Route not found', 404)
@@ -40,14 +35,12 @@ export const transitRoutes = new Elysia()
         return jsonError(`Failed to retrieve route: ${e}`, 500)
       }
     },
-    { detail: { tags: ['Routes'], summary: 'Route by ID with trips and stops' } },
+    { gtfsReady: true, detail: { tags: ['Routes'], summary: 'Route by ID with trips and stops' } },
   )
 
   .get(
     '/routes/shapes',
-    ({ query }) => {
-      const data = getGtfs()
-      if (!data) return GTFS_NOT_READY()
+    ({ query, gtfs: data }) => {
       try {
         const ids = (query.ids ?? '').split(',').filter(Boolean)
         if (ids.length === 0) return jsonError('Missing ids query parameter', 400)
@@ -67,6 +60,7 @@ export const transitRoutes = new Elysia()
       }
     },
     {
+      gtfsReady: true,
       query: t.Object({ ids: t.Optional(t.String()) }),
       detail: { tags: ['Routes'], summary: 'Batch route shapes by IDs' },
     },

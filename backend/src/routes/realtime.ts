@@ -7,12 +7,11 @@ import {
   getFeedHealth,
   gtfsRealtimeBroadcaster,
 } from '../gtfs/realtime'
+import { gtfsReady } from '../plugins/gtfs-ready'
 import { getReservationsByVehicle } from '../services/ramp/status'
 import { makeSseStream } from '../services/sse'
 import { getGtfs, jsonError } from '../services/state'
 import { getTripEtas, getVehicleTripDetails } from '../services/transit/trip-details'
-
-const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
 
 const EnrichedVehicleSchema = t.Object({
   id: t.String(),
@@ -78,6 +77,7 @@ async function buildEnrichedVehicles(filters: {
 }
 
 export const realtimeRoutes = new Elysia()
+  .use(gtfsReady)
   .get(
     '/realtime/trip-updates',
     async () => {
@@ -97,7 +97,6 @@ export const realtimeRoutes = new Elysia()
     // a per-status `response` schema, and Elysia can only type-check a
     // status-tagged return against it, not a raw Response.
     async ({ query, status }) => {
-      if (!getGtfs()) return status(503, { error: 'GTFS data not yet loaded' })
       try {
         const vehicles = await buildEnrichedVehicles(query)
         if (!vehicles) return status(503, { error: 'GTFS data not yet loaded' })
@@ -107,6 +106,7 @@ export const realtimeRoutes = new Elysia()
       }
     },
     {
+      gtfsReady: true,
       query: t.Object({
         route_id: t.Optional(t.String()),
         route_type: t.Optional(t.String()),
@@ -144,9 +144,7 @@ export const realtimeRoutes = new Elysia()
 
   .get(
     '/realtime/vehicles/:id/trip',
-    async ({ params: { id } }) => {
-      const data = getGtfs()
-      if (!data) return GTFS_NOT_READY()
+    async ({ params: { id }, gtfs: data }) => {
       try {
         const result = await getVehicleTripDetails(data, id)
         if (!result) return jsonError('Vehicle or trip not found', 404)
@@ -155,7 +153,7 @@ export const realtimeRoutes = new Elysia()
         return jsonError(`Trip info unavailable: ${e}`, 502)
       }
     },
-    { detail: { tags: ['Realtime'], summary: 'Trip stops for a vehicle' } },
+    { gtfsReady: true, detail: { tags: ['Realtime'], summary: 'Trip stops for a vehicle' } },
   )
 
   .get(

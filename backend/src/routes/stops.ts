@@ -3,11 +3,10 @@ import { getFeedHealth, gtfsRealtimeBroadcaster } from '../gtfs/realtime'
 import { activeServiceIds } from '../gtfs/services'
 import { todayDateStr } from '../gtfs/time'
 import type { GtfsData, Stop } from '../gtfs/types'
+import { gtfsReady } from '../plugins/gtfs-ready'
 import { makeSseStream } from '../services/sse'
 import { getGtfs, jsonError } from '../services/state'
 import { getUpcomingArrivals } from '../services/transit/arrivals'
-
-const GTFS_NOT_READY = () => jsonError('GTFS data not yet loaded', 503)
 
 let stopsCache: { dateStr: string; data: GtfsData; result: Stop[] } | null = null
 
@@ -36,35 +35,25 @@ function getActiveStops(data: GtfsData): Stop[] {
 }
 
 export const stopsRoutes = new Elysia()
-  .get(
-    '/stops',
-    () => {
-      const data = getGtfs()
-      if (!data) return GTFS_NOT_READY()
-      return getActiveStops(data)
-    },
-    { detail: { tags: ['Stops'], summary: 'All stops (active today)' } },
-  )
+  .use(gtfsReady)
+  .get('/stops', ({ gtfs: data }) => getActiveStops(data), {
+    gtfsReady: true,
+    detail: { tags: ['Stops'], summary: 'All stops (active today)' },
+  })
 
   .get(
     '/stops/:id',
-    ({ params: { id } }) => {
-      const data = getGtfs()
-      if (!data) return GTFS_NOT_READY()
-
+    ({ params: { id }, gtfs: data }) => {
       const stop = data.stops.get(id)
       if (!stop) return jsonError('Stop not found', 404)
       return stop
     },
-    { detail: { tags: ['Stops'], summary: 'Stop by ID' } },
+    { gtfsReady: true, detail: { tags: ['Stops'], summary: 'Stop by ID' } },
   )
 
   .get(
     '/stops/:id/vehicles',
-    async ({ params: { id }, query }) => {
-      const data = getGtfs()
-      if (!data) return GTFS_NOT_READY()
-
+    async ({ params: { id }, query, gtfs: data }) => {
       const stop = data.stops.get(id)
       if (!stop) return jsonError('Stop not found', 404)
 
@@ -78,6 +67,7 @@ export const stopsRoutes = new Elysia()
       }
     },
     {
+      gtfsReady: true,
       query: t.Object({ limit: t.Optional(t.String()) }),
       detail: { tags: ['Stops'], summary: 'Upcoming arrivals at a stop' },
     },
