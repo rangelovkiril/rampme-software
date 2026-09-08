@@ -2,7 +2,7 @@ import { consola } from 'consola'
 import { Elysia, t } from 'elysia'
 import { getRampDb } from '../db/ramp'
 import { NotFoundError } from '../plugins/errors'
-import { models, toReservationResponse } from '../schemas'
+import { models, ReservationsStreamSchema, toReservationResponse } from '../schemas'
 import { getRampBridge, isRampBridgeAvailable } from '../services/ramp/bridge'
 import { rampBroadcaster } from '../services/ramp/broadcaster'
 import { makeSseStream } from '../services/sse'
@@ -90,9 +90,13 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
   .get(
     '/session/stream',
     ({ query }) =>
-      makeSseStream(rampBroadcaster, async () => ({
-        data: getRampDb().getSessionReservations(query.sessionId).map(toReservationResponse),
-      })),
+      makeSseStream(
+        rampBroadcaster,
+        async () => ({
+          data: getRampDb().getSessionReservations(query.sessionId).map(toReservationResponse),
+        }),
+        ReservationsStreamSchema,
+      ),
     {
       // EventSource can't set custom headers, so the session id travels as a
       // query param here instead of X-Session-Id.

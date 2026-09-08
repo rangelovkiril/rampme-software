@@ -1,15 +1,13 @@
 'use client'
 
+import type { RouteShapesResponse } from '@backend/schemas'
 import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 import { api } from '@/lib/api'
 import { getRouteColor } from '@/lib/transit'
 
-interface RouteShape {
-  routeType: number
-  polylines: [number, number][][]
-}
+type RouteShape = RouteShapesResponse[string]
 
 interface RouteLinesLayerProps {
   routeId: string | null

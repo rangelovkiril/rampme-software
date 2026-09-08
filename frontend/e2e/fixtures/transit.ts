@@ -1,4 +1,5 @@
 import type {
+  ReservationResponse,
   StopResponse as Stop,
   ArrivalResult as StopArrival,
   TripDetailResult as TripData,
@@ -95,15 +96,9 @@ export function createTrip(overrides: Partial<TripData> = {}): TripData {
   }
 }
 
-interface Reservation {
-  id: number
-  vehicleId: string
-  stopId: string
-  type: 'board' | 'alight'
-  status: 'pending'
-  createdAt: number
-  resolvedAt: null
-}
+// The reservation shape comes from the backend's model; the mock only ever
+// produces pending, unresolved rows.
+type Reservation = ReservationResponse & { status: 'pending'; resolvedAt: null }
 
 export interface ApiMockState {
   reservations: Reservation[]

@@ -11,8 +11,10 @@ src/
                               defaults, bounds, and coercion live with the variable
   config/swagger.ts           OpenAPI/Swagger plugin setup
 
-  schemas/index.ts            Every request/response shape as a TypeBox model, registered with .model();
-                              the TS types are derived from these, and the GTFS/SQLite -> wire mapping lives here
+  schemas/shapes.ts           Every request/response/stream shape as plain TypeBox; the TS types are
+                              derived from these. No Elysia or db import, so it stays framework-free
+  schemas/index.ts            Registers those shapes as Elysia models and holds the GTFS/SQLite -> wire
+                              mapping functions; re-exports shapes.ts
 
   plugins/
     gtfs-ready.ts             Macro resolving loaded GtfsData into a handler, or short-circuiting with 503
@@ -39,8 +41,10 @@ src/
       status.ts               Ramp status derivation for enrichment (getReservationsByVehicle, getVehicleRampStatusFrom)
 
   gtfs/                       GTFS data layer
-    types.ts                  All GTFS + GTFS-RT data interfaces (Stop, Route, Trip, GtfsData, GtfsRt*).
-                              These keep GTFS's own snake_case; the wire shapes live in schemas/
+    types.ts                  All GTFS + GTFS-RT shapes as TypeBox, with the types derived from them
+                              (Stop, Route, Trip, GtfsRt*). These keep GTFS's own snake_case; the wire
+                              shapes live in schemas/. GtfsData itself is an in-memory index, not a wire
+                              shape, so it stays a plain interface
     static.ts                 Fetches & parses the GTFS ZIP into in-memory Maps + precomputed indexes
     realtime.ts               Fetches/decodes GTFS-RT protobuf feeds; tracks per-feed staleness; publishes ticks on its own Broadcaster
     feed-health.ts            FeedTracker - tracks time since a feed's last successful fetch, reports staleness against a threshold
@@ -76,7 +80,8 @@ test/                          bun:test suite, mirrors src/ (test/gtfs/, test/se
 - **SSE** (`services/sse.ts`) is a generic transport: `makeSseStream(broadcaster, getData)` sends a `retry: 3000` hint and the current data on connect, re-sends on every `Broadcaster` publish, and heartbeats (`: hb`) every 20s during quiet periods so Cloudflare's edge and the tunnel do not reap idle streams (100s idle cutoff). It knows nothing about GTFS or ramp - each domain owns and publishes to its own `Broadcaster<T>` (`gtfsRealtimeBroadcaster` in `gtfs/realtime.ts`, `rampBroadcaster` in `services/ramp/broadcaster.ts`), so one domain's signal never has to be faked to push another's stream (e.g. `/ramp/session/stream`). GTFS-derived streams also get a distinct `health` SSE event on staleness transitions (healthy<->degraded), separate from the regular data event.
 - **Vehicle accessibility** has two datasets with very different volatility, deliberately kept separate, and neither is imported by any `.ts` module anymore — both live in `data/` as plain checked-in files, not code. `data/model-accessibility.json` is hand-curated (model -> low_floor), reviewed like any other source change, and barely ever changes; it's fetched over HTTP (`raw.githubusercontent.com`) by a small dependency-free Node script published as a GitHub gist, run weekly by the `fleet` repo's own `accessibility-refresh` workflow, which joins it against a live trinmo.org crawl and commits the result there as a `ConfigMap` — no code in this repo runs that crawl, since it's simple enough (fetch, filter, join, write) that it doesn't need this codebase's TypeScript/TypeBox/test machinery, and living outside both repos means it can be edited without a PR in either. Flux applies fleet's commit like any other change, no in-cluster CronJob or RBAC. `gtfs/accessibility.ts`'s loader just reads `RAMP_ACCESSIBILITY_DATA_PATH` and reloads on an interval — it has no idea the file's origin is a Git-committed ConfigMap rather than a local edit. `data/vehicle-accessibility.seed.json` (baked into the Docker image, see `Dockerfile`) is only a fallback default for the image outside this specific fleet topology.
 - **Accessibility coverage gaps stay `unknown` on purpose — close them by improving trinmo's public data, not by adding a private one.** A never-photographed vehicle has no entry in the reference dataset and reports `unknown`, which is correct, not a bug to work around. RampMe does not run its own crowdsourced vehicle-sighting pipeline to fill gaps faster (an explicit non-goal, revisit only if trinmo access degrades): that would duplicate an established community's work and add reporting/moderation infrastructure this repo doesn't need. To close a specific gap sooner, contribute the photo/tag to trinmo.org directly — the weekly crawl picks up any public improvement there automatically, no code change here.
-- **MQTT payload validation** uses TypeBox (`@sinclair/typebox` + `Value.Check`) at the point untrusted hardware input enters the system (`HardwareStateSchema` in `bridge.ts`). This is the pattern for any new untrusted-input parsing. Internally decoded, structurally guaranteed data (GTFS-RT) uses plain TS interfaces instead; do not add TypeBox validation to hot per-tick paths.
+- **Every boundary the system does not control is a schema plus a runtime check**, and the TypeScript type is derived from that schema rather than written beside it. There are four: hardware MQTT payloads (`HardwareStateSchema` in `bridge.ts`), the environment (`EnvSchema` in `config/index.ts`), the GTFS static ZIP (`StopSchema` and friends in `gtfs/types.ts`, checked row by row in `static.ts`'s `parseRows`), and the accessibility dataset written by the `fleet` repo (`VehicleAccessibilityTableSchema`). A GTFS row that fails its schema is dropped and counted rather than thrown on, since one malformed row in a third-party feed must not cost the whole feed. Decoded GTFS-RT is the one exception: protobuf already guarantees its shape, and it is a hot per-tick path, so its schemas exist only to derive the types and to describe `/realtime/trip-updates`, and nothing checks them per tick.
+- **SSE payloads are validated on send** (`makeSseStream`'s `schema` argument). Elysia validates `response` schemas on HTTP routes but not on a stream, so without this the four streams could drift from the shapes their consumers derive types from. A payload that fails is logged and dropped rather than sent.
 - **Logging** goes through `consola`, tagged per subsystem via `consola.withTag('mqtt' | 'ramp-mqtt' | 'proximity')`. No bare `console.*` calls.
 
 ## Rules

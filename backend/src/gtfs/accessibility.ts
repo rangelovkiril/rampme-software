@@ -1,5 +1,10 @@
+import { Value } from '@sinclair/typebox/value'
 import { consola } from 'consola'
-import type { VehicleAccessibilityTable, VehicleAccessibilityType } from './types'
+import {
+  type VehicleAccessibilityTable,
+  VehicleAccessibilityTableSchema,
+  type VehicleAccessibilityType,
+} from './types'
 
 const log = consola.withTag('accessibility')
 
@@ -23,12 +28,14 @@ async function loadTable(path: string): Promise<VehicleAccessibilityTable> {
     log.warn(`No accessibility dataset at ${path} yet — every vehicle resolves as unknown`)
     return EMPTY_TABLE
   }
-  try {
-    return (await file.json()) as VehicleAccessibilityTable
-  } catch (e) {
-    log.error(`Failed to parse accessibility dataset at ${path}, keeping last good table:`, e)
-    throw e
+  const raw = await file.json()
+  if (!Value.Check(VehicleAccessibilityTableSchema, raw)) {
+    const [first] = [...Value.Errors(VehicleAccessibilityTableSchema, raw)]
+    throw new Error(
+      `Malformed accessibility dataset at ${path}: ${first?.path || '/'} ${first?.message}`,
+    )
   }
+  return raw
 }
 
 export interface AccessibilityResolver {
@@ -52,9 +59,10 @@ export function createAccessibilityResolver(
   const reload = async () => {
     try {
       table = await loadTable(dataPath)
-    } catch {
-      // loadTable already logged; keep serving the last good table rather
-      // than blanking accessibility out over a transient read/parse error.
+    } catch (e) {
+      // Keep serving the last good table rather than blanking accessibility
+      // out over a transient read error or a bad write from the refresh job.
+      log.error('Failed to load accessibility dataset, keeping last good table:', e)
     }
   }
 

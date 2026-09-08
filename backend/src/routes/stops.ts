@@ -5,7 +5,7 @@ import { todayDateStr } from '../gtfs/time'
 import type { GtfsData, Stop } from '../gtfs/types'
 import { NotFoundError, upstream } from '../plugins/errors'
 import { gtfsReady } from '../plugins/gtfs-ready'
-import { models, toStopResponse } from '../schemas'
+import { ArrivalsStreamSchema, models, toStopResponse } from '../schemas'
 import { makeSseStream } from '../services/sse'
 import { getGtfs } from '../services/state'
 import { getUpcomingArrivals } from '../services/transit/arrivals'
@@ -90,18 +90,22 @@ export const stopsRoutes = new Elysia()
     '/stops/:id/vehicles/stream',
     ({ params: { id }, query }) => {
       const limit = clampLimit(query.limit)
-      return makeSseStream(gtfsRealtimeBroadcaster, async () => {
-        const data = getGtfs()
-        if (!data) return null
-        const stop = data.stops.get(id)
-        if (!stop) return null
-        const arrivals = await getUpcomingArrivals(data, id, limit)
-        const health = getFeedHealth()
-        return {
-          data: arrivals,
-          healthy: !health.tripUpdates.stale && !health.vehiclePositions.stale,
-        }
-      })
+      return makeSseStream(
+        gtfsRealtimeBroadcaster,
+        async () => {
+          const data = getGtfs()
+          if (!data) return null
+          const stop = data.stops.get(id)
+          if (!stop) return null
+          const arrivals = await getUpcomingArrivals(data, id, limit)
+          const health = getFeedHealth()
+          return {
+            data: arrivals,
+            healthy: !health.tripUpdates.stale && !health.vehiclePositions.stale,
+          }
+        },
+        ArrivalsStreamSchema,
+      )
     },
     {
       query: t.Object({ limit: t.Optional(t.String()) }),

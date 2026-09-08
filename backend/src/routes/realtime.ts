@@ -10,7 +10,12 @@ import {
 import { NotFoundError, upstream } from '../plugins/errors'
 import { gtfsReady } from '../plugins/gtfs-ready'
 import type { EnrichedVehicle } from '../schemas'
-import { models, type VehicleFilterQuery } from '../schemas'
+import {
+  models,
+  TripEtasStreamSchema,
+  type VehicleFilterQuery,
+  VehiclesStreamSchema,
+} from '../schemas'
 import { getReservationsByVehicle } from '../services/ramp/status'
 import { makeSseStream } from '../services/sse'
 import { getGtfs } from '../services/state'
@@ -81,11 +86,15 @@ export const realtimeRoutes = new Elysia()
   .get(
     '/realtime/vehicles/stream',
     ({ query }) =>
-      makeSseStream(gtfsRealtimeBroadcaster, async () => {
-        const vehicles = await buildEnrichedVehicles(query)
-        if (!vehicles) return null
-        return { data: vehicles, healthy: !getFeedHealth().vehiclePositions.stale }
-      }),
+      makeSseStream(
+        gtfsRealtimeBroadcaster,
+        async () => {
+          const vehicles = await buildEnrichedVehicles(query)
+          if (!vehicles) return null
+          return { data: vehicles, healthy: !getFeedHealth().vehiclePositions.stale }
+        },
+        VehiclesStreamSchema,
+      ),
     {
       query: 'VehicleFilterQuery',
       detail: { tags: ['Realtime'], summary: 'SSE stream of vehicle positions' },
@@ -109,13 +118,20 @@ export const realtimeRoutes = new Elysia()
   .get(
     '/realtime/vehicles/:id/trip/etas',
     ({ params: { id } }) =>
-      makeSseStream(gtfsRealtimeBroadcaster, async () => {
-        const data = getGtfs()
-        if (!data) return null
-        const etas = await getTripEtas(data, id)
-        if (!etas) return null
-        const health = getFeedHealth()
-        return { data: etas, healthy: !health.tripUpdates.stale && !health.vehiclePositions.stale }
-      }),
+      makeSseStream(
+        gtfsRealtimeBroadcaster,
+        async () => {
+          const data = getGtfs()
+          if (!data) return null
+          const etas = await getTripEtas(data, id)
+          if (!etas) return null
+          const health = getFeedHealth()
+          return {
+            data: etas,
+            healthy: !health.tripUpdates.stale && !health.vehiclePositions.stale,
+          }
+        },
+        TripEtasStreamSchema,
+      ),
     { detail: { tags: ['Realtime'], summary: 'SSE stream of ETA updates for a vehicle trip' } },
   )

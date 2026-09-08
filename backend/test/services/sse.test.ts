@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'bun:test'
+import { Type } from '@sinclair/typebox'
 import { Broadcaster } from '../../src/services/broadcaster'
 import { makeSseStream } from '../../src/services/sse'
+
+/** These tests exercise the transport, not any particular payload shape. */
+const AnyPayload = Type.Any()
 
 // Elysia's sse() attaches a runtime .toSSE() method to format the wire line,
 // but its TS type doesn't expose it — this reads the actual bytes that would
@@ -12,7 +16,7 @@ function wire(value: unknown): string {
 describe('makeSseStream', () => {
   it('sends the retry hint then the current data on connect', async () => {
     const broadcaster = new Broadcaster<unknown>()
-    const gen = makeSseStream(broadcaster, async () => ({ data: { hello: 'world' } }))
+    const gen = makeSseStream(broadcaster, async () => ({ data: { hello: 'world' } }), AnyPayload)
 
     const first = await gen.next()
     expect(wire(first.value)).toBe('retry: 3000\n\n')
@@ -25,7 +29,7 @@ describe('makeSseStream', () => {
 
   it('skips sending anything when getData resolves null, but stays connected', async () => {
     const broadcaster = new Broadcaster<unknown>()
-    const gen = makeSseStream(broadcaster, async () => null, 20)
+    const gen = makeSseStream(broadcaster, async () => null, AnyPayload, 20)
 
     await gen.next() // retry hint
     const afterInitial = await gen.next() // heartbeat fires since no data was queued
@@ -36,7 +40,7 @@ describe('makeSseStream', () => {
 
   it('emits a heartbeat when no publish happens within the interval', async () => {
     const broadcaster = new Broadcaster<unknown>()
-    const gen = makeSseStream(broadcaster, async () => ({ data: { n: 1 } }), 20)
+    const gen = makeSseStream(broadcaster, async () => ({ data: { n: 1 } }), AnyPayload, 20)
 
     await gen.next() // retry
     await gen.next() // initial data
@@ -49,7 +53,12 @@ describe('makeSseStream', () => {
   it('pushes updated data on every broadcaster publish', async () => {
     const broadcaster = new Broadcaster<unknown>()
     let counter = 0
-    const gen = makeSseStream(broadcaster, async () => ({ data: { n: ++counter } }), 10_000)
+    const gen = makeSseStream(
+      broadcaster,
+      async () => ({ data: { n: ++counter } }),
+      AnyPayload,
+      10_000,
+    )
 
     await gen.next() // retry
     const initial = await gen.next()
@@ -65,7 +74,12 @@ describe('makeSseStream', () => {
 
   it('never emits a health event on the initial connect, even if already degraded', async () => {
     const broadcaster = new Broadcaster<unknown>()
-    const gen = makeSseStream(broadcaster, async () => ({ data: { n: 1 }, healthy: false }), 10_000)
+    const gen = makeSseStream(
+      broadcaster,
+      async () => ({ data: { n: 1 }, healthy: false }),
+      AnyPayload,
+      10_000,
+    )
 
     await gen.next() // retry
     const initial = await gen.next()
@@ -77,7 +91,12 @@ describe('makeSseStream', () => {
   it('emits a health event only when the degraded state changes, not on every publish', async () => {
     const broadcaster = new Broadcaster<unknown>()
     let healthy = true
-    const gen = makeSseStream(broadcaster, async () => ({ data: { n: 1 }, healthy }), 10_000)
+    const gen = makeSseStream(
+      broadcaster,
+      async () => ({ data: { n: 1 }, healthy }),
+      AnyPayload,
+      10_000,
+    )
 
     await gen.next() // retry
     await gen.next() // initial data, primes health silently
@@ -103,7 +122,7 @@ describe('makeSseStream', () => {
 
   it('releases the broadcaster subscription on disconnect (generator return)', async () => {
     const broadcaster = new Broadcaster<unknown>()
-    const gen = makeSseStream(broadcaster, async () => ({ data: { n: 1 } }), 10_000)
+    const gen = makeSseStream(broadcaster, async () => ({ data: { n: 1 } }), AnyPayload, 10_000)
 
     await gen.next() // retry
     await gen.next() // initial data
@@ -119,7 +138,7 @@ describe('makeSseStream', () => {
 
   it('does not leave a dangling heartbeat timer running after disconnect', async () => {
     const broadcaster = new Broadcaster<unknown>()
-    const gen = makeSseStream(broadcaster, async () => ({ data: { n: 1 } }), 15)
+    const gen = makeSseStream(broadcaster, async () => ({ data: { n: 1 } }), AnyPayload, 15)
 
     await gen.next() // retry
     await gen.next() // initial data
@@ -131,5 +150,42 @@ describe('makeSseStream', () => {
     await new Promise((resolve) => setTimeout(resolve, 40))
     const after = await gen.next()
     expect(after.done).toBe(true)
+  })
+  it('drops a payload that does not match its schema, and stays connected', async () => {
+    // Elysia validates `response` schemas on HTTP routes but not on a stream,
+    // so this is the only thing stopping a stream drifting from the shape its
+    // consumers derive their types from.
+    const broadcaster = new Broadcaster<unknown>()
+    const gen = makeSseStream(
+      broadcaster,
+      // Cast past the compile-time check on purpose: the schema constrains
+      // getData's return type, so this can only happen when types and reality
+      // diverge, which is exactly what the runtime check is for.
+      async () => ({ data: { n: 'not a number' } }) as unknown as { data: { n: number } },
+      Type.Object({ n: Type.Number() }),
+      20,
+    )
+
+    await gen.next() // retry hint
+    const next = await gen.next() // heartbeat, because the payload was dropped
+    expect(wire(next.value)).toBe(': hb\n\n')
+
+    await gen.return(undefined)
+  })
+
+  it('sends a payload that matches its schema', async () => {
+    const broadcaster = new Broadcaster<unknown>()
+    const gen = makeSseStream(
+      broadcaster,
+      async () => ({ data: { n: 1 } }),
+      Type.Object({ n: Type.Number() }),
+      20,
+    )
+
+    await gen.next() // retry hint
+    const next = await gen.next()
+    expect(wire(next.value)).toBe('data: {"n":1}\n\n')
+
+    await gen.return(undefined)
   })
 })
