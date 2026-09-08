@@ -148,6 +148,13 @@ export const ReserveBodySchema = t.Object({
 
 export const CancelledSchema = t.Object({ ok: t.Boolean() })
 
+/** Filters accepted by both /realtime/vehicles and its SSE stream. */
+export const VehicleFilterQuerySchema = t.Object({
+  route_id: t.Optional(t.String()),
+  route_type: t.Optional(t.String()),
+  has_ramp: t.Optional(t.String()),
+})
+
 /** Decoded GTFS-RT, passed through verbatim by /realtime/trip-updates. */
 const RtTripDescriptorSchema = t.Object({
   tripId: t.Optional(t.String()),
@@ -225,6 +232,7 @@ export type TripDetailResult = typeof TripDetailSchema.static
 export type TripEtaUpdate = typeof TripEtaSchema.static
 export type ReservationResponse = typeof ReservationSchema.static
 export type ReserveBody = typeof ReserveBodySchema.static
+export type VehicleFilterQuery = typeof VehicleFilterQuerySchema.static
 
 /**
  * Registers every shape above by name, so routes reference `'Vehicles'`
@@ -246,4 +254,5 @@ export const models = new Elysia({ name: 'api-models' }).model({
   Reservations: t.Array(ReservationSchema),
   ReserveBody: ReserveBodySchema,
   Cancelled: CancelledSchema,
+  VehicleFilterQuery: VehicleFilterQuerySchema,
 })

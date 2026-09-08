@@ -4,7 +4,6 @@ export interface Stop {
   stop_name: string
   stop_lat: number
   stop_lon: number
-  wheelchair_boarding: 0 | 1 | 2 // 0=no info, 1=accessible, 2=not accessible
 }
 
 export interface Route {
@@ -19,7 +18,6 @@ export interface Trip {
   route_id: string
   service_id: string
   trip_headsign: string
-  direction_id: number
   shape_id: string
   wheelchair_accessible: 0 | 1 | 2
 }
@@ -34,7 +32,6 @@ export interface ShapePoint {
 export interface StopTime {
   trip_id: string
   arrival_time: string
-  departure_time: string
   stop_id: string
   stop_sequence: number
 }
@@ -114,12 +111,10 @@ export interface GtfsData {
   routes: Map<string, Route>
   trips: Map<string, Trip>
   tripsByRoute: Map<string, Trip[]> // route_id → trips
-  stopTimes: StopTime[]
   stopTimesByStop: Map<string, StopTime[]> // stop_id → stop_times (indexed)
   stopTimesByTrip: Map<string, StopTime[]> // trip_id → stop_times sorted by sequence
   stopIdsByRoute: Map<string, Set<string>> // route_id → stop_ids served
   calendarDates: CalendarDate[]
-  shapes: Map<string, [number, number][]> // shape_id → sorted [[lat, lng], ...]
   shapesByRoute: Map<string, [number, number][][]> // route_id → array of polylines
 }
 

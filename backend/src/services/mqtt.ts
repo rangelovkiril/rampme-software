@@ -86,10 +86,6 @@ export class MQTTHub {
       retain: opts?.retain ?? false,
     })
   }
-
-  async disconnect(): Promise<void> {
-    await this.client.endAsync()
-  }
 }
 
 let hub: MQTTHub | null = null

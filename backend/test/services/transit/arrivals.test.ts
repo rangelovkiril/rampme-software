@@ -45,14 +45,13 @@ function trip(trip_id: string, service_id: string): Trip {
     route_id: 'r1',
     service_id,
     trip_headsign: '',
-    direction_id: 0,
     shape_id: '',
     wheelchair_accessible: 0,
   }
 }
 
 function stopTime(trip_id: string, stop_id: string, arrival_time: string): StopTime {
-  return { trip_id, arrival_time, departure_time: arrival_time, stop_id, stop_sequence: 1 }
+  return { trip_id, arrival_time, stop_id, stop_sequence: 1 }
 }
 
 function gtfsData(opts: {
@@ -66,12 +65,10 @@ function gtfsData(opts: {
     routes: new Map(),
     trips: new Map((opts.trips ?? []).map((t) => [t.trip_id, t])),
     tripsByRoute: new Map(),
-    stopTimes: [],
     stopTimesByStop: opts.stopTimesByStop ?? new Map(),
     stopTimesByTrip: new Map(),
     stopIdsByRoute: new Map(),
     calendarDates: opts.calendarDates ?? [],
-    shapes: new Map(),
     shapesByRoute: new Map(),
   }
 }

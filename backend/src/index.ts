@@ -59,6 +59,12 @@ consola.ready(`GTFS server running at http://localhost:${app.server?.port}`)
 await initGtfs()
 setInterval(initGtfs, config.gtfs.refreshInterval)
 
+// Only invoked at construction before this, so the table grew until a restart.
+setInterval(() => {
+  const removed = getRampDb().cleanupOldReservations()
+  if (removed > 0) consola.info(`swept ${removed} reservation(s) older than 24h`)
+}, config.rampCleanupIntervalMs)
+
 if (!config.mqtt.url) {
   consola.warn('MQTT_URL not set — skipping MQTT')
 } else {

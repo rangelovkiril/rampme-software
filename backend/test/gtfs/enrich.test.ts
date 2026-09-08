@@ -9,12 +9,10 @@ function emptyGtfsData(overrides: Partial<GtfsData> = {}): GtfsData {
     routes: new Map(),
     trips: new Map(),
     tripsByRoute: new Map(),
-    stopTimes: [],
     stopTimesByStop: new Map(),
     stopTimesByTrip: new Map(),
     stopIdsByRoute: new Map(),
     calendarDates: [],
-    shapes: new Map(),
     shapesByRoute: new Map(),
     ...overrides,
   }
@@ -36,7 +34,6 @@ const trip: Trip = {
   route_id: 'route-1',
   service_id: 'svc',
   trip_headsign: 'Center',
-  direction_id: 0,
   shape_id: 'shape-1',
   wheelchair_accessible: 0,
 }

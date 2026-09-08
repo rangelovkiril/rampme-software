@@ -1,4 +1,7 @@
+import { Database } from 'bun:sqlite'
 import { describe, expect, test } from 'bun:test'
+import { rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { createRampDb, type RampReservation } from '../../src/db/ramp'
 
 function reserve(
@@ -134,5 +137,29 @@ describe('createRampDb', () => {
     const active = db.getAllActiveReservations()
     expect(active).toHaveLength(1)
     expect(active[0]?.vehicle_id).toBe('bus2')
+  })
+  test('cleanupOldReservations sweeps rows older than 24h without a restart', () => {
+    // A file-backed database, so a second connection can backdate a row without
+    // widening RampDb's interface just for the test.
+    const path = `${tmpdir()}/rampme-cleanup-${Date.now()}-${Math.random().toString(36).slice(2)}.db`
+    const db = createRampDb(path)
+    const stale = reserve(db, { vehicleId: 'bus-stale' }) as RampReservation
+    const fresh = reserve(db, { vehicleId: 'bus-fresh' }) as RampReservation
+
+    const raw = new Database(path)
+    raw.run('UPDATE ramp_reservations SET created_at = unixepoch() - 86401 WHERE id = $id', {
+      $id: stale.id,
+    })
+    raw.close()
+
+    expect(db.cleanupOldReservations()).toBe(1)
+
+    const remaining = db.getSessionReservations('sess-1').map((r) => r.id)
+    expect(remaining).not.toContain(stale.id)
+    expect(remaining).toContain(fresh.id)
+
+    rmSync(path, { force: true })
+    rmSync(`${path}-wal`, { force: true })
+    rmSync(`${path}-shm`, { force: true })
   })
 })

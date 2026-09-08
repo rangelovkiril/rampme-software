@@ -11,7 +11,7 @@ describe('parseGtfsZip', () => {
     expect(gtfs.stops.size).toBe(2)
     expect(gtfs.routes.size).toBe(2)
     expect(gtfs.trips.size).toBe(2)
-    expect(gtfs.stopTimes).toHaveLength(3)
+    expect([...gtfs.stopTimesByTrip.values()].flat()).toHaveLength(3)
     expect(gtfs.calendarDates).toHaveLength(1)
   })
 

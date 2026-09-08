@@ -16,7 +16,6 @@ function gtfsData(stops: Array<{ id: string; lat: number; lon: number }>): GtfsD
           stop_name: s.id,
           stop_lat: s.lat,
           stop_lon: s.lon,
-          wheelchair_boarding: 0,
         },
       ]),
     ),
@@ -24,12 +23,10 @@ function gtfsData(stops: Array<{ id: string; lat: number; lon: number }>): GtfsD
     routes: new Map(),
     trips: new Map(),
     tripsByRoute: new Map(),
-    stopTimes: [],
     stopTimesByStop: new Map(),
     stopTimesByTrip: new Map(),
     stopIdsByRoute: new Map(),
     calendarDates: [],
-    shapes: new Map(),
     shapesByRoute: new Map(),
   }
 }

@@ -9,7 +9,7 @@ import {
 } from '../gtfs/realtime'
 import { gtfsReady } from '../plugins/gtfs-ready'
 import type { EnrichedVehicle } from '../schemas'
-import { models } from '../schemas'
+import { models, type VehicleFilterQuery } from '../schemas'
 import { getReservationsByVehicle } from '../services/ramp/status'
 import { makeSseStream } from '../services/sse'
 import { getGtfs } from '../services/state'
@@ -42,11 +42,7 @@ async function getUnfilteredVehicles(): Promise<EnrichedVehicle[] | null> {
   return vehicles
 }
 
-async function buildEnrichedVehicles(filters: {
-  route_id?: string
-  route_type?: string
-  has_ramp?: string
-}) {
+async function buildEnrichedVehicles(filters: VehicleFilterQuery) {
   const vehicles = await getUnfilteredVehicles()
   if (!vehicles) return null
   let filtered = vehicles
@@ -89,11 +85,7 @@ export const realtimeRoutes = new Elysia()
     },
     {
       gtfsReady: true,
-      query: t.Object({
-        route_id: t.Optional(t.String()),
-        route_type: t.Optional(t.String()),
-        has_ramp: t.Optional(t.String()),
-      }),
+      query: 'VehicleFilterQuery',
       response: { 200: 'Vehicles', 502: 'Error', 503: 'Error' },
       detail: { tags: ['Realtime'], summary: 'Vehicle positions with enrichment and filters' },
     },
@@ -108,11 +100,7 @@ export const realtimeRoutes = new Elysia()
         return { data: vehicles, healthy: !getFeedHealth().vehiclePositions.stale }
       }),
     {
-      query: t.Object({
-        route_id: t.Optional(t.String()),
-        route_type: t.Optional(t.String()),
-        has_ramp: t.Optional(t.String()),
-      }),
+      query: 'VehicleFilterQuery',
       detail: { tags: ['Realtime'], summary: 'SSE stream of vehicle positions' },
     },
   )

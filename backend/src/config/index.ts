@@ -38,6 +38,13 @@ export const config = {
 
   rampDbPath: process.env.RAMP_DB_PATH ?? './data/ramp.db',
 
+  /** How often resolved reservations older than 24h are swept from the table. */
+  rampCleanupIntervalMs: positiveInt(
+    'RAMP_CLEANUP_INTERVAL_MS',
+    process.env.RAMP_CLEANUP_INTERVAL_MS,
+    60 * 60 * 1000,
+  ),
+
   rampAccessibility: {
     dataPath: process.env.RAMP_ACCESSIBILITY_DATA_PATH ?? './data/vehicle-accessibility.json',
     refreshMs: positiveInt(
