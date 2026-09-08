@@ -1,4 +1,6 @@
 import { Elysia, t } from 'elysia'
+import type { RampReservation } from '../db/ramp'
+import type { Route, Stop } from '../gtfs/types'
 
 /**
  * Every request and response shape the API speaks, declared once. The
@@ -16,18 +18,18 @@ import { Elysia, t } from 'elysia'
 export const ErrorSchema = t.Object({ error: t.String() })
 
 export const StopSchema = t.Object({
-  stop_id: t.String(),
-  stop_code: t.String(),
-  stop_name: t.String(),
-  stop_lat: t.Number(),
-  stop_lon: t.Number(),
+  id: t.String(),
+  code: t.String(),
+  name: t.String(),
+  lat: t.Number(),
+  lon: t.Number(),
 })
 
 export const RouteSchema = t.Object({
-  route_id: t.String(),
-  route_short_name: t.String(),
-  route_long_name: t.String(),
-  route_type: t.Number(),
+  id: t.String(),
+  shortName: t.String(),
+  longName: t.String(),
+  type: t.Number(),
 })
 
 export const RouteDetailSchema = t.Composite([
@@ -39,7 +41,7 @@ export const RouteDetailSchema = t.Composite([
 ])
 
 export const RouteShapeSchema = t.Object({
-  route_type: t.Number(),
+  routeType: t.Number(),
   polylines: t.Array(t.Array(t.Tuple([t.Number(), t.Number()]))),
 })
 
@@ -59,12 +61,12 @@ export const VehicleSchema = t.Object({
   lng: t.Number(),
   bearing: t.Nullable(t.Number()),
   speed: t.Nullable(t.Number()),
-  route_id: t.Nullable(t.String()),
-  route_short_name: t.Nullable(t.String()),
-  route_type: t.Nullable(t.Number()),
+  routeId: t.Nullable(t.String()),
+  routeShortName: t.Nullable(t.String()),
+  routeType: t.Nullable(t.Number()),
   headsign: t.Nullable(t.String()),
   label: t.Nullable(t.String()),
-  ramp_status: RampStatusSchema,
+  rampStatus: RampStatusSchema,
 })
 
 export const VehiclesSchema = t.Object({
@@ -74,16 +76,16 @@ export const VehiclesSchema = t.Object({
 
 export const ArrivalSchema = t.Object({
   id: t.String(),
-  vehicle_id: t.Nullable(t.String()),
-  route_short_name: t.Nullable(t.String()),
-  route_type: t.Nullable(t.Number()),
+  vehicleId: t.Nullable(t.String()),
+  routeShortName: t.Nullable(t.String()),
+  routeType: t.Nullable(t.Number()),
   headsign: t.Nullable(t.String()),
-  route_id: t.Nullable(t.String()),
-  scheduled_time: t.Nullable(t.String()),
-  expected_time: t.Nullable(t.String()),
-  eta_minutes: t.Number(),
+  routeId: t.Nullable(t.String()),
+  scheduledTime: t.Nullable(t.String()),
+  expectedTime: t.Nullable(t.String()),
+  etaMinutes: t.Number(),
   realtime: t.Boolean(),
-  has_ramp: t.Boolean(),
+  hasRamp: t.Boolean(),
 })
 
 export const TripStopStatusSchema = t.Union([
@@ -94,40 +96,40 @@ export const TripStopStatusSchema = t.Union([
 ])
 
 export const TripStopSchema = t.Object({
-  stop_id: t.String(),
-  stop_name: t.String(),
-  stop_sequence: t.Number(),
-  scheduled_time: t.String(),
-  expected_time: t.Nullable(t.String()),
-  eta_minutes: t.Nullable(t.Number()),
+  stopId: t.String(),
+  stopName: t.String(),
+  stopSequence: t.Number(),
+  scheduledTime: t.String(),
+  expectedTime: t.Nullable(t.String()),
+  etaMinutes: t.Nullable(t.Number()),
   status: TripStopStatusSchema,
-  delay_minutes: t.Number(),
+  delayMinutes: t.Number(),
   realtime: t.Boolean(),
 })
 
 export const TripDetailSchema = t.Object({
-  vehicle_id: t.String(),
-  trip_id: t.String(),
-  route_id: t.String(),
-  route_short_name: t.Nullable(t.String()),
-  route_type: t.Nullable(t.Number()),
+  vehicleId: t.String(),
+  tripId: t.String(),
+  routeId: t.String(),
+  routeShortName: t.Nullable(t.String()),
+  routeType: t.Nullable(t.Number()),
   headsign: t.Nullable(t.String()),
   stops: t.Array(TripStopSchema),
 })
 
 export const TripEtaSchema = t.Object({
-  stop_id: t.String(),
-  eta_minutes: t.Nullable(t.Number()),
+  stopId: t.String(),
+  etaMinutes: t.Nullable(t.Number()),
   status: TripStopStatusSchema,
-  expected_time: t.Nullable(t.String()),
-  delay_minutes: t.Number(),
+  expectedTime: t.Nullable(t.String()),
+  delayMinutes: t.Number(),
   realtime: t.Boolean(),
 })
 
 export const ReservationSchema = t.Object({
   id: t.Number(),
-  vehicle_id: t.String(),
-  stop_id: t.String(),
+  vehicleId: t.String(),
+  stopId: t.String(),
   type: t.Union([t.Literal('board'), t.Literal('alight')]),
   status: t.Union([
     t.Literal('pending'),
@@ -136,13 +138,13 @@ export const ReservationSchema = t.Object({
     t.Literal('cancelled'),
     t.Literal('expired'),
   ]),
-  created_at: t.Number(),
-  resolved_at: t.Nullable(t.Number()),
+  createdAt: t.Number(),
+  resolvedAt: t.Nullable(t.Number()),
 })
 
 export const ReserveBodySchema = t.Object({
-  vehicle_id: t.String({ minLength: 1 }),
-  stop_id: t.String({ minLength: 1 }),
+  vehicleId: t.String({ minLength: 1 }),
+  stopId: t.String({ minLength: 1 }),
   type: t.Union([t.Literal('board'), t.Literal('alight')]),
 })
 
@@ -150,9 +152,9 @@ export const CancelledSchema = t.Object({ ok: t.Boolean() })
 
 /** Filters accepted by both /realtime/vehicles and its SSE stream. */
 export const VehicleFilterQuerySchema = t.Object({
-  route_id: t.Optional(t.String()),
-  route_type: t.Optional(t.String()),
-  has_ramp: t.Optional(t.String()),
+  routeId: t.Optional(t.String()),
+  routeType: t.Optional(t.String()),
+  hasRamp: t.Optional(t.String()),
 })
 
 /** Decoded GTFS-RT, passed through verbatim by /realtime/trip-updates. */
@@ -233,6 +235,42 @@ export type TripEtaUpdate = typeof TripEtaSchema.static
 export type ReservationResponse = typeof ReservationSchema.static
 export type ReserveBody = typeof ReserveBodySchema.static
 export type VehicleFilterQuery = typeof VehicleFilterQuerySchema.static
+
+/**
+ * The mapping boundary. GTFS rows and SQLite rows keep the spelling of the
+ * schema they come from; these turn them into the camelCase the API speaks, in
+ * one place per shape rather than at each route.
+ */
+export function toStopResponse(stop: Stop): StopResponse {
+  return {
+    id: stop.stop_id,
+    code: stop.stop_code,
+    name: stop.stop_name,
+    lat: stop.stop_lat,
+    lon: stop.stop_lon,
+  }
+}
+
+export function toRouteResponse(route: Route): RouteResponse {
+  return {
+    id: route.route_id,
+    shortName: route.route_short_name,
+    longName: route.route_long_name,
+    type: route.route_type,
+  }
+}
+
+export function toReservationResponse(r: RampReservation): ReservationResponse {
+  return {
+    id: r.id,
+    vehicleId: r.vehicle_id,
+    stopId: r.stop_id,
+    type: r.type,
+    status: r.status,
+    createdAt: r.created_at,
+    resolvedAt: r.resolved_at,
+  }
+}
 
 /**
  * Registers every shape above by name, so routes reference `'Vehicles'`

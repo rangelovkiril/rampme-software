@@ -42,11 +42,11 @@ export async function getTripEtas(
   return tripStopTimes.map((st) => {
     const r = buildTripStop(data, st, predictions, nowSec, currentStopSequence)
     return {
-      stop_id: r.stop_id,
-      eta_minutes: r.eta_minutes,
+      stopId: r.stopId,
+      etaMinutes: r.etaMinutes,
       status: r.status,
-      expected_time: r.expected_time,
-      delay_minutes: r.delay_minutes,
+      expectedTime: r.expectedTime,
+      delayMinutes: r.delayMinutes,
       realtime: r.realtime,
     }
   })
@@ -84,11 +84,11 @@ export async function getVehicleTripDetails(
   )
 
   return {
-    vehicle_id: vehicleId,
-    trip_id: tripId,
-    route_id: routeId,
-    route_short_name: route?.route_short_name ?? null,
-    route_type: route?.route_type ?? null,
+    vehicleId,
+    tripId,
+    routeId,
+    routeShortName: route?.route_short_name ?? null,
+    routeType: route?.route_type ?? null,
     headsign: trip?.trip_headsign ?? null,
     stops,
   }
@@ -152,23 +152,23 @@ function buildTripStop(
   const { totalMinutes } = parseGtfsTime(st.arrival_time)
   const scheduledNorm = normalizeGtfsHour(st.arrival_time)
 
-  let expected_time: string | null = null
-  let eta_minutes: number | null = null
+  let expectedTime: string | null = null
+  let etaMinutes: number | null = null
   let status: TripStopResult['status'] = 'scheduled'
-  let delay_minutes = 0
+  let delayMinutes = 0
   let realtime = false
 
   if (pred && pred.arrival > 0) {
     realtime = true
-    expected_time = unixToHHMM(pred.arrival)
+    expectedTime = unixToHHMM(pred.arrival)
 
     if (pred.arrival <= nowSec) {
       status = 'departed'
-      eta_minutes = 0
+      etaMinutes = 0
     } else {
-      eta_minutes = Math.max(0, Math.round((pred.arrival - nowSec) / 60))
-      delay_minutes = computeDelayMinutes(pred.arrival, totalMinutes)
-      status = delay_minutes > 0 ? 'delay' : 'on_time'
+      etaMinutes = Math.max(0, Math.round((pred.arrival - nowSec) / 60))
+      delayMinutes = computeDelayMinutes(pred.arrival, totalMinutes)
+      status = delayMinutes > 0 ? 'delay' : 'on_time'
     }
   } else {
     const definitelyPassedByVehicleSequence =
@@ -179,29 +179,29 @@ function buildTripStop(
 
     if (definitelyPassedByVehicleSequence || definitelyPassedBySequence) {
       status = 'departed'
-      eta_minutes = 0
+      etaMinutes = 0
     } else {
       const diff = computeScheduledEtaMinutes(totalMinutes, nowSec)
       if (diff === null) {
         status = 'departed'
-        eta_minutes = 0
+        etaMinutes = 0
       } else {
-        eta_minutes = diff
+        etaMinutes = diff
       }
     }
 
-    expected_time = scheduledNorm
+    expectedTime = scheduledNorm
   }
 
   return {
-    stop_id: st.stop_id,
-    stop_name: stop?.stop_name ?? st.stop_id,
-    stop_sequence: st.stop_sequence,
-    scheduled_time: scheduledNorm,
-    expected_time,
-    eta_minutes,
+    stopId: st.stop_id,
+    stopName: stop?.stop_name ?? st.stop_id,
+    stopSequence: st.stop_sequence,
+    scheduledTime: scheduledNorm,
+    expectedTime,
+    etaMinutes,
     status,
-    delay_minutes,
+    delayMinutes,
     realtime,
   }
 }

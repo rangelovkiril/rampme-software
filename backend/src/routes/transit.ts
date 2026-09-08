@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia'
 import type { Route } from '../gtfs/types'
 import { NotFoundError } from '../plugins/errors'
 import { gtfsReady } from '../plugins/gtfs-ready'
-import { models, type RouteShapesResponse } from '../schemas'
+import { models, type RouteShapesResponse, toRouteResponse, toStopResponse } from '../schemas'
 
 /** Bound so one request cannot ask for every shape in the feed at once. */
 const MAX_SHAPE_IDS = 50
@@ -19,7 +19,7 @@ export const transitRoutes = new Elysia()
         const key = `${r.route_short_name.toLowerCase()}::${r.route_type}`
         if (!seen.has(key)) seen.set(key, r)
       }
-      return [...seen.values()]
+      return [...seen.values()].map(toRouteResponse)
     },
     {
       gtfsReady: true,
@@ -36,9 +36,12 @@ export const transitRoutes = new Elysia()
 
       const routeTrips = data.tripsByRoute.get(id) ?? []
       const stopIds = data.stopIdsByRoute.get(id) ?? new Set<string>()
-      const stops = [...stopIds].map((sid) => data.stops.get(sid)).filter((s) => s !== undefined)
+      const stops = [...stopIds]
+        .map((sid) => data.stops.get(sid))
+        .filter((s) => s !== undefined)
+        .map(toStopResponse)
 
-      return { ...route, trips: routeTrips.length, stops }
+      return { ...toRouteResponse(route), trips: routeTrips.length, stops }
     },
     {
       gtfsReady: true,
@@ -60,7 +63,7 @@ export const transitRoutes = new Elysia()
         const route = data.routes.get(id)
         const polylines = data.shapesByRoute.get(id)
         if (route && polylines) {
-          result[id] = { route_type: route.route_type, polylines }
+          result[id] = { routeType: route.route_type, polylines }
         }
       }
       return result

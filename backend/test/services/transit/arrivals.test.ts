@@ -127,19 +127,19 @@ describe('collectScheduledArrivals', () => {
   })
 })
 
-function arrival(id: string, eta_minutes: number): ArrivalResult {
+function arrival(id: string, etaMinutes: number): ArrivalResult {
   return {
     id,
-    vehicle_id: null,
-    route_short_name: null,
-    route_type: null,
+    vehicleId: null,
+    routeShortName: null,
+    routeType: null,
     headsign: null,
-    route_id: null,
-    scheduled_time: null,
-    expected_time: null,
-    eta_minutes,
+    routeId: null,
+    scheduledTime: null,
+    expectedTime: null,
+    etaMinutes,
     realtime: false,
-    has_ramp: false,
+    hasRamp: false,
   }
 }
 

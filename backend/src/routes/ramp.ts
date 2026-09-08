@@ -2,7 +2,7 @@ import { consola } from 'consola'
 import { Elysia, t } from 'elysia'
 import { getRampDb } from '../db/ramp'
 import { NotFoundError } from '../plugins/errors'
-import { models } from '../schemas'
+import { models, toReservationResponse } from '../schemas'
 import { getRampBridge, isRampBridgeAvailable } from '../services/ramp/bridge'
 import { rampBroadcaster } from '../services/ramp/broadcaster'
 import { makeSseStream } from '../services/sse'
@@ -34,8 +34,8 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
           ({ body, sessionId, status }) => {
             const r = getRampDb().createReservation(
               sessionId,
-              body.vehicle_id,
-              body.stop_id,
+              body.vehicleId,
+              body.stopId,
               body.type,
             )
             if ('error' in r) return status(429, { error: r.error })
@@ -45,7 +45,7 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
               log.warn(`no bridge available — reservation ${r.id} not published to hardware`)
             }
             rampBroadcaster.publish(Date.now())
-            return r
+            return toReservationResponse(r)
           },
           {
             // This request shape is also hand-written in frontend/contexts/RampContext.tsx's
@@ -77,29 +77,38 @@ export const rampRoutes = new Elysia({ prefix: '/ramp' })
             detail: { tags: ['Ramp'], summary: 'Cancel reservation' },
           },
         )
-        .get('/session', ({ sessionId }) => getRampDb().getSessionReservations(sessionId), {
-          response: { 200: 'Reservations', 400: 'Error' },
-          detail: { tags: ['Ramp'], summary: 'Session reservations' },
-        }),
+        .get(
+          '/session',
+          ({ sessionId }) =>
+            getRampDb().getSessionReservations(sessionId).map(toReservationResponse),
+          {
+            response: { 200: 'Reservations', 400: 'Error' },
+            detail: { tags: ['Ramp'], summary: 'Session reservations' },
+          },
+        ),
   )
   .get(
     '/session/stream',
     ({ query }) =>
       makeSseStream(rampBroadcaster, async () => ({
-        data: getRampDb().getSessionReservations(query.session_id),
+        data: getRampDb().getSessionReservations(query.sessionId).map(toReservationResponse),
       })),
     {
       // EventSource can't set custom headers, so the session id travels as a
       // query param here instead of X-Session-Id.
-      query: t.Object({ session_id: SessionIdSchema }),
+      query: t.Object({ sessionId: SessionIdSchema }),
       error: ({ code, error, status }) => {
         if (code === 'VALIDATION' && error.type === 'query')
-          return status(400, { error: 'Missing or invalid session_id' })
+          return status(400, { error: 'Missing or invalid sessionId' })
       },
       detail: { tags: ['Ramp'], summary: 'SSE stream of session reservations' },
     },
   )
-  .get('/vehicle/:id', ({ params }) => getRampDb().getVehicleReservations(params.id), {
-    response: { 200: 'Reservations' },
-    detail: { tags: ['Ramp'], summary: 'Vehicle reservations' },
-  })
+  .get(
+    '/vehicle/:id',
+    ({ params }) => getRampDb().getVehicleReservations(params.id).map(toReservationResponse),
+    {
+      response: { 200: 'Reservations' },
+      detail: { tags: ['Ramp'], summary: 'Vehicle reservations' },
+    },
+  )

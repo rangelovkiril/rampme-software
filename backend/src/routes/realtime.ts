@@ -47,11 +47,11 @@ async function buildEnrichedVehicles(filters: VehicleFilterQuery) {
   const vehicles = await getUnfilteredVehicles()
   if (!vehicles) return null
   let filtered = vehicles
-  if (filters.route_id) filtered = filtered.filter((v) => v.route_id === filters.route_id)
-  if (filters.route_type !== undefined)
-    filtered = filtered.filter((v) => v.route_type === Number(filters.route_type))
-  if (filters.has_ramp === 'true')
-    filtered = filtered.filter((v) => v.ramp_status === 'working' || v.ramp_status === 'in_use')
+  if (filters.routeId) filtered = filtered.filter((v) => v.routeId === filters.routeId)
+  if (filters.routeType !== undefined)
+    filtered = filtered.filter((v) => v.routeType === Number(filters.routeType))
+  if (filters.hasRamp === 'true')
+    filtered = filtered.filter((v) => v.rampStatus === 'working' || v.rampStatus === 'in_use')
   return filtered
 }
 

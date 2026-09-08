@@ -5,7 +5,7 @@ import { todayDateStr } from '../gtfs/time'
 import type { GtfsData, Stop } from '../gtfs/types'
 import { NotFoundError, upstream } from '../plugins/errors'
 import { gtfsReady } from '../plugins/gtfs-ready'
-import { models } from '../schemas'
+import { models, toStopResponse } from '../schemas'
 import { makeSseStream } from '../services/sse'
 import { getGtfs } from '../services/state'
 import { getUpcomingArrivals } from '../services/transit/arrivals'
@@ -50,7 +50,7 @@ function getActiveStops(data: GtfsData): Stop[] {
 export const stopsRoutes = new Elysia()
   .use(models)
   .use(gtfsReady)
-  .get('/stops', ({ gtfs: data }) => getActiveStops(data), {
+  .get('/stops', ({ gtfs: data }) => getActiveStops(data).map(toStopResponse), {
     gtfsReady: true,
     response: { 200: 'Stops', 503: 'Error' },
     detail: { tags: ['Stops'], summary: 'All stops (active today)' },
@@ -61,7 +61,7 @@ export const stopsRoutes = new Elysia()
     ({ params: { id }, gtfs: data }) => {
       const stop = data.stops.get(id)
       if (!stop) throw new NotFoundError('Stop not found')
-      return stop
+      return toStopResponse(stop)
     },
     {
       gtfsReady: true,

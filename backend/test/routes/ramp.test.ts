@@ -11,7 +11,7 @@ function reserve(vehicleId: string, stopId: string, sessionId: string) {
     new Request('http://localhost/ramp/reserve', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-session-id': sessionId },
-      body: JSON.stringify({ vehicle_id: vehicleId, stop_id: stopId, type: 'board' }),
+      body: JSON.stringify({ vehicleId, stopId, type: 'board' }),
     }),
   )
 }

@@ -27,10 +27,7 @@ export function enrichVehicles(
     const route = routeId ? data.routes.get(routeId) : undefined
     const vehicleId = v.vehicle?.id ?? e.id
     const hasRamp = resolveAccessibility(vehicleId)
-    const ramp_status = getVehicleRampStatusFrom(
-      reservationsByVehicle.get(vehicleId) ?? [],
-      hasRamp,
-    )
+    const rampStatus = getVehicleRampStatusFrom(reservationsByVehicle.get(vehicleId) ?? [], hasRamp)
 
     return {
       id: vehicleId,
@@ -39,12 +36,12 @@ export function enrichVehicles(
       lng: pos.longitude,
       bearing: pos.bearing ?? null,
       speed: pos.speed ?? null,
-      route_id: routeId || null,
-      route_short_name: route?.route_short_name ?? null,
-      route_type: route?.route_type ?? null,
+      routeId: routeId || null,
+      routeShortName: route?.route_short_name ?? null,
+      routeType: route?.route_type ?? null,
       headsign: trip?.trip_headsign ?? null,
       label: v.vehicle?.label ?? null,
-      ramp_status,
+      rampStatus,
     }
   })
 }
