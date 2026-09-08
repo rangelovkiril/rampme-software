@@ -1,4 +1,4 @@
-import type { TripEtaUpdate } from '@/lib/types'
+import type { TripEtaUpdate } from '@backend/schemas'
 
 /**
  * Applies live ETA updates onto a trip's stops. Stops the update batch does not

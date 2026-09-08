@@ -25,6 +25,11 @@ function resolveApiBase(): string {
   return STAGE_API // unrecognized origin (including no window, e.g. build-time prerender)
 }
 
+/** The resolved backend origin, for callers that build their own request. */
+export function apiBase(): string {
+  return resolveApiBase()
+}
+
 export function apiPath(path: string): string {
   return `${resolveApiBase()}${path.startsWith('/') ? path : `/${path}`}`
 }

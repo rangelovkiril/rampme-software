@@ -55,6 +55,12 @@ const app = new Elysia()
   .use(rampRoutes)
   .get('/health', () => 'Ok')
 
+/**
+ * The frontend derives every request and response type from this through Eden.
+ * Exported as a type only — importing it does not start a server.
+ */
+export type App = typeof app
+
 app.listen(config.port)
 consola.ready(`GTFS server running at http://localhost:${app.server?.port}`)
 

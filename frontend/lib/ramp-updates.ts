@@ -1,4 +1,4 @@
-import type { RampReservation } from './types'
+import type { ReservationResponse as RampReservation } from '@backend/schemas'
 
 export interface RampUpdate {
   reservations: RampReservation[]

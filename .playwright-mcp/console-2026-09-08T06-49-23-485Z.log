@@ -9,3 +9,239 @@
 [   96843ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
 [   97113ms] [LOG] [HMR] connected @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
 [  116725ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  117519ms] [LOG] [Fast Refresh] done in 796ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  143590ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  144121ms] [LOG] [Fast Refresh] done in 530ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  144170ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  145491ms] [LOG] [Fast Refresh] done in 1321ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  147274ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  148079ms] [LOG] [Fast Refresh] done in 805ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  148146ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  148619ms] [LOG] [Fast Refresh] done in 474ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  148879ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  149404ms] [LOG] [Fast Refresh] done in 525ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  162378ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  162989ms] [LOG] [Fast Refresh] done in 611ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  182529ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  183221ms] [LOG] [Fast Refresh] done in 692ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  202411ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  207486ms] [LOG] [Fast Refresh] done in 5075ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  221669ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  222274ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  222422ms] [LOG] [Fast Refresh] done in 149ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  223178ms] [ERROR] ./lib/config.ts
+Module parse failed: Identifier 'apiBase' has already been declared (29:94)
+|     return resolveApiBase();
+| }
+> /** The resolved backend origin, for callers that build their own request. */ export function apiBase() {
+|     return resolveApiBase();
+| }
+
+Import trace for requested module:
+./lib/config.ts
+./contexts/RampContext.tsx
+./app/page.tsx @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/intercept-console-error.js:57
+[  239310ms] [ERROR] ./lib/config.ts
+Module parse failed: Identifier 'apiBase' has already been declared (29:94)
+|     return resolveApiBase();
+| }
+> /** The resolved backend origin, for callers that build their own request. */ export function apiBase() {
+|     return resolveApiBase();
+| }
+
+Import trace for requested module:
+./lib/config.ts
+./contexts/RampContext.tsx
+./app/page.tsx @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/intercept-console-error.js:57
+[  240490ms] [ERROR] ./lib/config.ts
+Module parse failed: Identifier 'apiBase' has already been declared (29:94)
+|     return resolveApiBase();
+| }
+> /** The resolved backend origin, for callers that build their own request. */ export function apiBase() {
+|     return resolveApiBase();
+| }
+
+Import trace for requested module:
+./lib/config.ts
+./contexts/RampContext.tsx
+./app/page.tsx @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/intercept-console-error.js:57
+[  242558ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  242883ms] [ERROR] ./lib/config.ts
+Module parse failed: Identifier 'apiBase' has already been declared (29:94)
+|     return resolveApiBase();
+| }
+> /** The resolved backend origin, for callers that build their own request. */ export function apiBase() {
+|     return resolveApiBase();
+| }
+
+Import trace for requested module:
+./lib/config.ts
+./contexts/RampContext.tsx
+./app/page.tsx @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/intercept-console-error.js:57
+[  243564ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:3001/?_rsc=wnywt:0
+[  243737ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://127.0.0.1:3001/:0
+[  245254ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ webpack-internal:///(pages-dir-browser)/./node_modules/react-dom/cjs/react-dom-client.development.js:28004
+[  245956ms] ModuleParseError: Module parse failed: Identifier 'apiBase' has already been declared (29:94)
+File was processed with these loaders:
+ * ./node_modules/next/dist/compiled/@next/react-refresh-utils/dist/loader.js
+ * ./node_modules/next/dist/build/webpack/loaders/next-flight-client-module-loader.js
+ * ./node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+You may need an additional loader to handle the result of these loaders.
+|     return resolveApiBase();
+| }
+> /** The resolved backend origin, for callers that build their own request. */ export function apiBase() {
+|     return resolveApiBase();
+| }
+    at <unknown> (File was processed with these loaders:)
+    at handleParseError (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/webpack/bundle5.js:29:410388)
+    at <unknown> (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/webpack/bundle5.js:29:412004)
+    at processResult (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/webpack/bundle5.js:29:407869)
+    at <unknown> (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/webpack/bundle5.js:29:408891)
+    at <unknown> (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:8727)
+    at iterateNormalLoaders (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5565)
+    at iterateNormalLoaders (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5650)
+    at <unknown> (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5879)
+    at r.callback (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4039)
+    at Object.ReactRefreshLoader (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/@next/react-refresh-utils/dist/loader.js:14:10)
+    at LOADER_EXECUTION (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4134)
+    at runSyncOrAsync (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4145)
+    at iterateNormalLoaders (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5782)
+    at iterateNormalLoaders (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5650)
+    at <unknown> (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5879)
+    at r.callback (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4039)
+    at Object.transformSource (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/build/webpack/loaders/next-flight-client-module-loader.js:47:17)
+    at LOADER_EXECUTION (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4134)
+    at runSyncOrAsync (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4145)
+    at iterateNormalLoaders (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5782)
+    at <unknown> (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5142)
+    at r.callback (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4039)
+    at <unknown> (file:///home/kiril/projects/rampme-software/frontend/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js:226:23)
+[  245957ms] [LOG] [HMR] connected @ webpack-internal:///(pages-dir-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  245972ms] [ERROR] ./lib/config.ts
+Module parse failed: Identifier 'apiBase' has already been declared (29:94)
+|     return resolveApiBase();
+| }
+> /** The resolved backend origin, for callers that build their own request. */ export function apiBase() {
+|     return resolveApiBase();
+| } @ webpack-internal:///(pages-dir-browser)/./node_modules/next/dist/next-devtools/userspace/pages/pages-dev-overlay-setup.js:70
+[  246140ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:3001/favicon.ico:0
+[  246519ms] [ERROR] ./lib/config.ts
+Module parse failed: Identifier 'apiBase' has already been declared (29:94)
+|     return resolveApiBase();
+| }
+> /** The resolved backend origin, for callers that build their own request. */ export function apiBase() {
+|     return resolveApiBase();
+| }
+
+Import trace for requested module:
+./lib/config.ts
+./contexts/RampContext.tsx
+./app/page.tsx @ webpack-internal:///(pages-dir-browser)/./node_modules/next/dist/next-devtools/userspace/pages/pages-dev-overlay-setup.js:70
+[  246555ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(pages-dir-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  248127ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:3001/_next/static/webpack/0fe2fb3ead160052.webpack.hot-update.json:0
+[  248129ms] [WARNING] [Fast Refresh] performing full reload because your application had an unrecoverable error @ webpack-internal:///(pages-dir-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  253246ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  253545ms] [LOG] [HMR] connected @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  278911ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  279611ms] [LOG] [Fast Refresh] done in 702ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  299293ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  302260ms] [ERROR] ./components/panels/StopsPanel.tsx
+Module parse failed: Identifier 'stops' has already been declared (7:12)
+|     const [loading, setLoading] = useState(true);
+|     const [search, setSearch] = useState('');
+>     const { stops, loading } = useStops();
+|     const filtered = useMemo({
+|         "StopsPanel.useMemo[filtered]": ()=>{
+
+Import trace for requested module:
+./components/panels/StopsPanel.tsx
+./components/SidePanel.tsx
+./components/Map.tsx
+./app/page.tsx @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/intercept-console-error.js:57
+[  306520ms] [ERROR] ./components/panels/StopsPanel.tsx
+Module parse failed: Identifier 'stops' has already been declared (9:12)
+|     const [loading, setLoading] = useState(true);
+|     const [search, setSearch] = useState('');
+>     const { stops, loading } = useStops();
+|     const filtered = useMemo({
+|         "StopsPanel.useMemo[filtered]": ()=>{
+
+Import trace for requested module:
+./components/panels/StopsPanel.tsx
+./components/SidePanel.tsx
+./components/Map.tsx
+./app/page.tsx @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/intercept-console-error.js:57
+[  306523ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  307991ms] [WARNING] [Fast Refresh] performing full reload because your application had an unrecoverable error @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  310918ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  311157ms] [LOG] [HMR] connected @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  311951ms] ReferenceError: useStops is not defined
+    at StopsLayer (webpack-internal:///(app-pages-browser)/./components/layers/StopsLayer.tsx:48:33)
+    at Object.react_stack_bottom_frame (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:28242:20)
+    at renderWithHooks (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:7926:22)
+    at updateFunctionComponent (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:10443:19)
+    at beginWork (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:12113:18)
+    at runWithFiberInDEV (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:987:30)
+    at performUnitOfWork (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:18989:22)
+    at workLoopSync (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:18817:41)
+    at renderRootSync (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:18798:11)
+    at performWorkOnRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:17903:35)
+    at performSyncWorkOnRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:20487:7)
+    at flushSyncWorkAcrossRoots_impl (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:20329:21)
+    at flushSpawnedWork (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:19840:9)
+    at commitRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:19418:58)
+    at completeRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:19322:9)
+    at completeRootWhenReady (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:18169:7)
+    at performWorkOnRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:18044:15)
+    at performWorkOnRootViaSchedulerTask (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:20472:7)
+    at MessagePort.performWorkUntilDeadline (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/scheduler/cjs/scheduler.development.js:45:48)
+[  324054ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  332454ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  332789ms] [LOG] [HMR] connected @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  341724ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api/stops:0
+[  347592ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  350391ms] [LOG] [Fast Refresh] done in 2801ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  353751ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  356256ms] [LOG] [Fast Refresh] done in 2505ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  381478ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  383842ms] [LOG] [Fast Refresh] done in 2365ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  403169ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  406443ms] [LOG] [Fast Refresh] done in 3273ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  415913ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  417607ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  417948ms] [LOG] [Fast Refresh] done in 341ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  418565ms] [LOG] [Fast Refresh] done in 956ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  425963ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api/stops:0
+[  444445ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  447835ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  448848ms] [LOG] [Fast Refresh] done in 1013ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  449284ms] [LOG] [Fast Refresh] done in 1450ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  452672ms] [WARNING] The resource http://127.0.0.1:3001/_next/static/css/app/layout.css?v=1788850611636 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://127.0.0.1:3001/:0
+[  472503ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  474487ms] [LOG] [Fast Refresh] done in 1984ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  477938ms] [WARNING] The resource http://127.0.0.1:3001/_next/static/css/app/layout.css?v=1788850611636 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://127.0.0.1:3001/:0
+[  524423ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  525092ms] [LOG] [Fast Refresh] done in 668ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  529154ms] [WARNING] The resource http://127.0.0.1:3001/_next/static/css/app/layout.css?v=1788850611636 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://127.0.0.1:3001/:0
+[  541638ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  542141ms] [LOG] [Fast Refresh] done in 503ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  545933ms] [WARNING] The resource http://127.0.0.1:3001/_next/static/css/app/layout.css?v=1788850611636 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://127.0.0.1:3001/:0
+[  549723ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  550227ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  550358ms] [LOG] [Fast Refresh] done in 131ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  553632ms] [WARNING] The resource http://127.0.0.1:3001/_next/static/css/app/layout.css?v=1788850611636 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://127.0.0.1:3001/:0
+[  554013ms] [LOG] [Fast Refresh] done in 3786ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  557331ms] [WARNING] The resource http://127.0.0.1:3001/_next/static/css/app/layout.css?v=1788850611636 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://127.0.0.1:3001/:0
+[  585742ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  588336ms] [LOG] [Fast Refresh] done in 2594ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  591920ms] [WARNING] The resource http://127.0.0.1:3001/_next/static/css/app/layout.css?v=1788850611636 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://127.0.0.1:3001/:0
+[  604605ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  605927ms] [LOG] [Fast Refresh] done in 1323ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  609453ms] [WARNING] The resource http://127.0.0.1:3001/_next/static/css/app/layout.css?v=1788850611636 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://127.0.0.1:3001/:0
+[  617109ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  617571ms] [LOG] [HMR] connected @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  621834ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  622462ms] [LOG] [Fast Refresh] done in 610ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  622726ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  623314ms] [LOG] [Fast Refresh] done in 587ms @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/forward-logs-shared.js:27
+[  627713ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://api/stops:0

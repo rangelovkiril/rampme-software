@@ -1,8 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { apiPath } from '@/lib/config'
-import type { Stop } from '@/lib/types'
+import type { StopResponse as Stop } from '@backend/schemas'
+import { useCallback, useMemo, useState } from 'react'
+import { useStops } from '@/hooks/useStops'
 
 interface StopsPanelProps {
   onSelectStop?: (stop: Stop) => void
@@ -10,29 +10,9 @@ interface StopsPanelProps {
 }
 
 export default function StopsPanel({ onSelectStop, onClose }: StopsPanelProps) {
-  const [stops, setStops] = useState<Stop[]>([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    let active = true
-    async function load() {
-      try {
-        const res = await fetch(apiPath('/stops'))
-        if (!res.ok || !active) return
-        const data = await res.json()
-        if (active && Array.isArray(data)) setStops(data)
-      } catch {
-        /* ignore */
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-    load()
-    return () => {
-      active = false
-    }
-  }, [])
+  const { stops, loading } = useStops()
 
   const filtered = useMemo(() => {
     if (!search.trim()) return stops.slice(0, 100)

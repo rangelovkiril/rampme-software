@@ -1,9 +1,9 @@
 'use client'
 
+import type { RouteResponse as Route } from '@backend/schemas'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { apiPath } from '@/lib/config'
+import { api } from '@/lib/api'
 import { ROUTE_TYPE_CONFIG, ROUTE_TYPE_ORDER } from '@/lib/transit'
-import type { Route } from '@/lib/types'
 import FilterChip from './FilterChip'
 
 interface RoutesPanelProps {
@@ -24,10 +24,8 @@ export default function RoutesPanel({ onSelectRoute, onClose }: RoutesPanelProps
     let active = true
     async function load() {
       try {
-        const res = await fetch(apiPath('/routes'))
-        if (!res.ok || !active) return
-        const data = await res.json()
-        if (active && Array.isArray(data)) setRoutes(data)
+        const { data } = await api.routes.get()
+        if (active && data) setRoutes(data)
       } catch {
         /* ignore */
       } finally {

@@ -1,11 +1,10 @@
 import { describe, expect, test } from 'bun:test'
+import type { ReservationResponse as RampReservation } from '@backend/schemas'
 import { computeRampUpdate } from '../../lib/ramp-updates'
-import type { RampReservation } from '../../lib/types'
 
 function reservation(overrides: Partial<RampReservation> = {}): RampReservation {
   return {
     id: 1,
-    session_id: 'sess-1',
     vehicle_id: 'bus1',
     stop_id: 'stopA',
     type: 'board',

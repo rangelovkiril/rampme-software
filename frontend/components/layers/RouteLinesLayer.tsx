@@ -3,7 +3,7 @@
 import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
-import { apiPath } from '@/lib/config'
+import { api } from '@/lib/api'
 import { getRouteColor } from '@/lib/transit'
 
 interface RouteShape {
@@ -48,9 +48,8 @@ export default function RouteLinesLayer({
     let cancelled = false
     async function fetchShape() {
       try {
-        const res = await fetch(apiPath(`/routes/shapes?ids=${id}`))
-        if (!res.ok || cancelled) return
-        const data: Record<string, RouteShape> = await res.json()
+        const { data } = await api.routes.shapes.get({ query: { ids: id } })
+        if (!data || cancelled) return
         const s = data[id]
         if (s) {
           cacheRef.current.set(id, s)

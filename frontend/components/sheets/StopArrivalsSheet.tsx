@@ -1,17 +1,20 @@
 'use client'
 
+import type { StopResponse as Stop, ArrivalResult as StopArrival } from '@backend/schemas'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRamp } from '@/contexts/RampContext'
 import { useSSE } from '@/hooks/useSSE'
-import { apiPath } from '@/lib/config'
+import { api } from '@/lib/api'
 import { formatEta, getRouteColor } from '@/lib/transit'
-import type { Stop, StopArrival } from '@/lib/types'
 
 const RAMP_PROXIMITY_METERS = 10
 // Gap between top of sheet and bottom of floating nav
 const TOP_GAP = 12
 // Fallback viewport ratio for max height when nav can't be measured
 const MAX_FALLBACK_RATIO = 0.85
+// Matches the backend's own default; the arrivals list is capped at 50 there.
+const ARRIVALS_LIMIT = 20
+
 // How far below min-height the user must drag to dismiss
 const DISMISS_OFFSET = 60
 
@@ -117,19 +120,15 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
 
     const loadArrivals = async () => {
       try {
-        const res = await fetch(
-          apiPath(`/stops/${encodeURIComponent(stop.stop_id)}/vehicles?limit=20`),
-          { signal: controller.signal },
-        )
+        const { data, error: requestError } = await api.stops({ id: stop.stop_id }).vehicles.get({
+          query: { limit: String(ARRIVALS_LIMIT) },
+          fetch: { signal: controller.signal },
+        })
         if (controller.signal.aborted || !active) return
+        if (requestError) throw requestError
 
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`)
-        }
-
-        const data = (await res.json()) as StopArrival[]
         if (!controller.signal.aborted && active) {
-          setArrivals(Array.isArray(data) ? data : [])
+          setArrivals(data ?? [])
           setError(null)
         }
       } catch {

@@ -1,5 +1,10 @@
+import type {
+  StopResponse as Stop,
+  ArrivalResult as StopArrival,
+  TripDetailResult as TripData,
+  EnrichedVehicle as Vehicle,
+} from '@backend/schemas'
 import type { Page, Route } from '@playwright/test'
-import type { Stop, StopArrival, TripData, Vehicle } from '../../lib/types'
 
 export const sessionId = 'e2e-session-id'
 
@@ -10,7 +15,6 @@ export function createStop(overrides: Partial<Stop> = {}): Stop {
     stop_name: 'Тестова спирка',
     stop_lat: 42.6977,
     stop_lon: 23.3219,
-    wheelchair_boarding: 1,
     ...overrides,
   }
 }
@@ -58,7 +62,8 @@ export function createTrip(overrides: Partial<TripData> = {}): TripData {
   const stop = createStop()
   return {
     vehicle_id: vehicle.id,
-    route_id: vehicle.route_id,
+    trip_id: vehicle.tripId,
+    route_id: vehicle.route_id ?? '',
     route_short_name: vehicle.route_short_name,
     route_type: vehicle.route_type,
     headsign: vehicle.headsign,

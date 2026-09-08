@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReservationResponse as RampReservation } from '@backend/schemas'
 import {
   createContext,
   type ReactNode,
@@ -10,9 +11,8 @@ import {
   useState,
 } from 'react'
 import { useSSE } from '@/hooks/useSSE'
-import { apiPath } from '@/lib/config'
+import { api } from '@/lib/api'
 import { computeRampUpdate } from '@/lib/ramp-updates'
-import type { RampReservation } from '@/lib/types'
 
 export type { RampReservation }
 
@@ -55,8 +55,6 @@ function getSessionId(): string {
 
 // ── api helpers ──────────────────────────────────────────────────────────
 
-const hdrs = (sid: string) => ({ 'Content-Type': 'application/json', 'X-Session-Id': sid })
-
 async function apiReserve(
   sid: string,
   vehicleId: string,
@@ -64,15 +62,14 @@ async function apiReserve(
   type: 'board' | 'alight',
 ): Promise<RampReservation | null> {
   try {
-    // This request shape is also hand-written in backend/src/routes/ramp.ts's
-    // t.Object schema and asserted in frontend/e2e/fixtures/transit.ts's
-    // reserveRequests mock — keep all three in sync when it changes.
-    const r = await fetch(apiPath('/ramp/reserve'), {
-      method: 'POST',
-      headers: hdrs(sid),
-      body: JSON.stringify({ vehicle_id: vehicleId, stop_id: stopId, type }),
-    })
-    return r.ok ? await r.json() : null
+    // The body shape comes from the backend's ReserveBody model, so a rename
+    // there fails tsc here. e2e/fixtures/transit.ts's reserveRequests mock
+    // asserts on it too and still has to be updated by hand.
+    const { data } = await api.ramp.reserve.post(
+      { vehicle_id: vehicleId, stop_id: stopId, type },
+      { headers: { 'x-session-id': sid } },
+    )
+    return data ?? null
   } catch {
     return null
   }
@@ -80,11 +77,10 @@ async function apiReserve(
 
 async function apiCancel(sid: string, id: number): Promise<boolean> {
   try {
-    const r = await fetch(apiPath(`/ramp/reserve/${id}`), {
-      method: 'DELETE',
-      headers: { 'X-Session-Id': sid },
+    const { data } = await api.ramp.reserve({ id }).delete(null, {
+      headers: { 'x-session-id': sid },
     })
-    return r.ok
+    return data?.ok === true
   } catch {
     return false
   }
@@ -92,8 +88,8 @@ async function apiCancel(sid: string, id: number): Promise<boolean> {
 
 async function apiFetch(sid: string): Promise<RampReservation[]> {
   try {
-    const r = await fetch(apiPath('/ramp/session'), { headers: { 'X-Session-Id': sid } })
-    return r.ok ? await r.json() : []
+    const { data } = await api.ramp.session.get({ headers: { 'x-session-id': sid } })
+    return data ?? []
   } catch {
     return []
   }

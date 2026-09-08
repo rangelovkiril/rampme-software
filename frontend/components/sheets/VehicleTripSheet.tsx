@@ -1,10 +1,10 @@
 'use client'
 
+import type { EnrichedVehicle as Vehicle } from '@backend/schemas'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRamp } from '@/contexts/RampContext'
 import { type TripStop, useVehicleTripInfo } from '@/hooks/useVehicleTripInfo'
 import { getRouteColor, getRouteLabel } from '@/lib/transit'
-import type { Vehicle } from '@/lib/types'
 
 function StopStatusLabel({ stop }: { stop: TripStop }) {
   if (stop.status === 'departed')

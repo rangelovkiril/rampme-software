@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
+import type { TripEtaUpdate } from '@backend/schemas'
 import { applyEtaUpdates } from '@/lib/trip-etas'
-import type { TripEtaUpdate } from '@/lib/types'
 
 function eta(stop_id: string, over: Partial<TripEtaUpdate> = {}): TripEtaUpdate {
   return {

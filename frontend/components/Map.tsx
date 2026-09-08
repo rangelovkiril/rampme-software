@@ -1,11 +1,11 @@
 'use client'
 
+import type { StopResponse as Stop, EnrichedVehicle as Vehicle } from '@backend/schemas'
 import type { Map as LeafletMap } from 'leaflet'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer } from 'react-leaflet'
 import { useRamp } from '@/contexts/RampContext'
-import { apiPath } from '@/lib/config'
-import type { Stop, Vehicle } from '@/lib/types'
+import { api } from '@/lib/api'
 import LiveLocation from './layers/LiveLocation'
 import RouteLinesLayer from './layers/RouteLinesLayer'
 import StopsLayer from './layers/StopsLayer'
@@ -82,10 +82,9 @@ export default function MapView() {
     setNavCloseSignal((s) => s + 1)
 
     try {
-      const res = await fetch(apiPath('/realtime/vehicles'))
-      if (!res.ok) return
-      const { vehicles }: { vehicles: Vehicle[] } = await res.json()
-      const v = vehicles.find((v) => v.id === vehicleId)
+      const { data } = await api.realtime.vehicles.get({ query: {} })
+      if (!data) return
+      const v = data.vehicles.find((v) => v.id === vehicleId)
       if (v && Number.isFinite(v.lat) && Number.isFinite(v.lng)) {
         mapRef.current?.flyTo([v.lat, v.lng], Math.max(mapRef.current.getZoom(), 16), {
           animate: true,

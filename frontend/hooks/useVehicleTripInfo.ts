@@ -1,10 +1,10 @@
 'use client'
 
+import type { TripDetailResult as TripData, TripEtaUpdate } from '@backend/schemas'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSSE } from '@/hooks/useSSE'
-import { apiPath } from '@/lib/config'
+import { api } from '@/lib/api'
 import { applyEtaUpdates } from '@/lib/trip-etas'
-import type { TripData, TripEtaUpdate } from '@/lib/types'
 
 export type TripStop = TripData['stops'][number]
 
@@ -47,12 +47,13 @@ export function useVehicleTripInfo(
     setLoading(true)
     setFailed(false)
 
-    fetch(apiPath(`/realtime/vehicles/${encodeURIComponent(vehicleId)}/trip`), {
-      signal: controller.signal,
-    })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return (await r.json()) as TripData
+    api.realtime
+      .vehicles({ id: vehicleId })
+      .trip.get({ fetch: { signal: controller.signal } })
+      .then(({ data, error }) => {
+        if (error) throw error
+        if (!data) throw new Error('empty trip response')
+        return data
       })
       .then((data) => {
         if (controller.signal.aborted) return

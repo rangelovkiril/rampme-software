@@ -1,10 +1,10 @@
 'use client'
 
+import type { StopResponse as Stop } from '@backend/schemas'
 import L from 'leaflet'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
-import { apiPath } from '@/lib/config'
-import type { Stop } from '@/lib/types'
+import { useStops } from '@/hooks/useStops'
 
 const MIN_ZOOM_FOR_STOPS = 15
 
@@ -44,18 +44,13 @@ interface StopsLayerProps {
 
 export default function StopsLayer({ selectedStopId = null, onStopSelect }: StopsLayerProps) {
   const map = useMap()
-  const [stops, setStops] = useState<Stop[]>([])
   const groupRef = useRef<L.LayerGroup | null>(null)
   const [revision, setRevision] = useState(0)
   const iconRef = useRef<L.DivIcon | null>(null)
   const selectedIconRef = useRef<L.DivIcon | null>(null)
 
-  useEffect(() => {
-    fetch(apiPath('/stops'))
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: Stop[]) => setStops((Array.isArray(data) ? data : []).filter(hasValidCoords)))
-      .catch(() => {})
-  }, [])
+  const { stops: allStops } = useStops()
+  const stops = useMemo(() => allStops.filter(hasValidCoords), [allStops])
 
   useEffect(() => {
     function update() {

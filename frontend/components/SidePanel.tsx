@@ -1,7 +1,7 @@
 'use client'
 
+import type { StopResponse as Stop } from '@backend/schemas'
 import { useEffect, useRef, useState } from 'react'
-import type { Stop } from '@/lib/types'
 import ReservationsPanel from './panels/ReservationsPanel'
 import RoutesPanel from './panels/RoutesPanel'
 import StopsPanel from './panels/StopsPanel'

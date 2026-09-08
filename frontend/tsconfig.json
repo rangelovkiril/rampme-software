@@ -19,7 +19,16 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      // Eden derives its types from the backend's Elysia instance, and that only
+      // works when both sides see one copy of Elysia. Mapping the specifier to
+      // the backend's node_modules gives it that without a workspace, which
+      // would break backend/Dockerfile's build context and the CI cache keys.
+      // frontend/package.json must never declare its own `elysia` dependency;
+      // scripts/check-no-elysia-dep.ts guards that.
+      "@backend/*": ["../backend/src/*"],
+      "elysia": ["../backend/node_modules/elysia"],
+      "elysia/*": ["../backend/node_modules/elysia/*"]
     }
   },
   "include": [

@@ -1,11 +1,11 @@
 'use client'
 
+import type { EnrichedVehicle as Vehicle } from '@backend/schemas'
 import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 import { useSSE } from '@/hooks/useSSE'
 import { getRouteColor, ROUTE_TYPE_CONFIG } from '@/lib/transit'
-import type { Vehicle } from '@/lib/types'
 
 const MIN_ZOOM = 10
 const DETAIL_ZOOM = 16
