@@ -1,7 +1,7 @@
 'use client'
 
 import L from 'leaflet'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
 
 function makeDotIcon(heading: number | null) {
@@ -55,74 +55,77 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
     onErrorRef.current = onError
   }, [onError])
 
-  function clearWatch() {
+  const clearWatch = useCallback(() => {
     if (watchRef.current !== null) {
       navigator.geolocation.clearWatch(watchRef.current)
       watchRef.current = null
     }
-  }
+  }, [])
 
-  function notifyError(code: number, message: string) {
+  const notifyError = useCallback((code: number, message: string) => {
     const now = Date.now()
     const last = lastErrorRef.current
     if (last && last.code === code && now - last.at < ERROR_THROTTLE_MS) return
 
     lastErrorRef.current = { code, at: now }
     onErrorRef.current?.(message, code)
-  }
+  }, [])
 
-  function applyPosition(pos: GeolocationPosition) {
-    const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude)
-    const accuracy = pos.coords.accuracy
-    const heading = pos.coords.heading ?? null
+  const applyPosition = useCallback(
+    (pos: GeolocationPosition) => {
+      const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude)
+      const accuracy = pos.coords.accuracy
+      const heading = pos.coords.heading ?? null
 
-    if (firstFixRef.current) {
-      map.flyTo(latlng, 16, { duration: 1.2 })
-      firstFixRef.current = false
-    }
+      if (firstFixRef.current) {
+        map.flyTo(latlng, 16, { duration: 1.2 })
+        firstFixRef.current = false
+      }
 
-    lastErrorRef.current = null
+      lastErrorRef.current = null
 
-    if (accuracyRef.current) {
-      accuracyRef.current.setLatLng(latlng)
-      accuracyRef.current.setRadius(accuracy)
-    } else {
-      accuracyRef.current = L.circle(latlng, {
-        radius: accuracy,
-        fillColor: '#3b82f6',
-        fillOpacity: 0.06,
-        color: '#3b82f6',
-        weight: 0.5,
-        opacity: 0.15,
-      }).addTo(map)
-    }
+      if (accuracyRef.current) {
+        accuracyRef.current.setLatLng(latlng)
+        accuracyRef.current.setRadius(accuracy)
+      } else {
+        accuracyRef.current = L.circle(latlng, {
+          radius: accuracy,
+          fillColor: '#3b82f6',
+          fillOpacity: 0.06,
+          color: '#3b82f6',
+          weight: 0.5,
+          opacity: 0.15,
+        }).addTo(map)
+      }
 
-    if (pulseRef.current) {
-      pulseRef.current.setLatLng(latlng)
-    } else {
-      pulseRef.current = L.circleMarker(latlng, {
-        radius: 22,
-        fillColor: '#3b82f6',
-        fillOpacity: 0.1,
-        color: '#3b82f6',
-        weight: 1,
-        opacity: 0.2,
-        className: 'location-pulse',
-      }).addTo(map)
-    }
+      if (pulseRef.current) {
+        pulseRef.current.setLatLng(latlng)
+      } else {
+        pulseRef.current = L.circleMarker(latlng, {
+          radius: 22,
+          fillColor: '#3b82f6',
+          fillOpacity: 0.1,
+          color: '#3b82f6',
+          weight: 1,
+          opacity: 0.2,
+          className: 'location-pulse',
+        }).addTo(map)
+      }
 
-    const icon = makeDotIcon(heading)
-    if (dotRef.current) {
-      dotRef.current.setLatLng(latlng)
-      dotRef.current.setIcon(icon)
-    } else {
-      dotRef.current = L.marker(latlng, {
-        icon,
-        zIndexOffset: 9999,
-        interactive: false,
-      }).addTo(map)
-    }
-  }
+      const icon = makeDotIcon(heading)
+      if (dotRef.current) {
+        dotRef.current.setLatLng(latlng)
+        dotRef.current.setIcon(icon)
+      } else {
+        dotRef.current = L.marker(latlng, {
+          icon,
+          zIndexOffset: 9999,
+          interactive: false,
+        }).addTo(map)
+      }
+    },
+    [map],
+  )
 
   useEffect(() => {
     if (!active) {
@@ -223,7 +226,7 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
     return () => {
       clearWatch()
     }
-  }, [active, map])
+  }, [active, map, applyPosition, clearWatch, notifyError])
 
   useEffect(() => {
     return () => {
@@ -242,7 +245,7 @@ export default function LiveLocation({ active, onError }: LiveLocationProps) {
       }
       firstFixRef.current = true
     }
-  }, [map])
+  }, [map, clearWatch])
 
   return null
 }

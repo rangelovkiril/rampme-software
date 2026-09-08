@@ -105,6 +105,9 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
     }
   }, [vehicles, selectedVehicleId, map])
 
+  // Viewport culling reads map.getBounds() and map.getZoom(), which are not reactive.
+  // The revision counter bumped on zoomend/moveend is what re-runs this effect.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate.
   useEffect(() => {
     if (!groupRef.current) groupRef.current = L.layerGroup()
     const group = groupRef.current
@@ -150,7 +153,7 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
     }
 
     group.addTo(map)
-  }, [vehicles, map, revision])
+  }, [vehicles, map, revision, onVehicleSelect])
 
   return null
 }

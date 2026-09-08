@@ -47,7 +47,8 @@ export default function SidePanel({
     return () => document.removeEventListener('keydown', handleKey)
   }, [isOpen, onClose])
 
-  // Reset drag when panel opens/closes
+  // isOpen is the trigger for resetting the drag offset, not a value the body reads.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate.
   useEffect(() => {
     setDragY(0)
   }, [isOpen])

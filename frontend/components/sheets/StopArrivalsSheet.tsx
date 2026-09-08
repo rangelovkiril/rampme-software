@@ -74,8 +74,11 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
     setMinHeight(computedMin)
     setMaxHeight(computedMax)
     setHeight((h) => Math.min(Math.max(h, computedMin), computedMax))
+    return { min: computedMin, max: computedMax }
   }, [])
 
+  // The stop's name changes the header height, so the bounds are re-measured with it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate.
   useLayoutEffect(() => {
     measure()
   }, [measure, stop])
@@ -99,13 +102,12 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
     setLoading(true)
     // Open at a reasonable default — around 60% of available range
     requestAnimationFrame(() => {
-      measure()
-      setHeight(() => {
-        const target = minHeight + (maxHeight - minHeight) * 0.6
-        return Math.min(Math.max(target, minHeight), maxHeight)
-      })
+      const bounds = measure()
+      if (!bounds) return
+      const target = bounds.min + (bounds.max - bounds.min) * 0.6
+      setHeight(Math.min(Math.max(target, bounds.min), bounds.max))
     })
-  }, [stop, measure]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stop, measure])
 
   useEffect(() => {
     if (!stop) return

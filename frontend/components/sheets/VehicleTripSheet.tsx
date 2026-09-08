@@ -93,8 +93,12 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
     setMinHeight(computedMin)
     setMaxHeight(computedMax)
     setHeight((h) => Math.min(Math.max(h, computedMin), computedMax))
+    return { min: computedMin, max: computedMax }
   }, [])
 
+  // The trip and vehicle change the header and content height, so the bounds
+  // are re-measured with them.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate.
   useLayoutEffect(() => {
     measure()
   }, [measure, trip, vehicle])
@@ -109,14 +113,13 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
   useEffect(() => {
     if (!vehicle) return
     const id = requestAnimationFrame(() => {
-      measure()
-      setHeight(() => {
-        const target = minHeight + (maxHeight - minHeight) * 0.6
-        return Math.min(Math.max(target, minHeight), maxHeight)
-      })
+      const bounds = measure()
+      if (!bounds) return
+      const target = bounds.min + (bounds.max - bounds.min) * 0.6
+      setHeight(Math.min(Math.max(target, bounds.min), bounds.max))
     })
     return () => cancelAnimationFrame(id)
-  }, [vehicle, measure, minHeight, maxHeight])
+  }, [vehicle, measure])
 
   const boardingRes = reservations.find(
     (r) =>

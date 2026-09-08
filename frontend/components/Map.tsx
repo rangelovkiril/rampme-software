@@ -38,12 +38,16 @@ export default function MapView() {
 
   const { lockedVehicleId } = useRamp()
 
+  // This must fire only when a vehicle becomes locked. Depending on selectedVehicle would
+  // re-run it the moment the user closes the sheet, re-selecting the locked vehicle and
+  // making the sheet impossible to dismiss.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate.
   useEffect(() => {
     if (lockedVehicleId && !selectedVehicle) {
       setSelectedVehicle({ id: lockedVehicleId } as Vehicle)
       setSelectedStop(null)
     }
-  }, [lockedVehicleId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [lockedVehicleId])
 
   const toggleTheme = useCallback(() => setDark((d) => !d), [])
   const toggleTracking = useCallback(() => setTracking((t) => !t), [])
