@@ -64,7 +64,7 @@
 
 ## 6. Verification
 
-- [ ] 6.1 Run `bun run check` and `bun run test` in `backend/`, `frontend/`, and `hw-sim/`, plus `bun run test:e2e`, and confirm all pass.
-- [ ] 6.2 Start the backend with `MQTT_URL` unset, create a reservation, and confirm the proximity loop logs no `Ramp bridge not initialized` errors and that the reservation expires on schedule.
-- [ ] 6.3 Exercise the map, stop-arrivals, vehicle-trip, and ramp reservation flows in Playwright at both desktop and mobile viewports, confirming no regression from the effect-dependency fixes in task 2.5.
-- [ ] 6.4 Confirm `/docs` renders response schemas for all thirteen routes.
+- [x] 6.1 Run `bun run check` and `bun run test` in `backend/`, `frontend/`, and `hw-sim/`, plus `bun run test:e2e`, and confirm all pass.
+- [x] 6.2 Start the backend with `MQTT_URL` unset, create a reservation, and confirm the proximity loop logs no `Ramp bridge not initialized` errors and that the reservation expires on schedule.
+- [x] 6.3 Exercise the map, stop-arrivals, vehicle-trip, and ramp reservation flows in Playwright at both desktop and mobile viewports, confirming no regression from the effect-dependency fixes in task 2.5.
+- [x] 6.4 Confirm `/docs` renders response schemas for all thirteen routes.
