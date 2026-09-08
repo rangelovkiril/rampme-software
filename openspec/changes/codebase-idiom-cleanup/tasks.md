@@ -60,7 +60,7 @@
 - [x] 5.3 Add a second `.github/actions/setup-bun` invocation with `working-directory: backend` to both jobs in `.github/workflows/frontend.yaml`, since the frontend type-check now needs the backend's dependencies present; verify the frontend workflow passes in CI.
 - [x] 5.4 Update the root `AGENTS.md` testing paragraph to state that frontend Biome now covers `.tsx`, so the next reader does not re-derive the gap.
 - [x] 5.5 Add a third clause to the root `AGENTS.md`'s typing rule stating that outgoing response shapes are defined once as a TypeBox model and their TypeScript type derived with `Static<>`, never written as a parallel interface, and note in `backend/AGENTS.md` that the frontend derives its types from these models through Eden; this is what stops the duplication from returning.
-- [ ] 5.6 Confirm no wiki page needs syncing: the ramp MQTT protocol, CORS origins, deployment path, and request path are unchanged by this change.
+- [x] 5.6 Check the wiki. The ramp MQTT protocol, CORS origins, deployment path, request paths, and the edge rate-limit rule are all unchanged as expected, but four pages were not: `Contributing(.md/-BG.md)` claimed shared frontend types live in `frontend/lib/types.ts` and that every API call goes through `apiPath()`, and `Threat-Model(.md/-BG.md)` named the reservation targets `vehicle_id`/`stop_id`. Synced in the wiki repo (commit `8520d07`).
 
 ## 6. Verification
 
