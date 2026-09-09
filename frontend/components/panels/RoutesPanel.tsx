@@ -16,6 +16,7 @@ const TYPE_ORDER_INDICES = new Map<number, number>(ROUTE_TYPE_ORDER.map((t, i) =
 export default function RoutesPanel({ onSelectRoute, onClose }: RoutesPanelProps) {
   const [routes, setRoutes] = useState<Route[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -25,9 +26,14 @@ export default function RoutesPanel({ onSelectRoute, onClose }: RoutesPanelProps
     async function load() {
       try {
         const { data } = await api.routes.get()
-        if (active && data) setRoutes(data)
+        if (active && data) {
+          setRoutes(data)
+          setError(false)
+        } else if (active) {
+          setError(true)
+        }
       } catch {
-        /* ignore */
+        if (active) setError(true)
       } finally {
         if (active) setLoading(false)
       }
@@ -71,6 +77,35 @@ export default function RoutesPanel({ onSelectRoute, onClose }: RoutesPanelProps
       <p className="side-panel-text py-3" style={{ color: 'var(--text-muted)' }}>
         Зареждане...
       </p>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col gap-3 py-3">
+        <p className="side-panel-text" style={{ color: 'var(--text-secondary)' }}>
+          Неуспешно зареждане на линиите.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setLoading(true)
+            setError(false)
+            void api.routes
+              .get()
+              .then(({ data }) => {
+                if (data) setRoutes(data)
+                else setError(true)
+              })
+              .catch(() => setError(true))
+              .finally(() => setLoading(false))
+          }}
+          className="rounded-xl px-3 py-2 text-sm font-semibold"
+          style={{ background: 'var(--control-bg)', color: 'var(--text)' }}
+        >
+          Опитайте отново
+        </button>
+      </div>
     )
   }
 
