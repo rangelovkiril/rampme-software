@@ -148,12 +148,24 @@ export default function VehiclesLayer({
       const titleLabel = v.routeShortName ? `${label} ${v.routeShortName}` : displayName
       const headsign = v.headsign ?? ''
       const ramp = getVehicleAccessibility(v.rampStatus)
+      const point = map.project(latlng, zoom)
+      const nearby = vehicles.filter((other) => {
+        if (other.id === v.id || !Number.isFinite(other.lat) || !Number.isFinite(other.lng))
+          return false
+        const otherPoint = map.project([other.lat, other.lng], zoom)
+        return point.distanceTo(otherPoint) <= 16
+      })
+      const nearbySummary =
+        nearby.length > 0
+          ? `<br/><span style="display:block;margin-top:6px;font-size:11px;opacity:0.7">Още на това място: ${nearby.map((other) => `${getRouteLabel(other.routeType)} ${other.routeShortName ?? other.id}`).join(' · ')}</span>`
+          : ''
 
       const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:13px">
         <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${titleLabel}</span>
         ${headsign ? `<br/>${headsign}` : ''}
         <br/><span style="opacity:0.5;font-size:11px">${v.id} · ${v.speed} km/h</span>
         <br/><span style="color:${ramp.color};font-size:11px;font-weight:600">${ramp.text}</span>
+        ${nearbySummary}
       </div>`
 
       const icon = useDetailed

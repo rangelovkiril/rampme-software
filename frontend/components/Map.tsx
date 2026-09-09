@@ -39,7 +39,8 @@ export default function MapView() {
   } | null>(null)
   const [activePanel, setActivePanel] = useState<string | null>(null)
   const [navCloseSignal, setNavCloseSignal] = useState(0)
-  const vehicles = useSSE<Vehicle[]>('/realtime/vehicles/stream') ?? EMPTY_VEHICLES
+  const liveVehicles = useSSE<Vehicle[]>('/realtime/vehicles/stream')
+  const vehicles = liveVehicles ?? EMPTY_VEHICLES
   const sheetVehicle = useMemo(() => {
     if (!selectedVehicle) return null
     return (
@@ -165,7 +166,7 @@ export default function MapView() {
         liftLocate={Boolean(selectedStop)}
         onToggleTracking={toggleTracking}
       />
-      <MapLegend />
+      <MapLegend live={liveVehicles !== null} />
 
       <FloatingNav
         activePanel={activePanel}
