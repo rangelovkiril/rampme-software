@@ -15,6 +15,7 @@ import StopArrivalsSheet from './sheets/StopArrivalsSheet'
 import VehicleTripSheet from './sheets/VehicleTripSheet'
 import FloatingNav from './ui/FloatingNav'
 import MapControls from './ui/MapControls'
+import MapLegend from './ui/MapLegend'
 
 const TILES = {
   dark: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${process.env.NEXT_PUBLIC_CARTO_API_KEY}`,
@@ -164,6 +165,7 @@ export default function MapView() {
         liftLocate={Boolean(selectedStop)}
         onToggleTracking={toggleTracking}
       />
+      <MapLegend />
 
       <FloatingNav
         activePanel={activePanel}

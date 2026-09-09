@@ -20,6 +20,12 @@ function accessibilityRingColor(rampStatus: Vehicle['rampStatus']): string {
   return 'transparent'
 }
 
+function accessibilityBorderStyle(rampStatus: Vehicle['rampStatus']): string {
+  if (rampStatus === 'working' || rampStatus === 'in_use') return 'solid'
+  if (rampStatus === 'no_ramp') return 'dashed'
+  return 'dotted'
+}
+
 function vehicleIcon(
   _bearing: number,
   routeType: number | null | undefined,
@@ -28,9 +34,10 @@ function vehicleIcon(
 ) {
   const color = getRouteColor(routeType)
   const ring = accessibilityRingColor(rampStatus)
+  const borderStyle = accessibilityBorderStyle(rampStatus)
   return L.divIcon({
     className: '',
-    html: `<div style="position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:${color};color:#fff;font-family:Inter,sans-serif;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;border:2px solid ${ring};box-shadow:0 2px 6px rgba(0,0,0,0.4)">${routeName}</div>`,
+    html: `<div style="position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:${color};color:#fff;font-family:Inter,sans-serif;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;border:2px ${borderStyle} ${ring};box-shadow:0 2px 6px rgba(0,0,0,0.4)">${routeName}</div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
   })
@@ -39,9 +46,10 @@ function vehicleIcon(
 function vehicleDotIcon(routeType: number | null | undefined, rampStatus: Vehicle['rampStatus']) {
   const color = getRouteColor(routeType)
   const ring = accessibilityRingColor(rampStatus)
+  const borderStyle = accessibilityBorderStyle(rampStatus)
   return L.divIcon({
     className: '',
-    html: `<div style="width:10px;height:10px;border-radius:50%;background:${color};border:2px solid ${ring};box-shadow:0 1px 4px rgba(0,0,0,0.5);transform:translate(-50%,-50%)"></div>`,
+    html: `<div style="width:10px;height:10px;border-radius:50%;background:${color};border:2px ${borderStyle} ${ring};box-shadow:0 1px 4px rgba(0,0,0,0.5);transform:translate(-50%,-50%)"></div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
   })
