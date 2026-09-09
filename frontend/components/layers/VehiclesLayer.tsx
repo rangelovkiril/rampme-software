@@ -60,20 +60,6 @@ function vehicleDotIcon(routeType: number | null | undefined, rampStatus: Vehicl
   })
 }
 
-function vehicleClusterIcon(count: number, vehicles: Vehicle[]) {
-  const hasWorking = vehicles.some((v) => v.rampStatus === 'working' || v.rampStatus === 'in_use')
-  const hasNoRamp = vehicles.some((v) => v.rampStatus === 'no_ramp')
-  const ring = hasWorking ? '#22c55e' : hasNoRamp ? '#6b7280' : 'transparent'
-  const borderStyle =
-    hasWorking && hasNoRamp ? 'dotted' : hasWorking ? 'solid' : hasNoRamp ? 'dashed' : 'dotted'
-  return L.divIcon({
-    className: '',
-    html: `<div style="display:grid;place-items:center;width:34px;height:34px;transform:translate(-50%,-50%);background:#334155;color:#fff;border:3px ${borderStyle} ${ring};border-radius:50%;box-shadow:0 2px 7px rgba(0,0,0,0.45);font:800 12px/1 Inter,sans-serif">${count}</div>`,
-    iconSize: [0, 0],
-    iconAnchor: [0, 0],
-  })
-}
-
 interface VehiclesLayerProps {
   vehicles: Vehicle[]
   onVehicleSelect?: (vehicle: Vehicle) => void
@@ -138,44 +124,12 @@ export default function VehiclesLayer({
 
     const bounds = map.getBounds()
     const useDetailed = zoom >= DETAIL_ZOOM
-    const shouldCluster = zoom < 14
 
-    const visibleVehicles = vehicles.filter(
-      (v) =>
-        Number.isFinite(v.lat) && Number.isFinite(v.lng) && bounds.contains(L.latLng(v.lat, v.lng)),
-    )
-    const buckets = new Map<string, Vehicle[]>()
-    if (shouldCluster) {
-      for (const v of visibleVehicles) {
-        const point = map.project([v.lat, v.lng], zoom)
-        const key = `${Math.floor(point.x / 48)}:${Math.floor(point.y / 48)}`
-        const bucket = buckets.get(key) ?? []
-        bucket.push(v)
-        buckets.set(key, bucket)
-      }
-    }
-
-    const renderVehicles = shouldCluster ? [...buckets.values()] : visibleVehicles.map((v) => [v])
-    for (const bucket of renderVehicles) {
-      if (bucket.length > 1) {
-        const lat = bucket.reduce((sum, v) => sum + v.lat, 0) / bucket.length
-        const lng = bucket.reduce((sum, v) => sum + v.lng, 0) / bucket.length
-        const marker = L.marker([lat, lng], {
-          icon: vehicleClusterIcon(bucket.length, bucket),
-          zIndexOffset: 1000,
-          title: `${bucket.length} превозни средства`,
-        })
-        marker.on('click', () =>
-          map.setView([lat, lng], Math.min(zoom + 2, DETAIL_ZOOM), { animate: true }),
-        )
-        marker.addTo(group)
-        continue
-      }
-
-      const v = bucket[0]
+    for (const v of vehicles) {
       if (!Number.isFinite(v.lat) || !Number.isFinite(v.lng)) continue
 
       const latlng = L.latLng(v.lat, v.lng)
+      if (!bounds.contains(latlng)) continue
 
       const color = getRouteColor(v.routeType)
       const label = getRouteLabel(v.routeType)
