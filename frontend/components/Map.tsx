@@ -26,7 +26,9 @@ const EMPTY_VEHICLES: Vehicle[] = []
 
 export default function MapView() {
   const mapRef = useRef<LeafletMap | null>(null)
-  const [dark, setDark] = useState(true)
+  const [dark, setDark] = useState(() =>
+    typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : true,
+  )
   const [tracking, setTracking] = useState(false)
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null)
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
@@ -60,7 +62,16 @@ export default function MapView() {
     }
   }, [lockedVehicleId])
 
-  const toggleTheme = useCallback(() => setDark((d) => !d), [])
+  const toggleTheme = useCallback(() => {
+    setDark((current) => {
+      const next = !current
+      document.documentElement.classList.toggle('dark', next)
+      try {
+        localStorage.setItem('theme', next ? 'dark' : 'light')
+      } catch {}
+      return next
+    })
+  }, [])
   const toggleTracking = useCallback(() => setTracking((t) => !t), [])
   const togglePanel = useCallback((p: string) => {
     setActivePanel((c) => {
