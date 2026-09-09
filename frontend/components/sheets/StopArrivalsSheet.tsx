@@ -7,7 +7,6 @@ import { useSSE } from '@/hooks/useSSE'
 import { api } from '@/lib/api'
 import { formatEta, getRouteColor } from '@/lib/transit'
 
-const RAMP_PROXIMITY_METERS = 10
 // Gap between top of sheet and bottom of floating nav
 const TOP_GAP = 12
 // Fallback viewport ratio for max height when nav can't be measured
@@ -49,8 +48,6 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
   const dragStartHeight = useRef(0)
 
   const { reserveBoard, isReserved } = useRamp()
-
-  const isNearStop = true
 
   const sseArrivals = useSSE<StopArrival[]>(
     stop ? `/stops/${encodeURIComponent(stop.id)}/vehicles/stream?limit=20` : null,
@@ -345,7 +342,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                 const expected = item.expectedTime ?? null
                 const isDelayed = item.realtime && scheduled && expected && expected !== scheduled
                 const vehicleId = item.vehicleId
-                const canRequest = isNearStop && Boolean(vehicleId)
+                const canRequest = Boolean(vehicleId)
                 const reserved = vehicleId ? isReserved(vehicleId, stop.id) : false
                 const isReserving = reservingId === vehicleId
 
@@ -442,10 +439,8 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                         title={
                           reserved
                             ? 'Резервация за качване'
-                            : canRequest
-                              ? 'Резервирай рампа за качване'
-                              : vehicleId
-                                ? `Приближете се до ${RAMP_PROXIMITY_METERS}м от спирката`
+                              : canRequest
+                                ? 'Резервирай рампа за качване'
                                 : 'Няма данни за превозното средство'
                         }
                       >
