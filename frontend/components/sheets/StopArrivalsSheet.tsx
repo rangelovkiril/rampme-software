@@ -265,6 +265,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
             <button
               type="button"
               onClick={() => setRampOnly((v) => !v)}
+              aria-label={rampOnly ? `Покажи всички (${rampCount})` : 'Покажи само превозни средства с рампа'}
               className="stop-sheet-action flex items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition-all"
               style={{
                 background: rampOnly ? '#3b82f6' : 'var(--control-bg)',
@@ -292,7 +293,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                 <path d="M12 12l-5 5" />
                 <path d="M17 7v6" />
               </svg>
-              {rampOnly ? `Рампа (${rampCount})` : 'Рампа'}
+              {rampOnly ? `Само с рампа (${rampCount})` : 'Всички'}
             </button>
             <button
               type="button"
