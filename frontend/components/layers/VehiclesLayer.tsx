@@ -27,19 +27,26 @@ function accessibilityBorderStyle(rampStatus: Vehicle['rampStatus']): string {
 }
 
 function vehicleIcon(
-  _bearing: number,
   routeType: number | null | undefined,
   routeName: string,
   rampStatus: Vehicle['rampStatus'],
+  selected: boolean,
 ) {
   const color = getRouteColor(routeType)
   const ring = accessibilityRingColor(rampStatus)
   const borderStyle = accessibilityBorderStyle(rampStatus)
+  const glyph =
+    routeType === 0
+      ? '<path d="M4 5h16v11H4zM4 9h16M8 19v-3M16 19v-3"/>'
+      : routeType === 11
+        ? '<path d="M5 4h14v13H5zM5 9h14M8 20v-3M16 20v-3M8 7h.01M16 7h.01"/>'
+        : '<rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 10h16M7 20v-3M17 20v-3M7 7h.01M17 7h.01"/>'
+  const emphasis = selected ? '0 0 0 4px rgba(59,130,246,0.35),' : ''
   return L.divIcon({
     className: '',
     html: `<div style="position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;white-space:nowrap;font-family:Inter,sans-serif">
-      <span style="display:grid;place-items:center;width:27px;height:27px;background:${color};color:#fff;border-radius:50%;border:2px ${borderStyle} ${ring};box-shadow:0 2px 6px rgba(0,0,0,0.4)">
-        <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 10h16M7 20v-3M17 20v-3M7 7h.01M17 7h.01"/></svg>
+      <span style="display:grid;place-items:center;width:27px;height:27px;background:${color};color:#fff;border-radius:50%;border:2px ${borderStyle} ${ring};box-shadow:${emphasis}0 2px 6px rgba(0,0,0,0.4)">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${glyph}</svg>
       </span>
       <span style="background:rgba(255,255,255,0.95);color:#111827;font-size:11px;font-weight:800;padding:3px 6px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,0.3)">${routeName}</span>
     </div>`,
@@ -48,13 +55,17 @@ function vehicleIcon(
   })
 }
 
-function vehicleDotIcon(routeType: number | null | undefined, rampStatus: Vehicle['rampStatus']) {
+function vehicleDotIcon(
+  routeType: number | null | undefined,
+  rampStatus: Vehicle['rampStatus'],
+  selected: boolean,
+) {
   const color = getRouteColor(routeType)
   const ring = accessibilityRingColor(rampStatus)
   const borderStyle = accessibilityBorderStyle(rampStatus)
   return L.divIcon({
     className: '',
-    html: `<div style="width:10px;height:10px;border-radius:50%;background:${color};border:2px ${borderStyle} ${ring};box-shadow:0 1px 4px rgba(0,0,0,0.5);transform:translate(-50%,-50%)"></div>`,
+    html: `<div style="width:${selected ? 14 : 10}px;height:${selected ? 14 : 10}px;border-radius:50%;background:${color};border:2px ${borderStyle} ${ring};box-shadow:${selected ? '0 0 0 4px rgba(59,130,246,0.35),' : ''}0 1px 4px rgba(0,0,0,0.5);transform:translate(-50%,-50%)"></div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
   })
@@ -146,8 +157,8 @@ export default function VehiclesLayer({
       </div>`
 
       const icon = useDetailed
-        ? vehicleIcon(v.bearing ?? 0, v.routeType, displayName, v.rampStatus)
-        : vehicleDotIcon(v.routeType, v.rampStatus)
+        ? vehicleIcon(v.routeType, displayName, v.rampStatus, v.id === selectedVehicleId)
+        : vehicleDotIcon(v.routeType, v.rampStatus, v.id === selectedVehicleId)
       const marker = L.marker(latlng, {
         icon,
         zIndexOffset: 1000,
