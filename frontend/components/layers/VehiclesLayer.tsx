@@ -48,7 +48,7 @@ function vehicleIcon(
       <span style="display:grid;place-items:center;width:27px;height:27px;background:${color};color:#fff;border-radius:50%;border:2px ${borderStyle} ${ring};box-shadow:${emphasis}0 2px 6px rgba(0,0,0,0.4)">
         <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${glyph}</svg>
       </span>
-      <span style="background:rgba(255,255,255,0.95);color:#111827;font-size:11px;font-weight:800;padding:3px 6px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,0.3)">${routeName}</span>
+      <span style="background:rgba(255,255,255,0.95);color:#111827;font-size:11px;font-weight:800;padding:3px 6px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,0.3)">${routeName.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</span>
     </div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
@@ -142,32 +142,11 @@ export default function VehiclesLayer({
       const latlng = L.latLng(v.lat, v.lng)
       if (!bounds.contains(latlng)) continue
 
-      const color = getRouteColor(v.routeType)
       const label = getRouteLabel(v.routeType)
       const displayName = v.routeShortName ?? v.label ?? v.id
       const titleLabel = v.routeShortName ? `${label} ${v.routeShortName}` : displayName
       const headsign = v.headsign ?? ''
       const ramp = getVehicleAccessibility(v.rampStatus)
-      const point = map.project(latlng, zoom)
-      const nearby = vehicles.filter((other) => {
-        if (other.id === v.id || !Number.isFinite(other.lat) || !Number.isFinite(other.lng))
-          return false
-        const otherPoint = map.project([other.lat, other.lng], zoom)
-        return point.distanceTo(otherPoint) <= 16
-      })
-      const nearbySummary =
-        nearby.length > 0
-          ? `<br/><span style="display:block;margin-top:6px;font-size:11px;opacity:0.7">Още на това място: ${nearby.map((other) => `${getRouteLabel(other.routeType)} ${other.routeShortName ?? other.id}`).join(' · ')}</span>`
-          : ''
-
-      const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:13px">
-        <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${titleLabel}</span>
-        ${headsign ? `<br/>${headsign}` : ''}
-        <br/><span style="opacity:0.5;font-size:11px">${v.id} · ${v.speed} km/h</span>
-        <br/><span style="color:${ramp.color};font-size:11px;font-weight:600">${ramp.text}</span>
-        ${nearbySummary}
-      </div>`
-
       const icon = useDetailed
         ? vehicleIcon(v.routeType, displayName, v.rampStatus, v.id === selectedVehicleId)
         : vehicleDotIcon(v.routeType, v.rampStatus, v.id === selectedVehicleId)
@@ -176,13 +155,51 @@ export default function VehiclesLayer({
         zIndexOffset: 1000,
         title: `${titleLabel}${headsign ? ` · ${headsign}` : ''} · ${ramp.text}`,
       })
-      marker.bindPopup(popupHtml)
-      if (onVehicleSelect) marker.on('click', () => onVehicleSelect(v))
+
+      marker.on('click', () => {
+        const point = map.latLngToContainerPoint(latlng)
+        const candidates = vehicles.filter(
+          (other) =>
+            Number.isFinite(other.lat) &&
+            Number.isFinite(other.lng) &&
+            point.distanceTo(map.latLngToContainerPoint([other.lat, other.lng])) <= 24,
+        )
+        if (candidates.length <= 1 && onVehicleSelect) {
+          map.closePopup()
+          onVehicleSelect(v)
+          return
+        }
+        const content = document.createElement('div')
+        content.className = 'vehicle-chooser'
+        const heading = document.createElement('h2')
+        heading.textContent = 'Изберете превозно средство'
+        content.append(heading)
+        for (const candidate of candidates) {
+          const row = document.createElement('button')
+          row.type = 'button'
+          const name = document.createElement('strong')
+          name.textContent = `${getRouteLabel(candidate.routeType)} ${candidate.routeShortName ?? candidate.id}`
+          const destination = document.createElement('span')
+          destination.textContent = candidate.headsign ?? 'Няма данни за посоката'
+          const status = document.createElement('span')
+          status.textContent = getVehicleAccessibility(candidate.rampStatus).text
+          row.append(name, destination, status)
+          row.addEventListener('click', () => {
+            map.closePopup()
+            onVehicleSelect?.(candidate)
+          })
+          content.append(row)
+        }
+        L.popup({ className: 'vehicle-choice-popup', maxWidth: 280, minWidth: 220 })
+          .setLatLng(latlng)
+          .setContent(content)
+          .openOn(map)
+      })
       marker.addTo(group)
     }
 
     group.addTo(map)
-  }, [vehicles, map, revision, onVehicleSelect])
+  }, [vehicles, map, revision, onVehicleSelect, selectedVehicleId])
 
   return null
 }

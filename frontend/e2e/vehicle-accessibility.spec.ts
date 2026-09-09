@@ -84,6 +84,7 @@ test('switching vehicles replaces the equipment label', async ({ page }) => {
   const markers = page.locator('.leaflet-marker-pane .leaflet-marker-icon')
   await expect(markers).toHaveCount(2)
   await markers.first().dispatchEvent('click')
+  await page.locator('.vehicle-chooser button').first().click()
   await expect(page.locator('[data-vehicle-accessibility]')).toHaveText('С рампа')
   await markers.nth(1).dispatchEvent('click')
   await expect(page.locator('[data-vehicle-accessibility]')).toHaveText('Без рампа')

@@ -89,3 +89,19 @@ test('round-trips a ramp reservation through the session UI', async ({ page }) =
   expect(api.rampSessionIds.every((id) => id === sessionId)).toBe(true)
   expect(api.unhandledRequests).toEqual([])
 })
+
+test('overlapping vehicles offer a chooser without duplicate sheets', async ({ page }) => {
+  await mockTransitApi(page, {
+    vehicles: [
+      createVehicle({ id: 'bus-overlap', routeShortName: '84' }),
+      createVehicle({ id: 'tram-overlap', routeShortName: '5', routeType: 0 }),
+    ],
+  })
+  await page.goto('/')
+  await page.locator('.leaflet-marker-icon > div').last().click()
+  await expect(page.getByRole('heading', { name: 'Изберете превозно средство' })).toBeVisible()
+  await expect(page.locator('.vehicle-chooser button')).toHaveCount(2)
+  await page.locator('.vehicle-chooser button').filter({ hasText: 'Трамвай 5' }).click()
+  await expect(page.locator('.vehicle-chooser')).toHaveCount(0)
+  await expect(page.locator('[data-vehicle-accessibility]')).toBeVisible()
+})
