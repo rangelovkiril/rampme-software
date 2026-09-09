@@ -37,7 +37,12 @@ function vehicleIcon(
   const borderStyle = accessibilityBorderStyle(rampStatus)
   return L.divIcon({
     className: '',
-    html: `<div style="position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:${color};color:#fff;font-family:Inter,sans-serif;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;border:2px ${borderStyle} ${ring};box-shadow:0 2px 6px rgba(0,0,0,0.4)">${routeName}</div>`,
+    html: `<div style="position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;white-space:nowrap;font-family:Inter,sans-serif">
+      <span style="display:grid;place-items:center;width:27px;height:27px;background:${color};color:#fff;border-radius:50%;border:2px ${borderStyle} ${ring};box-shadow:0 2px 6px rgba(0,0,0,0.4)">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 10h16M7 20v-3M17 20v-3M7 7h.01M17 7h.01"/></svg>
+      </span>
+      <span style="background:rgba(255,255,255,0.95);color:#111827;font-size:11px;font-weight:800;padding:3px 6px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,0.3)">${routeName}</span>
+    </div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
   })
