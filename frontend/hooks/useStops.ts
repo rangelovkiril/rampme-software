@@ -46,5 +46,13 @@ export function useStops(): {
     }
   }, [attempt])
 
-  return { stops, loading, error, retry: () => setAttempt((value) => value + 1) }
+  return {
+    stops,
+    loading,
+    error,
+    retry: () => {
+      stopsPromise = null
+      setAttempt((value) => value + 1)
+    },
+  }
 }

@@ -146,7 +146,6 @@ export default function VehiclesLayer({
       const marker = L.marker(latlng, {
         icon,
         zIndexOffset: 1000,
-        keyboard: false,
         title: `${titleLabel}${headsign ? ` · ${headsign}` : ''} · ${ramp.text}`,
       })
       marker.bindPopup(popupHtml)
