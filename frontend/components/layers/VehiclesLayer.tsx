@@ -124,12 +124,35 @@ export default function VehiclesLayer({
 
     const bounds = map.getBounds()
     const useDetailed = zoom >= DETAIL_ZOOM
+    const overlapBuckets = new Map<string, Vehicle[]>()
+    for (const v of vehicles) {
+      if (!Number.isFinite(v.lat) || !Number.isFinite(v.lng)) continue
+      const point = map.project([v.lat, v.lng], zoom)
+      const key = `${Math.floor(point.x / 18)}:${Math.floor(point.y / 18)}`
+      const bucket = overlapBuckets.get(key) ?? []
+      bucket.push(v)
+      overlapBuckets.set(key, bucket)
+    }
 
     for (const v of vehicles) {
       if (!Number.isFinite(v.lat) || !Number.isFinite(v.lng)) continue
 
       const latlng = L.latLng(v.lat, v.lng)
       if (!bounds.contains(latlng)) continue
+      const point = map.project(latlng, zoom)
+      const bucket =
+        overlapBuckets.get(`${Math.floor(point.x / 18)}:${Math.floor(point.y / 18)}`) ?? []
+      const overlapIndex = bucket.indexOf(v)
+      const displayPoint =
+        bucket.length > 1
+          ? point.add(
+              L.point(
+                Math.cos((overlapIndex / bucket.length) * Math.PI * 2) * 12,
+                Math.sin((overlapIndex / bucket.length) * Math.PI * 2) * 12,
+              ),
+            )
+          : point
+      const displayLatLng = map.unproject(displayPoint, zoom)
 
       const color = getRouteColor(v.routeType)
       const label = getRouteLabel(v.routeType)
@@ -148,7 +171,7 @@ export default function VehiclesLayer({
       const icon = useDetailed
         ? vehicleIcon(v.bearing ?? 0, v.routeType, displayName, v.rampStatus)
         : vehicleDotIcon(v.routeType, v.rampStatus)
-      const marker = L.marker(latlng, {
+      const marker = L.marker(displayLatLng, {
         icon,
         zIndexOffset: 1000,
         title: `${titleLabel}${headsign ? ` · ${headsign}` : ''} · ${ramp.text}`,
