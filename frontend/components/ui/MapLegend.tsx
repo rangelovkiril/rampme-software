@@ -9,7 +9,7 @@ const ITEMS = [
 export default function MapLegend() {
   return (
     <fieldset
-      className="pointer-events-none fixed bottom-24 left-3 z-[600] rounded-xl border px-2.5 py-2 shadow-[var(--shadow)] sm:bottom-8 sm:left-4 sm:px-3 sm:py-2.5"
+      className="pointer-events-none fixed bottom-12 left-3 z-[600] rounded-xl border px-2.5 py-2 shadow-[var(--shadow)] sm:bottom-8 sm:left-4 sm:px-3 sm:py-2.5"
       style={{ background: 'var(--surface-overlay)', borderColor: 'var(--border)' }}
       aria-label="Легенда за достъпността на превозните средства"
     >
