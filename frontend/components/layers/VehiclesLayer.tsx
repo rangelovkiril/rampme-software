@@ -143,7 +143,12 @@ export default function VehiclesLayer({
       const icon = useDetailed
         ? vehicleIcon(v.bearing ?? 0, v.routeType, displayName, v.rampStatus)
         : vehicleDotIcon(v.routeType, v.rampStatus)
-      const marker = L.marker(latlng, { icon, zIndexOffset: 1000 })
+      const marker = L.marker(latlng, {
+        icon,
+        zIndexOffset: 1000,
+        keyboard: false,
+        title: `${titleLabel}${headsign ? ` · ${headsign}` : ''} · ${ramp.text}`,
+      })
       marker.bindPopup(popupHtml)
       if (onVehicleSelect) marker.on('click', () => onVehicleSelect(v))
       marker.addTo(group)

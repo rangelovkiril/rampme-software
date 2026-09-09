@@ -461,6 +461,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                               {cancelableRes ? (
                                 <button
                                   type="button"
+                                  aria-label={`Откажи слизане на ${stop.stopName}`}
                                   onClick={() => cancel(cancelableRes.id)}
                                   className="rounded-lg px-2 py-1 text-xs font-semibold cursor-pointer transition-all"
                                   style={{
@@ -474,6 +475,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                               ) : canAlight ? (
                                 <button
                                   type="button"
+                                  aria-label={`${isReservingThis ? 'Резервиране на' : 'Резервирай'} слизане на ${stop.stopName}`}
                                   disabled={isReservingThis}
                                   onClick={async () => {
                                     if (!vehicle || reservingStopId) return
@@ -495,6 +497,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                               ) : canBoard ? (
                                 <button
                                   type="button"
+                                  aria-label={`${isBoardingThis ? 'Резервирана' : 'Резервирай'} рампа за качване на ${stop.stopName}`}
                                   disabled={isBoardingThis}
                                   onClick={async () => {
                                     if (!vehicle || boardingStopId) return

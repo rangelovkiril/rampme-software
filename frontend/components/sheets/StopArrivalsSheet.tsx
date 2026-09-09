@@ -420,6 +420,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
 
                       <button
                         type="button"
+                        aria-label={`${reserved ? 'Резервирана' : 'Резервирай'} рампа за качване на ${stop.name}`}
                         disabled={!canRequest || reserved || isReserving}
                         onClick={() => vehicleId && handleReserve(vehicleId)}
                         className="stop-sheet-action rounded-lg px-3 py-1.5 text-sm font-semibold transition-all whitespace-nowrap"
