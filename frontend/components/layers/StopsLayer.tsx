@@ -18,7 +18,7 @@ function createStopIcon(selected = false) {
     className: '',
     html: `<div style="display:flex;flex-direction:column;align-items:center;width:20px;height:29px">
       <div style="background:${signBg};border-radius:3px;width:18px;height:13px;display:flex;align-items:center;justify-content:center;box-shadow:${glow};flex-shrink:0">
-        <span style="color:#fff;font-size:9px;font-weight:900;font-family:sans-serif;line-height:1">H</span>
+        <span style="font-size:12px;line-height:1" aria-hidden="true">♿</span>
       </div>
       <div style="width:2px;flex:1;background:${poleBg}"></div>
       <div style="width:5px;height:5px;border-radius:50%;background:${poleBg};flex-shrink:0"></div>
@@ -96,6 +96,7 @@ export default function StopsLayer({ selectedStopId = null, onStopSelect }: Stop
       const marker = L.marker(latlng, {
         icon: selectedStopId === stop.id ? selectedIconRef.current : iconRef.current,
         riseOnHover: true,
+        title: `Спирка ${stop.name}`,
         bubblingMouseEvents: false,
       })
       marker.on('click', () => onStopSelect?.(stop))
