@@ -11,7 +11,7 @@ app/
   manifest.ts / icon.tsx / apple-icon.tsx   Build-time metadata routes (force-static)
 
 components/
-  Map.tsx                     Orchestrator - holds all app state, composes everything below
+  Map.tsx                     Orchestrator - owns the vehicle SSE feed and selection, composes everything below
   MissedBusAlert.tsx          Toast shown when a ramp-reserved vehicle departs without the ramp being used
 
   layers/                     Leaflet map layers (use useMap(), render nothing to DOM)
@@ -50,6 +50,7 @@ hooks/
 lib/
   api.ts                      Eden treaty client - every HTTP call, typed from the backend's own routes
   transit.ts                  Route type config (colors, labels), getRouteColor(), formatEta()
+  vehicle-accessibility.ts    Equipment labels shared by the map popup and vehicle sheet
   trip-etas.ts                applyEtaUpdates() - merges live ETAs onto a trip's stops
   ramp-updates.ts             computeRampUpdate() - diffs reservation state for the missed-bus alert
   config.ts                   apiBase()/apiPath() - resolve the backend base URL (explicit override, dev proxy, or runtime hostname)
@@ -69,6 +70,7 @@ e2e/                            Playwright suite, organized by user flow, own te
 - **Theming**: CSS variables in `globals.css`, toggled via `dark` class on `<html>`. No Tailwind `dark:` prefix; CSS vars directly in `style` props for dynamic values.
 - **Static export, hostname-resolved API base**: `next.config.ts` sets `output: 'export'`; the app is fully client-side, no server. `lib/config.ts`'s `apiPath()` resolves the backend base URL in order: an explicit build-time `NEXT_PUBLIC_API_URL` always wins; in dev (`next dev`) it falls back to `/api` + the dev-only `rewrites()` proxy in `next.config.ts` (-> `BACKEND_URL`, default `http://localhost:3000`); otherwise it reads `window.location.hostname` at runtime, mapping the production hostname to the production API and everything else (staging, PR previews, an unrecognized origin) to the stage API — a fail-safe default, since this backend can trigger a physical hardware action. One build artifact serves every environment; there is no runtime config *fetch*, just a local hostname check.
 - **Realtime data** comes from SSE (`useSSE`): vehicle positions, per-trip ETAs, and ramp reservations. `RampContext` streams session reservations over `/ramp/session/stream` (with an initial `/ramp/session` fetch), not polling.
+- **Vehicle equipment status** comes from the single vehicle SSE subscription in `Map.tsx`. The map layer receives that array as a prop, and the selected sheet resolves its vehicle against the same array, including when opened by reservation ID. Missing vehicle data displays unknown; `working` and `in_use` both mean equipped, not deployment readiness. Equipment wording comes from `lib/vehicle-accessibility.ts`.
 - **SSE reconnect**: browsers can treat a non-200 SSE response as fatal and stop retrying. `useSSE` wraps `EventSource` creation so that on a `CLOSED`-state error it manually reconnects with backoff (2s -> 30s, reset on message); native browser auto-retry (for a connection that drops after being established) still handles the common case on its own.
 
 ## Rules

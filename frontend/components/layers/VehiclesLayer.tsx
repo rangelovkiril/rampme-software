@@ -4,8 +4,8 @@ import type { EnrichedVehicle as Vehicle } from '@backend/schemas'
 import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
-import { useSSE } from '@/hooks/useSSE'
 import { getRouteColor, getRouteLabel } from '@/lib/transit'
+import { getVehicleAccessibility } from '@/lib/vehicle-accessibility'
 
 const MIN_ZOOM = 10
 const DETAIL_ZOOM = 16
@@ -20,17 +20,10 @@ function accessibilityRingColor(rampStatus: Vehicle['rampStatus']): string {
   return 'transparent'
 }
 
-function accessibilityLabel(rampStatus: Vehicle['rampStatus']): {
-  text: string
-  color: string
-} {
-  if (rampStatus === 'working' || rampStatus === 'in_use') {
-    return { text: '♿ С рампа', color: '#22c55e' }
-  }
-  if (rampStatus === 'no_ramp') {
-    return { text: 'Без рампа', color: '#9ca3af' }
-  }
-  return { text: 'Достъпност неизвестна', color: '#9ca3af' }
+function accessibilityBorderStyle(rampStatus: Vehicle['rampStatus']): string {
+  if (rampStatus === 'working' || rampStatus === 'in_use') return 'solid'
+  if (rampStatus === 'no_ramp') return 'dashed'
+  return 'dotted'
 }
 
 function vehicleIcon(
@@ -41,9 +34,10 @@ function vehicleIcon(
 ) {
   const color = getRouteColor(routeType)
   const ring = accessibilityRingColor(rampStatus)
+  const borderStyle = accessibilityBorderStyle(rampStatus)
   return L.divIcon({
     className: '',
-    html: `<div style="position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:${color};color:#fff;font-family:Inter,sans-serif;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;border:2px solid ${ring};box-shadow:0 2px 6px rgba(0,0,0,0.4)">${routeName}</div>`,
+    html: `<div style="position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:${color};color:#fff;font-family:Inter,sans-serif;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;border:2px ${borderStyle} ${ring};box-shadow:0 2px 6px rgba(0,0,0,0.4)">${routeName}</div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
   })
@@ -52,24 +46,28 @@ function vehicleIcon(
 function vehicleDotIcon(routeType: number | null | undefined, rampStatus: Vehicle['rampStatus']) {
   const color = getRouteColor(routeType)
   const ring = accessibilityRingColor(rampStatus)
+  const borderStyle = accessibilityBorderStyle(rampStatus)
   return L.divIcon({
     className: '',
-    html: `<div style="width:10px;height:10px;border-radius:50%;background:${color};border:2px solid ${ring};box-shadow:0 1px 4px rgba(0,0,0,0.5);transform:translate(-50%,-50%)"></div>`,
+    html: `<div style="width:10px;height:10px;border-radius:50%;background:${color};border:2px ${borderStyle} ${ring};box-shadow:0 1px 4px rgba(0,0,0,0.5);transform:translate(-50%,-50%)"></div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
   })
 }
 
 interface VehiclesLayerProps {
+  vehicles: Vehicle[]
   onVehicleSelect?: (vehicle: Vehicle) => void
   selectedVehicleId?: string | null
 }
 
-export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: VehiclesLayerProps) {
+export default function VehiclesLayer({
+  vehicles,
+  onVehicleSelect,
+  selectedVehicleId,
+}: VehiclesLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.LayerGroup | null>(null)
-  const sseVehicles = useSSE<Vehicle[]>('/realtime/vehicles/stream')
-  const vehicles = sseVehicles ?? []
   const [revision, setRevision] = useState(0)
   const prevSelectedRef = useRef<string | null>(null)
 
@@ -133,7 +131,7 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
       const displayName = v.routeShortName ?? v.label ?? v.id
       const titleLabel = v.routeShortName ? `${label} ${v.routeShortName}` : displayName
       const headsign = v.headsign ?? ''
-      const ramp = accessibilityLabel(v.rampStatus)
+      const ramp = getVehicleAccessibility(v.rampStatus)
 
       const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:13px">
         <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${titleLabel}</span>
@@ -145,7 +143,11 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
       const icon = useDetailed
         ? vehicleIcon(v.bearing ?? 0, v.routeType, displayName, v.rampStatus)
         : vehicleDotIcon(v.routeType, v.rampStatus)
-      const marker = L.marker(latlng, { icon, zIndexOffset: 1000 })
+      const marker = L.marker(latlng, {
+        icon,
+        zIndexOffset: 1000,
+        title: `${titleLabel}${headsign ? ` · ${headsign}` : ''} · ${ramp.text}`,
+      })
       marker.bindPopup(popupHtml)
       if (onVehicleSelect) marker.on('click', () => onVehicleSelect(v))
       marker.addTo(group)

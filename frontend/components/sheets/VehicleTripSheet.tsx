@@ -4,28 +4,16 @@ import type { EnrichedVehicle as Vehicle } from '@backend/schemas'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRamp } from '@/contexts/RampContext'
 import { type TripStop, useVehicleTripInfo } from '@/hooks/useVehicleTripInfo'
-import { getRouteColor, getRouteLabel } from '@/lib/transit'
+import { formatEta, getRouteColor, getRouteLabel } from '@/lib/transit'
+import { getVehicleAccessibility } from '@/lib/vehicle-accessibility'
 
 function StopStatusLabel({ stop }: { stop: TripStop }) {
   if (stop.status === 'departed')
     return <span>Замина{stop.expectedTime ? ` ${stop.expectedTime}` : ''}</span>
-  if (stop.realtime && stop.expectedTime) {
-    return (
-      <span>
-        {stop.status === 'delay' && (
-          <>
-            <span style={{ textDecoration: 'line-through', opacity: 0.4 }}>
-              {stop.scheduledTime}
-            </span>{' '}
-          </>
-        )}
-        <span style={{ color: stop.status === 'delay' ? '#f59e0b' : '#22c55e' }}>
-          {stop.expectedTime}
-        </span>
-      </span>
-    )
-  }
-  return <span>{stop.scheduledTime ?? ''}</span>
+  const displayedTime = stop.realtime
+    ? (stop.expectedTime ?? stop.scheduledTime)
+    : stop.scheduledTime
+  return <span>{displayedTime ?? ''}</span>
 }
 
 interface Props {
@@ -178,6 +166,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
 
   if (!vehicle) return null
 
+  const accessibility = getVehicleAccessibility(vehicle.rampStatus)
   const routeShortName = vehicle.routeShortName ?? trip?.routeShortName ?? null
   const routeType = vehicle.routeType ?? trip?.routeType ?? null
   const headsign = vehicle.headsign ?? trip?.headsign ?? null
@@ -226,9 +215,9 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
           ref={headerRef}
           className="flex items-center justify-between gap-3 px-4 pt-2 pb-2 shrink-0"
         >
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex flex-1 items-center gap-3 min-w-0">
             <span
-              className="inline-flex h-9 min-w-14 items-center justify-center rounded-lg px-3 text-lg font-bold text-white"
+              className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-lg px-3 text-lg font-bold text-white"
               style={{ background: routeColor }}
             >
               {routeShortName ?? '—'}
@@ -246,19 +235,65 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                   </span>
                 )}
               </p>
+              <p
+                data-vehicle-accessibility
+                className="mt-1.5 inline-flex max-w-full items-start gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium"
+                style={{
+                  background: 'var(--control-bg)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text)',
+                }}
+              >
+                <svg
+                  aria-hidden="true"
+                  className="mt-0.5 shrink-0"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  {accessibility.icon === 'check' ? (
+                    <path d="m8 12 3 3 5-6" />
+                  ) : accessibility.icon === 'minus' ? (
+                    <path d="M8 12h8" />
+                  ) : (
+                    <>
+                      <path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4" />
+                      <path d="M12 16h.01" />
+                    </>
+                  )}
+                </svg>
+                <span>{accessibility.text}</span>
+              </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-sm shrink-0"
+            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full shrink-0"
             style={{
               background: 'var(--control-bg)',
               color: 'var(--text-secondary)',
             }}
             aria-label="Затвори"
           >
-            x
+            <svg
+              aria-hidden="true"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
@@ -408,15 +443,9 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                                       момент
                                     </p>
                                   ) : (
-                                    <>
-                                      <p className="text-base font-bold">{stop.etaMinutes}</p>
-                                      <p
-                                        className="text-[10px]"
-                                        style={{ color: 'var(--text-muted)' }}
-                                      >
-                                        мин
-                                      </p>
-                                    </>
+                                    <p className="text-base font-bold">
+                                      {formatEta(stop.etaMinutes)}
+                                    </p>
                                   )}
                                 </div>
                               )}
@@ -424,6 +453,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                               {cancelableRes ? (
                                 <button
                                   type="button"
+                                  aria-label={`Откажи слизане на ${stop.stopName}`}
                                   onClick={() => cancel(cancelableRes.id)}
                                   className="rounded-lg px-2 py-1 text-xs font-semibold cursor-pointer transition-all"
                                   style={{
@@ -437,6 +467,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                               ) : canAlight ? (
                                 <button
                                   type="button"
+                                  aria-label={`${isReservingThis ? 'Резервиране на' : 'Резервирай'} слизане на ${stop.stopName}`}
                                   disabled={isReservingThis}
                                   onClick={async () => {
                                     if (!vehicle || reservingStopId) return
@@ -458,6 +489,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                               ) : canBoard ? (
                                 <button
                                   type="button"
+                                  aria-label={`${isBoardingThis ? 'Резервирана' : 'Резервирай'} рампа за качване на ${stop.stopName}`}
                                   disabled={isBoardingThis}
                                   onClick={async () => {
                                     if (!vehicle || boardingStopId) return

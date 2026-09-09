@@ -7,7 +7,6 @@ import { useSSE } from '@/hooks/useSSE'
 import { api } from '@/lib/api'
 import { formatEta, getRouteColor } from '@/lib/transit'
 
-const RAMP_PROXIMITY_METERS = 10
 // Gap between top of sheet and bottom of floating nav
 const TOP_GAP = 12
 // Fallback viewport ratio for max height when nav can't be measured
@@ -49,8 +48,6 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
   const dragStartHeight = useRef(0)
 
   const { reserveBoard, isReserved } = useRamp()
-
-  const isNearStop = true
 
   const sseArrivals = useSSE<StopArrival[]>(
     stop ? `/stops/${encodeURIComponent(stop.id)}/vehicles/stream?limit=20` : null,
@@ -265,6 +262,9 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
             <button
               type="button"
               onClick={() => setRampOnly((v) => !v)}
+              aria-label={
+                rampOnly ? `Покажи всички (${rampCount})` : 'Покажи само превозни средства с рампа'
+              }
               className="stop-sheet-action flex items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition-all"
               style={{
                 background: rampOnly ? '#3b82f6' : 'var(--control-bg)',
@@ -292,7 +292,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                 <path d="M12 12l-5 5" />
                 <path d="M17 7v6" />
               </svg>
-              {rampOnly ? `Рампа (${rampCount})` : 'Рампа'}
+              {rampOnly ? `Само с рампа (${rampCount})` : 'Всички'}
             </button>
             <button
               type="button"
@@ -344,7 +344,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                 const expected = item.expectedTime ?? null
                 const isDelayed = item.realtime && scheduled && expected && expected !== scheduled
                 const vehicleId = item.vehicleId
-                const canRequest = isNearStop && Boolean(vehicleId)
+                const canRequest = Boolean(vehicleId)
                 const reserved = vehicleId ? isReserved(vehicleId, stop.id) : false
                 const isReserving = reservingId === vehicleId
 
@@ -420,6 +420,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
 
                       <button
                         type="button"
+                        aria-label={`${reserved ? 'Резервирана' : 'Резервирай'} рампа за качване на ${stop.name}`}
                         disabled={!canRequest || reserved || isReserving}
                         onClick={() => vehicleId && handleReserve(vehicleId)}
                         className="stop-sheet-action rounded-lg px-3 py-1.5 text-sm font-semibold transition-all whitespace-nowrap"
@@ -442,9 +443,7 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                             ? 'Резервация за качване'
                             : canRequest
                               ? 'Резервирай рампа за качване'
-                              : vehicleId
-                                ? `Приближете се до ${RAMP_PROXIMITY_METERS}м от спирката`
-                                : 'Няма данни за превозното средство'
+                              : 'Няма данни за превозното средство'
                         }
                       >
                         {reserved

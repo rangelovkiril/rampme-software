@@ -12,7 +12,7 @@ interface StopsPanelProps {
 export default function StopsPanel({ onSelectStop, onClose }: StopsPanelProps) {
   const [search, setSearch] = useState('')
 
-  const { stops, loading } = useStops()
+  const { stops, loading, error, retry } = useStops()
 
   const filtered = useMemo(() => {
     if (!search.trim()) return stops.slice(0, 100)
@@ -35,6 +35,24 @@ export default function StopsPanel({ onSelectStop, onClose }: StopsPanelProps) {
       <p className="side-panel-text py-3" style={{ color: 'var(--text-muted)' }}>
         Зареждане...
       </p>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col gap-3 py-3">
+        <p className="side-panel-text" style={{ color: 'var(--text-secondary)' }}>
+          Неуспешно зареждане на спирките.
+        </p>
+        <button
+          type="button"
+          onClick={retry}
+          className="rounded-xl px-3 py-2 text-sm font-semibold"
+          style={{ background: 'var(--control-bg)', color: 'var(--text)' }}
+        >
+          Опитайте отново
+        </button>
+      </div>
     )
   }
 
