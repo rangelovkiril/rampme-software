@@ -262,7 +262,9 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
             <button
               type="button"
               onClick={() => setRampOnly((v) => !v)}
-              aria-label={rampOnly ? `Покажи всички (${rampCount})` : 'Покажи само превозни средства с рампа'}
+              aria-label={
+                rampOnly ? `Покажи всички (${rampCount})` : 'Покажи само превозни средства с рампа'
+              }
               className="stop-sheet-action flex items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition-all"
               style={{
                 background: rampOnly ? '#3b82f6' : 'var(--control-bg)',
@@ -439,9 +441,9 @@ export default function StopArrivalsSheet({ stop, onClose, onVehicleLock }: Prop
                         title={
                           reserved
                             ? 'Резервация за качване'
-                              : canRequest
-                                ? 'Резервирай рампа за качване'
-                                : 'Няма данни за превозното средство'
+                            : canRequest
+                              ? 'Резервирай рампа за качване'
+                              : 'Няма данни за превозното средство'
                         }
                       >
                         {reserved

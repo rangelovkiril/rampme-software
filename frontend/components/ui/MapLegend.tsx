@@ -13,12 +13,19 @@ export default function MapLegend() {
       style={{ background: 'var(--surface-overlay)', borderColor: 'var(--border)' }}
       aria-label="Легенда за достъпността на превозните средства"
     >
-      <legend className="mb-1.5 text-[11px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+      <legend
+        className="mb-1.5 text-[11px] font-semibold"
+        style={{ color: 'var(--text-secondary)' }}
+      >
         Достъпност
       </legend>
       <div className="flex items-center gap-3">
         {ITEMS.map((item) => (
-          <span key={item.label} className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text)' }}>
+          <span
+            key={item.label}
+            className="flex items-center gap-1.5 text-[11px]"
+            style={{ color: 'var(--text)' }}
+          >
             <span
               aria-hidden="true"
               className="h-3 w-3 rounded-full"

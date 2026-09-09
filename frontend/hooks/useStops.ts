@@ -20,7 +20,12 @@ function loadStops(): Promise<StopResponse[]> {
   return stopsPromise
 }
 
-export function useStops(): { stops: StopResponse[]; loading: boolean; error: boolean; retry: () => void } {
+export function useStops(): {
+  stops: StopResponse[]
+  loading: boolean
+  error: boolean
+  retry: () => void
+} {
   const [stops, setStops] = useState<StopResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)

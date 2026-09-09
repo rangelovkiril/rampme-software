@@ -10,7 +10,9 @@ import { getVehicleAccessibility } from '@/lib/vehicle-accessibility'
 function StopStatusLabel({ stop }: { stop: TripStop }) {
   if (stop.status === 'departed')
     return <span>Замина{stop.expectedTime ? ` ${stop.expectedTime}` : ''}</span>
-  const displayedTime = stop.realtime ? (stop.expectedTime ?? stop.scheduledTime) : stop.scheduledTime
+  const displayedTime = stop.realtime
+    ? (stop.expectedTime ?? stop.scheduledTime)
+    : stop.scheduledTime
   return <span>{displayedTime ?? ''}</span>
 }
 
