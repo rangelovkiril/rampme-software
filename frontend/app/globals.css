@@ -232,3 +232,40 @@ textarea:focus-visible {
 .res-banner-active {
   animation: res-banner-pulse 1.6s ease-in-out infinite;
 }
+
+.vehicle-choice-popup .leaflet-popup-content-wrapper,
+.vehicle-choice-popup .leaflet-popup-tip {
+  background: var(--surface-overlay);
+  color: var(--text);
+}
+.vehicle-chooser {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.vehicle-chooser h2 {
+  font-size: 14px;
+  margin: 0 16px 10px 0;
+}
+.vehicle-chooser button {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--control-bg);
+  color: var(--text);
+  margin-top: 6px;
+  cursor: pointer;
+}
+.vehicle-chooser button:hover,
+.vehicle-chooser button:focus-visible {
+  background: var(--control-hover);
+  outline: 2px solid var(--primary);
+}
+.vehicle-chooser span {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
