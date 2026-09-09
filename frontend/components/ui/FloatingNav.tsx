@@ -226,15 +226,25 @@ export default function FloatingNav({
               )}
             </div>
           ) : (
-            <div
-              className="rounded-xl px-4 py-3 text-sm font-medium text-center"
-              style={{
-                background: 'var(--control-bg)',
-                color: 'var(--text-muted)',
-              }}
+            <p
+              className="flex items-center justify-center gap-2 px-2 py-1 text-xs font-medium text-center"
+              style={{ color: 'var(--text-secondary)' }}
             >
+              <svg
+                aria-hidden="true"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 10v6M12 7h.01" />
+              </svg>
               Резервирайте рампа от картата
-            </div>
+            </p>
           )}
 
           {/* Nav buttons */}
