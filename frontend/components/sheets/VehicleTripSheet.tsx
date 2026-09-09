@@ -4,29 +4,14 @@ import type { EnrichedVehicle as Vehicle } from '@backend/schemas'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRamp } from '@/contexts/RampContext'
 import { type TripStop, useVehicleTripInfo } from '@/hooks/useVehicleTripInfo'
-import { getRouteColor, getRouteLabel } from '@/lib/transit'
+import { formatEta, getRouteColor, getRouteLabel } from '@/lib/transit'
 import { getVehicleAccessibility } from '@/lib/vehicle-accessibility'
 
 function StopStatusLabel({ stop }: { stop: TripStop }) {
   if (stop.status === 'departed')
     return <span>Замина{stop.expectedTime ? ` ${stop.expectedTime}` : ''}</span>
-  if (stop.realtime && stop.expectedTime) {
-    return (
-      <span>
-        {stop.status === 'delay' && (
-          <>
-            <span style={{ textDecoration: 'line-through', opacity: 0.4 }}>
-              {stop.scheduledTime}
-            </span>{' '}
-          </>
-        )}
-        <span style={{ color: stop.status === 'delay' ? '#f59e0b' : '#22c55e' }}>
-          {stop.expectedTime}
-        </span>
-      </span>
-    )
-  }
-  return <span>{stop.scheduledTime ?? ''}</span>
+  const displayedTime = stop.realtime ? (stop.expectedTime ?? stop.scheduledTime) : stop.scheduledTime
+  return <span>{displayedTime ?? ''}</span>
 }
 
 interface Props {
@@ -456,15 +441,9 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                                       момент
                                     </p>
                                   ) : (
-                                    <>
-                                      <p className="text-base font-bold">{stop.etaMinutes}</p>
-                                      <p
-                                        className="text-[10px]"
-                                        style={{ color: 'var(--text-muted)' }}
-                                      >
-                                        мин
-                                      </p>
-                                    </>
+                                    <p className="text-base font-bold">
+                                      {formatEta(stop.etaMinutes)}
+                                    </p>
                                   )}
                                 </div>
                               )}
