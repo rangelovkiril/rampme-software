@@ -4,8 +4,8 @@ import type { EnrichedVehicle as Vehicle } from '@backend/schemas'
 import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
-import { useSSE } from '@/hooks/useSSE'
 import { getRouteColor, getRouteLabel } from '@/lib/transit'
+import { getVehicleAccessibility } from '@/lib/vehicle-accessibility'
 
 const MIN_ZOOM = 10
 const DETAIL_ZOOM = 16
@@ -18,19 +18,6 @@ function accessibilityRingColor(rampStatus: Vehicle['rampStatus']): string {
   if (rampStatus === 'working' || rampStatus === 'in_use') return '#22c55e'
   if (rampStatus === 'no_ramp') return '#6b7280'
   return 'transparent'
-}
-
-function accessibilityLabel(rampStatus: Vehicle['rampStatus']): {
-  text: string
-  color: string
-} {
-  if (rampStatus === 'working' || rampStatus === 'in_use') {
-    return { text: '♿ С рампа', color: '#22c55e' }
-  }
-  if (rampStatus === 'no_ramp') {
-    return { text: 'Без рампа', color: '#9ca3af' }
-  }
-  return { text: 'Достъпност неизвестна', color: '#9ca3af' }
 }
 
 function vehicleIcon(
@@ -61,15 +48,18 @@ function vehicleDotIcon(routeType: number | null | undefined, rampStatus: Vehicl
 }
 
 interface VehiclesLayerProps {
+  vehicles: Vehicle[]
   onVehicleSelect?: (vehicle: Vehicle) => void
   selectedVehicleId?: string | null
 }
 
-export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: VehiclesLayerProps) {
+export default function VehiclesLayer({
+  vehicles,
+  onVehicleSelect,
+  selectedVehicleId,
+}: VehiclesLayerProps) {
   const map = useMap()
   const groupRef = useRef<L.LayerGroup | null>(null)
-  const sseVehicles = useSSE<Vehicle[]>('/realtime/vehicles/stream')
-  const vehicles = sseVehicles ?? []
   const [revision, setRevision] = useState(0)
   const prevSelectedRef = useRef<string | null>(null)
 
@@ -133,7 +123,7 @@ export default function VehiclesLayer({ onVehicleSelect, selectedVehicleId }: Ve
       const displayName = v.routeShortName ?? v.label ?? v.id
       const titleLabel = v.routeShortName ? `${label} ${v.routeShortName}` : displayName
       const headsign = v.headsign ?? ''
-      const ramp = accessibilityLabel(v.rampStatus)
+      const ramp = getVehicleAccessibility(v.rampStatus)
 
       const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:13px">
         <span style="display:inline-block;background:${color};color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;margin-bottom:4px">${titleLabel}</span>

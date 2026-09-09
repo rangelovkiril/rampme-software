@@ -23,7 +23,7 @@ See proposal.md for the problem tracked by #113. `VehiclesLayer` owns the vehicl
 - Feed ownership moves up one component → preserve layer culling, selection/follow behaviour, and a single SSE connection in regression checks.
 - Long Bulgarian status text increases header height → allow wrapping and verify mobile sheet sizing and close-button visibility.
 - Equipment status does not prove hardware connectivity or deployment → retain factual wording and existing reservation behaviour.
-- Playwright MCP is configured but not callable in the current session → reconnect the editor host before interactive visual verification; do not claim unperformed checks.
+- Browser verification uses deterministic fixtures; live backend and map tile availability are separate from the equipment header checks. Playwright MCP verification completed at 1440 px and 320 px in both themes.
 
 ## Migration Plan
 

@@ -2,10 +2,10 @@
 
 import type { StopResponse as Stop, EnrichedVehicle as Vehicle } from '@backend/schemas'
 import type { Map as LeafletMap } from 'leaflet'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, TileLayer } from 'react-leaflet'
 import { useRamp } from '@/contexts/RampContext'
-import { api } from '@/lib/api'
+import { useSSE } from '@/hooks/useSSE'
 import LiveLocation from './layers/LiveLocation'
 import RouteLinesLayer from './layers/RouteLinesLayer'
 import StopsLayer from './layers/StopsLayer'
@@ -22,6 +22,7 @@ const TILES = {
 }
 
 const SOFIA_CENTER = { lat: 42.6977, lng: 23.3219 }
+const EMPTY_VEHICLES: Vehicle[] = []
 
 export default function MapView() {
   const mapRef = useRef<LeafletMap | null>(null)
@@ -35,6 +36,16 @@ export default function MapView() {
   } | null>(null)
   const [activePanel, setActivePanel] = useState<string | null>(null)
   const [navCloseSignal, setNavCloseSignal] = useState(0)
+  const vehicles = useSSE<Vehicle[]>('/realtime/vehicles/stream') ?? EMPTY_VEHICLES
+  const sheetVehicle = useMemo(() => {
+    if (!selectedVehicle) return null
+    return (
+      vehicles.find((v) => v.id === selectedVehicle.id) ?? {
+        ...selectedVehicle,
+        rampStatus: 'unknown' as const,
+      }
+    )
+  }, [selectedVehicle, vehicles])
 
   const { lockedVehicleId } = useRamp()
 
@@ -74,24 +85,12 @@ export default function MapView() {
     if (routeId && routeType != null) setSelectedRoute({ routeId, routeType })
   }, [])
 
-  const handleVehicleOpen = useCallback(async (vehicleId: string) => {
+  const handleVehicleOpen = useCallback((vehicleId: string) => {
     setSelectedVehicle({ id: vehicleId } as Vehicle)
     setSelectedStop(null)
     setSelectedRoute(null)
     setActivePanel(null)
     setNavCloseSignal((s) => s + 1)
-
-    try {
-      const { data } = await api.realtime.vehicles.get({ query: {} })
-      if (!data) return
-      const v = data.vehicles.find((v) => v.id === vehicleId)
-      if (v && Number.isFinite(v.lat) && Number.isFinite(v.lng)) {
-        mapRef.current?.flyTo([v.lat, v.lng], Math.max(mapRef.current.getZoom(), 16), {
-          animate: true,
-          duration: 0.8,
-        })
-      }
-    } catch {}
   }, [])
 
   const handleStopSelect = useCallback((s: Stop | null) => {
@@ -141,6 +140,7 @@ export default function MapView() {
         />
         <StopsLayer selectedStopId={selectedStop?.id ?? null} onStopSelect={handleStopSelect} />
         <VehiclesLayer
+          vehicles={vehicles}
           onVehicleSelect={handleVehicleSelect}
           selectedVehicleId={selectedVehicle?.id ?? null}
         />
@@ -182,7 +182,7 @@ export default function MapView() {
         onVehicleLock={handleVehicleOpen}
       />
       <VehicleTripSheet
-        vehicle={selectedVehicle}
+        vehicle={sheetVehicle}
         onClose={handleVehicleSheetClose}
         onTripLoaded={handleTripLoaded}
       />

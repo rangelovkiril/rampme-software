@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { useRamp } from '@/contexts/RampContext'
 import { type TripStop, useVehicleTripInfo } from '@/hooks/useVehicleTripInfo'
 import { getRouteColor, getRouteLabel } from '@/lib/transit'
+import { getVehicleAccessibility } from '@/lib/vehicle-accessibility'
 
 function StopStatusLabel({ stop }: { stop: TripStop }) {
   if (stop.status === 'departed')
@@ -178,6 +179,7 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
 
   if (!vehicle) return null
 
+  const accessibility = getVehicleAccessibility(vehicle.rampStatus)
   const routeShortName = vehicle.routeShortName ?? trip?.routeShortName ?? null
   const routeType = vehicle.routeType ?? trip?.routeType ?? null
   const headsign = vehicle.headsign ?? trip?.headsign ?? null
@@ -226,9 +228,9 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
           ref={headerRef}
           className="flex items-center justify-between gap-3 px-4 pt-2 pb-2 shrink-0"
         >
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex flex-1 items-center gap-3 min-w-0">
             <span
-              className="inline-flex h-9 min-w-14 items-center justify-center rounded-lg px-3 text-lg font-bold text-white"
+              className="inline-flex h-9 min-w-14 shrink-0 items-center justify-center rounded-lg px-3 text-lg font-bold text-white"
               style={{ background: routeColor }}
             >
               {routeShortName ?? '—'}
@@ -245,6 +247,41 @@ export default function VehicleTripSheet({ vehicle, onClose, onTripLoaded }: Pro
                     Вашето превозно средство
                   </span>
                 )}
+              </p>
+              <p
+                data-vehicle-accessibility
+                className="mt-1.5 inline-flex max-w-full items-start gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium"
+                style={{
+                  background: 'var(--control-bg)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text)',
+                }}
+              >
+                <svg
+                  aria-hidden="true"
+                  className="mt-0.5 shrink-0"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  {accessibility.icon === 'check' ? (
+                    <path d="m8 12 3 3 5-6" />
+                  ) : accessibility.icon === 'minus' ? (
+                    <path d="M8 12h8" />
+                  ) : (
+                    <>
+                      <path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4" />
+                      <path d="M12 16h.01" />
+                    </>
+                  )}
+                </svg>
+                <span>{accessibility.text}</span>
               </p>
             </div>
           </div>
