@@ -166,7 +166,7 @@ export default function MapView() {
         liftLocate={Boolean(selectedStop)}
         onToggleTracking={toggleTracking}
       />
-      <MapLegend live={liveVehicles !== null} />
+      <MapLegend />
 
       <FloatingNav
         activePanel={activePanel}
